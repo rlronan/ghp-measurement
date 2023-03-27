@@ -37,8 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     #'helloworld',
-    #'testdb',
-    'measure',
+    #'measure',
+    'measure.apps.MeasureConfig'
 ]
 
 MIDDLEWARE = [
@@ -83,9 +83,9 @@ DATABASES = {
         'PASSWORD': os.environ.get('GHP-DB-PW', ''),   # do I need to provide these are will django create them?
         'HOST': '127.0.0.1',
         'PORT': '5432',
-        'OPTIONS': {
-              'options': '-c search_path=finances,objects,users,terms,public'
-        },
+        #'OPTIONS': {
+        #      'options': '-c search_path=finances,objects,users,terms,public'
+        #},
     }
 }
     # 'default': {

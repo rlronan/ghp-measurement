@@ -16,7 +16,7 @@ class User(models.Model):
     current_admin = models.BooleanField(default=False)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'user'
 
 class Account(models.Model):
@@ -26,7 +26,7 @@ class Account(models.Model):
     last_update = models.DateTimeField()
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'account'
 
 
@@ -37,7 +37,7 @@ class Course(models.Model):
     name = models.CharField(max_length=300, help_text="Full name for the course, without the term or teacher e.g. 'INT./ADV. Handbuilding', 'Beginner Wheel")
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'course'
 
 class Location(models.Model):
@@ -46,7 +46,7 @@ class Location(models.Model):
     type = models.CharField(max_length=50, blank=True, help_text="e.g. 'Wheel', 'Handbuilding', 'Glaze'")
     
     class Meta:
-        managed = False
+        managed = True
         db_table = 'location'
 
 class Term(models.Model):
@@ -56,7 +56,7 @@ class Term(models.Model):
     current = models.BooleanField(default=False)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'term'
 
 # class DayOfWeek(models.TextChoices):
@@ -84,7 +84,7 @@ class CourseInstance(models.Model):
     end_time = models.TimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'course_instance'
 
 class Piece(models.Model):
@@ -102,7 +102,7 @@ class Piece(models.Model):
     course = models.ForeignKey(Course, models.SET_NULL, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'piece'
 
 
@@ -117,7 +117,7 @@ class Ledger(models.Model):
     piece = models.ForeignKey(Piece, models.SET_NULL, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'ledger'
 
 
