@@ -36,7 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'helloworld',
+    #'helloworld',
+    #'testdb',
+    'measure',
 ]
 
 MIDDLEWARE = [
@@ -75,10 +77,22 @@ WSGI_APPLICATION = 'ebdjango.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'ghp-db',       # do I need to provide these are will django create them?
+        'USER': 'postgres',   # do I need to provide these are will django create them?
+        'PASSWORD': os.environ.get('GHP-DB-PW', ''),   # do I need to provide these are will django create them?
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+        'OPTIONS': {
+              'options': '-c search_path=finances,objects,users,terms,public'
+        },
     }
 }
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    # }
+# }
 
 
 # Password validation
