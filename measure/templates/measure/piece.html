@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Form</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        $(document).ready(function() {
+            // listen for changes in the length, width, and height fields
+            $('input[name=length], input[name=width], input[name=height]').on('change', function() {
+                // get the current values of length, width, and height
+                var length = parseFloat($('input[name=length]').val());
+                var width = parseFloat($('input[name=width]').val());
+                var height = parseFloat($('input[name=height]').val());
+
+                // calculate the new value of size
+                var size = length * width * height;
+
+                // update the value of the size field
+                $('input[name=size]').val(size.toFixed(2));
+
+                // calculate the new value of price
+                var price = 0.06 * size;
+
+                // update the value of the price field
+                $('input[name=price]').val(price.toFixed(2));
+            });
+        });
+    </script>
+</body>
+</html>

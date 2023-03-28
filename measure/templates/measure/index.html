@@ -1,0 +1,11 @@
+{% if user_list %}
+    <ul>
+    {% for user in user_list %}
+        <li><a href="{% url 'measure:user' user.id %}">{{ user.first_name }}</a></li>
+        <!--<li><a href="/measure/{{ user.id }}/">{{ user.first_name }}</a></li>-->
+
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No users were found.</p>
+{% endif %}
