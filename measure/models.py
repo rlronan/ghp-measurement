@@ -19,6 +19,18 @@ class User(models.Model):
         managed = True
         db_table = 'user'
 
+    def __str__(self):
+        s = self.first_name + ' ' + self.last_name
+        if self.current_admin:
+            s += ' (admin)'
+        elif self.current_staff:
+            s += ' (staff)'
+        elif self.current_teacher:
+            s += ' (teacher)'
+        elif self.current_student:
+            s += ' (student)'
+        return s
+
 class Account(models.Model):
     # Pk is user_id
     user = models.OneToOneField('User', models.DO_NOTHING, primary_key=True)
@@ -29,9 +41,10 @@ class Account(models.Model):
         managed = True
         db_table = 'account'
 
+    def __str__(self):
+        return str(self.user) + ' $' + str(self.balance)
 
 class Course(models.Model):
-    #id = models.IntegerField(primary_key=True)
     # auto primary key here
     code = models.CharField(max_length=30, help_text="Code for the course, e.g. 'W7', 'W1'")
     name = models.CharField(max_length=300, help_text="Full name for the course, without the term or teacher e.g. 'INT./ADV. Handbuilding', 'Beginner Wheel")
@@ -39,6 +52,9 @@ class Course(models.Model):
     class Meta:
         managed = True
         db_table = 'course'
+    
+    def __str__(self):
+        return self.name
 
 class Location(models.Model):
     room = models.CharField(max_length=300, blank=False, help_text="e.g. '2nd Floor Wheel', or '301'")
@@ -49,6 +65,9 @@ class Location(models.Model):
         managed = True
         db_table = 'location'
 
+    def __str__(self):
+        return self.room
+
 class Term(models.Model):
     name = models.CharField(max_length=200, blank=True, help_text="Name of the term, e.g. 'Spring 2023', or, 'Summer-8-Week 2023'")
     start_date = models.DateTimeField(blank=True, null=True)
@@ -58,6 +77,9 @@ class Term(models.Model):
     class Meta:
         managed = True
         db_table = 'term'
+
+    def __str__(self):
+        return self.name + ' (' + str(self.start_date) + ' - ' + str(self.end_date) + ')'
 
 # class DayOfWeek(models.TextChoices):
 #     M = 'M', _('Monday')
@@ -87,6 +109,11 @@ class CourseInstance(models.Model):
         managed = True
         db_table = 'course_instance'
 
+    def __str__(self):
+        return self.name + ' with ' + self.teachers \
+                + ' (' + str(self.term.name) + ')' + ' ' + self.weekday \
+                + ' ' + str(self.start_time) + ' - ' + str(self.end_time)
+
 class Piece(models.Model):
     # id = models.IntegerField(primary_key=True)
     # auto pk 
@@ -96,6 +123,7 @@ class Piece(models.Model):
     width = models.DecimalField(default=0.00, max_digits=10, decimal_places=4)
     height = models.DecimalField(default=0.00, max_digits=10, decimal_places=4)
     size = models.DecimalField(default=0.00, max_digits=10, decimal_places=4)
+    price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     bisque_fired = models.BooleanField(blank=True, null=True)
     glaze_fired = models.BooleanField(blank=True, null=True)
     damaged = models.BooleanField(blank=True, null=True)
@@ -104,7 +132,10 @@ class Piece(models.Model):
     class Meta:
         managed = True
         db_table = 'piece'
-
+    def __str__(self):
+        return str(self.user) + ' #' + str(self.user_piece_id) + ' ' \
+                + str(self.length) + 'x' + str(self.width) + 'x' \
+                + str(self.height) + ' ' + str(self.price)
 
 class Ledger(models.Model):
     transaction_id = models.AutoField(primary_key=True)
@@ -119,6 +150,11 @@ class Ledger(models.Model):
     class Meta:
         managed = True
         db_table = 'ledger'
+
+    def __str__(self):
+        return str(self.user) + ' #' + str(self.user_transaction_number) + ' ' \
+                + str(self.date) + ' $' + str(self.amount) + ' ' \
+                + self.transaction_type + ' ' + self.note 
 
 
 
