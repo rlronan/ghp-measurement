@@ -1,13 +1,29 @@
 import datetime
-
+from django.utils import timezone
 from django.db import models
 from django.utils import timezone
-
+from django.contrib.auth.models import User
 # Create your models here.
+
+class Account(models.Model):
+    # Pk is ghp_user_id
+    ghp_user = models.OneToOneField('GHPUser', models.DO_NOTHING, primary_key=True)
+    balance = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+    last_update = models.DateTimeField()
+
+    class Meta:
+        managed = True
+        db_table = 'account'
+
+    def __str__(self):
+        s_end = ' -$' + str(self.balance * -1) if self.balance < 0 else ' $' + str(self.balance)
+        return str(self.ghp_user) + s_end
+
 
 class GHPUser(models.Model):
 #    id = models.BigAutoField(primary_key=True)
     # auto primary key here
+    #user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length = 12, unique=True, blank=True, default='')
@@ -21,6 +37,15 @@ class GHPUser(models.Model):
     class Meta:
         managed = True
         db_table = 'ghp_user'
+
+    def save(self, *args, **kwargs):
+        #do_something()
+        super().save(*args, **kwargs)  # Call the "real" save() method.
+        #do_something_else()
+        # Create an account for the user if they don't have one
+        if not Account.objects.filter(ghp_user=self).exists():
+            Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
+
     def get_name(self):
         return self.first_name + ' ' + self.last_name
 
@@ -36,19 +61,7 @@ class GHPUser(models.Model):
             s += ' (student)'
         return s
 
-class Account(models.Model):
-    # Pk is ghp_user_id
-    ghp_user = models.OneToOneField('GHPUser', models.DO_NOTHING, primary_key=True)
-    balance = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
-    last_update = models.DateTimeField()
 
-    class Meta:
-        managed = True
-        db_table = 'account'
-
-    def __str__(self):
-        s_end = ' -$' + str(self.balance * -1) if self.balance < 0 else ' $' + str(self.balance)
-        return str(self.ghp_user) + s_end
 
 class Course(models.Model):
     # auto primary key here
@@ -83,19 +96,11 @@ class Term(models.Model):
     class Meta:
         managed = True
         db_table = 'term'
-
+    constraints = [
+            models.CheckConstraint(check=models.Q(end_date__gte=start_date), name='end_date_gte_start_date'),
+        ]
     def __str__(self):
         return self.name + ' (' + str(self.start_date) + ' - ' + str(self.end_date) + ')'
-
-# class DayOfWeek(models.TextChoices):
-#     M = 'M', _('Monday')
-#     T = 'T', _('Tuesday')
-#     W = 'W', _('Wednesday')
-#     R = 'R', _('Thursday')
-#     F = 'F', _('Friday')
-#     S = 'S', _('Saturday')
-#     U = 'U', _('Sunday')
-
 
 class CourseInstance(models.Model):
     #id = models.IntegerField(primary_key=True)
@@ -115,6 +120,7 @@ class CourseInstance(models.Model):
         managed = True
         db_table = 'course_instance'
 
+
     def __str__(self):
         if self.start_time is None or self.end_time is None:
             s_end = ' (' + str(self.term.name) + ')' + ' ' + self.weekday
@@ -127,11 +133,10 @@ class CourseInstance(models.Model):
             return self.name + ' with ' + str(self.teachers.first().get_name()) + s_end
         else:
             return self.name + s_end
-        #     return self.name + ' with ' + str(self.teachers.objects.filter()) \
-        #         + ' (' + str(self.term.name) + ')' + ' ' + self.weekday
-        # return self.name + ' with ' + str(self.teachers) \
-        #         + ' (' + str(self.term.name) + ')' + ' ' + self.weekday \
-        #         + ' ' + str(self.start_time) + ' - ' + str(self.end_time)
+
+
+
+
 
 class Piece(models.Model):
     # id = models.IntegerField(primary_key=True)
@@ -151,10 +156,41 @@ class Piece(models.Model):
     class Meta:
         managed = True
         db_table = 'piece'
+        constraints = [
+            models.CheckConstraint(check=models.Q(height__gte=1.5), name='height_gte_1.5'),
+        ]
+    
+    
+    def save(self, *args, **kwargs):
+        #do_something()
+        # get previous (maximum) ghp_user_piece_id so we can increment it
+        self.ghp_user_piece_id = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
+
+        # Check the size of the piece is correct (length * width * height)
+        assert(self.size == self.length * self.width * self.height)
+        super().save(*args, **kwargs)  # Call the "real" save() method.
+        #do_something_else()
+        self.ghp_user_transaction_number = Ledger.objects.filter(ghp_user=self.ghp_user).count() + 1
+
+        # Create an account for the user if they don't have one
+        if not Ledger.objects.filter(piece=self).exists():
+            Ledger.objects.create(
+                date = timezone.now(),
+                ghp_user=self.ghp_user,
+                ghp_user_transaction_number=self.ghp_user_transaction_number,
+                amount=-1*self.price,
+                transaction_type='Firing Fee',
+                note='Firing Fee for Piece #' + str(self.ghp_user_piece_id),
+                piece=self
+                )
+
+
+
     def __str__(self):
         return str(self.ghp_user) + ' #' + str(self.ghp_user_piece_id) + ' ' \
                 + str(self.length) + 'x' + str(self.width) + 'x' \
                 + str(self.height) + ' ' + '$' +  str(self.price)
+
 
 class Ledger(models.Model):
     transaction_id = models.AutoField(primary_key=True)
@@ -175,8 +211,14 @@ class Ledger(models.Model):
                 + self.date.strftime(r'%m/%d/%y') + ' ' + self.date.strftime(r'%H:%M:%S') + ' $' + str(self.amount) + ' ' \
                 + self.transaction_type + ' (' + self.note + ')'
 
-
-
-
+    def save(self, *args, **kwargs):
+        #do_something()
+        super().save(*args, **kwargs)  # Call the "real" save() method.
+        
+        # Modify user's Account balance by amount, and update Account.last_update
+        if self.ghp_user is not None:
+            self.ghp_user.account.balance += self.amount
+            self.ghp_user.account.last_update = timezone.now()
+            self.ghp_user.account.save()
 
 
