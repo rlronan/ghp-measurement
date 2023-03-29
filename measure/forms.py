@@ -10,16 +10,16 @@ from .models import Piece
 class PieceForm(forms.ModelForm):
     class Meta:
         model = Piece
-        fields = ['user', 'user_piece_id', 'length', 'width', 'height', 'size', 'price']
-        #exclude = ['user', 'user_piece_id']
+        fields = ['ghp_user', 'ghp_user_piece_id', 'length', 'width', 'height', 'size', 'price']
+        #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+        ghp_user = kwargs.pop('ghp_user', None)
         super().__init__(*args, **kwargs)
-        self.fields['user'].widget = forms.HiddenInput()
-        self.fields['user_piece_id'].widget = forms.HiddenInput()
-        # Set initial values for user and user_piece_id
-        self.fields['user'].initial = user
-        self.fields['user_piece_id'].initial = Piece.objects.filter(user=user).count() + 1
+        self.fields['ghp_user'].widget = forms.HiddenInput()
+        self.fields['ghp_user_piece_id'].widget = forms.HiddenInput()
+        # Set initial values for ghp_user and ghp_user_piece_id
+        self.fields['ghp_user'].initial = ghp_user
+        self.fields['ghp_user_piece_id'].initial = Piece.objects.filter(ghp_user=ghp_user).count() + 1
         
         # Set initial value for size
         if 'length' in self.data and 'width' in self.data and 'height' in self.data:

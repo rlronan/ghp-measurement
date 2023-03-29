@@ -5,7 +5,7 @@ from django.utils import timezone
 
 # Create your models here.
 
-class User(models.Model):
+class GHPUser(models.Model):
 #    id = models.BigAutoField(primary_key=True)
     # auto primary key here
     first_name = models.CharField(max_length=100)
@@ -20,7 +20,7 @@ class User(models.Model):
 
     class Meta:
         managed = True
-        db_table = 'user'
+        db_table = 'ghp_user'
     def get_name(self):
         return self.first_name + ' ' + self.last_name
 
@@ -37,8 +37,8 @@ class User(models.Model):
         return s
 
 class Account(models.Model):
-    # Pk is user_id
-    user = models.OneToOneField('User', models.DO_NOTHING, primary_key=True)
+    # Pk is ghp_user_id
+    ghp_user = models.OneToOneField('GHPUser', models.DO_NOTHING, primary_key=True)
     balance = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     last_update = models.DateTimeField()
 
@@ -48,7 +48,7 @@ class Account(models.Model):
 
     def __str__(self):
         s_end = ' -$' + str(self.balance * -1) if self.balance < 0 else ' $' + str(self.balance)
-        return str(self.user) + s_end
+        return str(self.ghp_user) + s_end
 
 class Course(models.Model):
     # auto primary key here
@@ -102,8 +102,8 @@ class CourseInstance(models.Model):
     # auto primary key here
     name = models.CharField(max_length=1000, blank=True, help_text="Name of the course instance, e.g. 'W15 INT/ADV Wheel Throwing w/ Haakon', or 'ST4 Glass Casting w/ Jessi'")
     term = models.ForeignKey(Term, models.SET_NULL, null=True, help_text="Term the course instance is in. e.g., 'Spring 2023', or, 'Summer-8-Week 2023'")
-    teachers = models.ManyToManyField(User, related_name='teachers') # need to change the form for this
-    students = models.ManyToManyField(User, related_name='students') # need to change the form for this
+    teachers = models.ManyToManyField(GHPUser, related_name='teachers') # need to change the form for this
+    students = models.ManyToManyField(GHPUser, related_name='students') # need to change the form for this
     course = models.ForeignKey(Course, models.SET_NULL, null=True, blank=True)
     location = models.ForeignKey(Location, models.SET_NULL, null=True, blank=True)
     type = models.CharField(max_length=100, blank=True)
@@ -136,8 +136,8 @@ class CourseInstance(models.Model):
 class Piece(models.Model):
     # id = models.IntegerField(primary_key=True)
     # auto pk 
-    user = models.ForeignKey(User, models.CASCADE, null=False)
-    user_piece_id = models.IntegerField(default= 1 )
+    ghp_user = models.ForeignKey(GHPUser, models.CASCADE, null=False)
+    ghp_user_piece_id = models.IntegerField(default= 1 )
     length = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     width = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     height = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
@@ -152,15 +152,15 @@ class Piece(models.Model):
         managed = True
         db_table = 'piece'
     def __str__(self):
-        return str(self.user) + ' #' + str(self.user_piece_id) + ' ' \
+        return str(self.ghp_user) + ' #' + str(self.ghp_user_piece_id) + ' ' \
                 + str(self.length) + 'x' + str(self.width) + 'x' \
                 + str(self.height) + ' ' + '$' +  str(self.price)
 
 class Ledger(models.Model):
     transaction_id = models.AutoField(primary_key=True)
     date = models.DateTimeField()
-    user = models.ForeignKey(User, models.SET_NULL, null=True)
-    user_transaction_number = models.IntegerField(default= 1 )
+    ghp_user = models.ForeignKey(GHPUser, models.SET_NULL, null=True)
+    ghp_user_transaction_number = models.IntegerField(default= 1 )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     transaction_type = models.CharField(max_length=100, blank=True)
     note = models.CharField(max_length=1000, blank=True)
@@ -171,7 +171,7 @@ class Ledger(models.Model):
         db_table = 'ledger'
 
     def __str__(self):
-        return self.user.first_name[:1] + '. ' + self.user.last_name + ' trans. #' + str(self.user_transaction_number) + ' ' \
+        return self.ghp_user.first_name[:1] + '. ' + self.ghp_user.last_name + ' trans. #' + str(self.ghp_user_transaction_number) + ' ' \
                 + self.date.strftime(r'%m/%d/%y') + ' ' + self.date.strftime(r'%H:%M:%S') + ' $' + str(self.amount) + ' ' \
                 + self.transaction_type + ' (' + self.note + ')'
 

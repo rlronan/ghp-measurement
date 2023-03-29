@@ -1,10 +1,10 @@
-<form action="{% url 'measure:user' user.id %}" method="post">
+<form action="{% url 'measure:ghp_user' ghp_user.id %}" method="post">
     {% csrf_token %}
     <fieldset>
-        <legend><h1>{{ user.first_name }}</h1></legend>
+        <legend><h1>{{ ghp_user.first_name }}</h1></legend>
         {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
-        {% for letter in user.first_name %}
-            <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ user.id }}">
+        {% for letter in ghp_user.first_name %}
+            <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ ghp_user.id }}">
             <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br>
         {% endfor %}
     </fieldset>

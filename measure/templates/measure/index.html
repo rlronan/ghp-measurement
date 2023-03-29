@@ -1,11 +1,11 @@
-{% if user_list %}
+{% if ghp_user_list %}
     <ul>
-    {% for user in user_list %}
-        <li><a href="{% url 'measure:user' user.id %}">{{ user.first_name }}</a></li>
+    {% for ghp_user in ghp_user_list %}
+        <li><a href="{% url 'measure:ghp_user' ghp_user.id %}">{{ ghp_user.first_name }}</a></li>
         <!--<li><a href="/measure/{{ user.id }}/">{{ user.first_name }}</a></li>-->
 
     {% endfor %}
     </ul>
 {% else %}
-    <p>No users were found.</p>
+    <p>No ghp users were found.</p>
 {% endif %}

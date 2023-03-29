@@ -1,9 +1,9 @@
 from django.contrib import admin
 
-from .models import User, Account, Course, Location, Term, CourseInstance, Piece, Ledger
+from .models import GHPUser, Account, Course, Location, Term, CourseInstance, Piece, Ledger
 
 # Register your models here.
-admin.site.register(User)
+admin.site.register(GHPUser)
 admin.site.register(Account)
 admin.site.register(Course)
 admin.site.register(Location)
