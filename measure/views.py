@@ -18,13 +18,23 @@ class IndexView(generic.ListView):
         """Return the list of all ghp_users."""
         return GHPUser.objects.order_by('last_name').all()
 
-class GHPUserView(generic.DetailView):
-    model = GHPUser
-    template_name = 'measure/ghp_user.html'
+# class GHPUserView(generic.DetailView):
+#     model = GHPUser
+#     template_name = 'measure/ghp_user.html'
+#     context_object_name = 'ghp_user_piece_list'
+
+#     def get_queryset(self):
+#         """Return the list of all pieces associated with a ghp_user."""
+#         return Piece.objects.filter(ghp_user_id=self.ghp_user_id).order_by('date').all()
+
+def GHPUserView(request, ghp_user_id):
+    ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    ghp_user_piece_list = Piece.objects.filter(ghp_user_id=ghp_user_id).order_by('ghp_user_piece_id').all()
+    return render(request, 'measure/ghp_user.html', {'ghp_user': ghp_user, 'ghp_user_piece_list': ghp_user_piece_list})
 
 
 #class PieceView(generic.FormView):
-def Piece(request, ghp_user_id):
+def PieceView(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
 
     if request.method == 'POST':

@@ -162,6 +162,7 @@ def generate_piece(num_pieces=1000):
     for i in range(num_pieces):
         ghp_user = GHPUser.objects.all().order_by('?')[i % GHPUser.objects.count()]
         ghp_user_piece_id = 0 # placeholder
+        date = timezone.now() - datetime.timedelta(days=np.random.randint(0, 365*10))
         length = decimal.Decimal(np.random.uniform(0.1, 10.0))
         width = decimal.Decimal(np.random.uniform(0.1, 10.0))
         height = decimal.Decimal(np.random.uniform(1.5, 20.0))
@@ -179,6 +180,7 @@ def generate_piece(num_pieces=1000):
         piece = Piece(
             ghp_user = ghp_user,
             ghp_user_piece_id = ghp_user_piece_id,
+            date=date,
             length = length,
             width = width,
             height = height,

@@ -143,6 +143,7 @@ class Piece(models.Model):
     # auto pk 
     ghp_user = models.ForeignKey(GHPUser, models.CASCADE, null=False)
     ghp_user_piece_id = models.IntegerField(default= 1 )
+    date = models.DateField(blank=True, null=True)
     length = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     width = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     height = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
@@ -165,7 +166,7 @@ class Piece(models.Model):
         #do_something()
         # get previous (maximum) ghp_user_piece_id so we can increment it
         self.ghp_user_piece_id = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
-
+        self.date = timezone.now()
         # Check the size of the piece is correct (length * width * height)
         assert(self.size == self.length * self.width * self.height)
         super().save(*args, **kwargs)  # Call the "real" save() method.
@@ -175,7 +176,7 @@ class Piece(models.Model):
         # Create an account for the user if they don't have one
         if not Ledger.objects.filter(piece=self).exists():
             Ledger.objects.create(
-                date = timezone.now(),
+                date = self.date,
                 ghp_user=self.ghp_user,
                 ghp_user_transaction_number=self.ghp_user_transaction_number,
                 amount=-1*self.price,

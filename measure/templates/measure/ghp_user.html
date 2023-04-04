@@ -1,12 +1,42 @@
-<form action="{% url 'measure:ghp_user' ghp_user.id %}" method="post">
-    {% csrf_token %}
-    <fieldset>
-        <legend><h1>{{ ghp_user.first_name }}</h1></legend>
-        {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
-        {% for letter in ghp_user.first_name %}
-            <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ ghp_user.id }}">
-            <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br>
+ {% load static %}
+ <link rel="stylesheet" href="{% static 'measure/style.css' %}">
+
+{% if ghp_user %}
+    <table>
+        <thead>
+            <tr>
+                <th colspan="9">{{ghp_user.first_name}} {{ghp_user.last_name}} Firing Log</th>
+            </tr>
+            <tr>
+                <th>Piece #</th>
+                <th>Date</th>
+                <th>Dimensions</th>
+                <th>Size</th>
+                <th>Price</th>
+                <th>Course</th>
+                <th>Bisque Fired</th>
+                <th>Glaze Fired</th>
+                <th>Damaged</th>
+            </tr>
+        </thead>
+        {% for p in ghp_user_piece_list %}
+            <tbody>
+                <tr>
+                    <td>{{p.ghp_user_piece_id}}</td>
+                    <td>{{ p.date|date:"M d Y" }}</td>
+                    <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
+                    <td>{{ p.size }} in<sup>3</sup></td>
+                    <td>${{ p.price }}</td>
+                    <td>{{ p.course }}</td>
+                    <td>{{ p.bisque_fired }}</td>
+                    <td>{{ p.glaze_fired }}</td>
+                    <td>{{ p.damaged }}</td>
+                </tr>
+            </tbody>
         {% endfor %}
-    </fieldset>
-    <input type="submit" value="Vote">
-    </form>
+    </table>
+    
+{% else %}
+    <p>No user selected.</p>
+{% endif %}
+
