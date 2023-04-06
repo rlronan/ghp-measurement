@@ -1,0 +1,82 @@
+
+
+
+{% if ghp_user_admins or ghp_user_staff or ghp_user_teachers or ghp_user_students %}
+    <table>
+        <colgroup>
+            <col span="1">
+            <col span="2">
+            <col span="1">
+            <col span="2">
+            <col span="1">
+            <col span="2">
+            <col span="1">
+            <col span="2">
+        </colgroup>    
+
+        <thead>
+            <th colspan="12">User Accounts</th>
+            <tr>
+                <td colspan="1"></td>
+                <th>Name</th>
+                <th>Course</th>
+                <td colspan="1"></td>
+                <th>Name</th>
+                <th>Course</th>
+                <td colspan="1"></td>
+                <th>Name</th>
+                <th>Course</th>
+                <td colspan="1"></td>
+                <th>Name</th>
+                <th>Course</th>
+            </tr>
+
+        </thead>
+        <tbody>
+            {% for ghp_user in ghp_user_admins %}
+                <tr>
+                    {% if forloop.counter == 1 %}
+                        <th rowspan = {{ghp_user_admins|length}} colspan="1" vetical-align="center"> Admins</th>
+                    {% endif %}
+                    <td><a href="{% url 'measure:ghp_user_piece_view' ghp_user.id %}" > {{ ghp_user.first_name }} {{ghp_user.last_name}} </a></td>
+                    <td>None</td>
+                </tr>
+            {% endfor %}
+            {% for ghp_user in ghp_user_staff %}
+                <tr>
+                    
+                    {% if forloop.counter == 1 %}
+                        <th rowspan = {{ghp_user_staff|length}} colspan="1" vetical-align="center"> Staff</th>
+                    {% endif %}
+                    <td><a href="{% url 'measure:ghp_user_piece_view' ghp_user.id %}" > {{ ghp_user.first_name }} {{ghp_user.last_name}} </a></td>
+                    <td>None</td>
+                </tr>
+            {% endfor %}
+            {% for ghp_user in ghp_user_teachers %}
+                <tr>
+
+                    {% if forloop.counter == 1 %}
+                        <th rowspan = {{ghp_user_teachers|length}} colspan="1" vetical-align="center"> Teachers </th>
+                    {% endif %}
+                    <td><a href="{% url 'measure:ghp_user_piece_view' ghp_user.id %}" > {{ ghp_user.first_name }} {{ghp_user.last_name}} </a></td>
+                    <td>None</td>
+                </tr>
+            {% endfor %}
+            {% for ghp_user in ghp_user_students %}
+                <tr>
+                    {% if forloop.counter == 1 %}
+                        <th rowspan = {{ghp_user_students|length}} colspan="1" vetical-align="center"> Students </th>
+                    {% endif %}
+                    <td><a href="{% url 'measure:ghp_user_piece_view' ghp_user.id %}" > {{ ghp_user.first_name }} {{ghp_user.last_name}} </a></td>
+                    <td>None</td>
+                </tr>
+            {% endfor %}
+
+
+        
+        </tbody>
+
+
+    </table>
+{% endif %}
+
