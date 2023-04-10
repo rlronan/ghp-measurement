@@ -5,13 +5,14 @@
     <table>
         <thead>
             <tr>
-                <th colspan="9">{{ghp_user.first_name}} {{ghp_user.last_name}} Firing Log</th>
+                <th colspan="10">{{ghp_user.first_name}} {{ghp_user.last_name}} Firing Log</th>
             </tr>
             <tr>
                 <th>Piece #</th>
                 <th>Date</th>
                 <th>Dimensions</th>
                 <th>Size</th>
+                <th>Glaze Temp</th>
                 <th>Price</th>
                 <th>Course</th>
                 <th>Bisque Fired</th>
@@ -22,10 +23,11 @@
         {% for p in ghp_user_piece_list %}
             <tbody>
                 <tr>
-                    <td>{{p.ghp_user_piece_id}}</td>
+                    <td>{{ p.ghp_user_piece_id }}</td>
                     <td>{{ p.date|date:"M d Y" }}</td>
                     <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
                     <td>{{ p.size }} in<sup>3</sup></td>
+                    <td>{{ p.glaze_temp }}</td>
                     <td>${{ p.price }}</td>
                     <td>{{ p.course }}</td>
                     <td>{{ p.bisque_fired }}</td>

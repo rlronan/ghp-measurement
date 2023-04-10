@@ -8,7 +8,7 @@ from .models import GHPUser, Account, Course, Location, Term, CourseInstance, Pi
 
 
 # Create your tests here.
-def generate_ghp_users(num_customers=100, p_student=0.9, p_teacher=0.2, p_staff=0.1, p_admin=0.03):
+def generate_ghp_user(num_customers=100, p_student=0.9, p_teacher=0.2, p_staff=0.1, p_admin=0.03):
     """ Generate a list of GHPUsers with random names, phone numbers, and emails.
     
     NOTE THIS FUNCTION MODIFIES THE DATABASE. DO NOT RUN THIS FUNCTION ON A PRODUCTION DATABASE.
@@ -163,33 +163,73 @@ def generate_piece(num_pieces=1000):
         ghp_user = GHPUser.objects.all().order_by('?')[i % GHPUser.objects.count()]
         ghp_user_piece_id = 0 # placeholder
         date = timezone.now() - datetime.timedelta(days=np.random.randint(0, 365*10))
-        length = decimal.Decimal(np.random.uniform(0.1, 10.0))
-        width = decimal.Decimal(np.random.uniform(0.1, 10.0))
+        length = decimal.Decimal(np.random.uniform(0.25, 10.0))
+        width = decimal.Decimal(np.random.uniform(0.25, 10.0))
         height = decimal.Decimal(np.random.uniform(1.5, 20.0))
         size = decimal.Decimal(length * width * height)
+        GLAZE_TEMPS  = [
+        "10",
+        "06",
+        "04",
+        "02",
+        "14",
+        "None",
+        ]
+        glaze_temp = np.random.choice(GLAZE_TEMPS)
         price = size * decimal.Decimal(0.06)
+        if glaze_temp != "None":
+            price *= 2
+
         bisque_fired = np.random.choice([True, False], p=[0.3, 0.7])
-        if bisque_fired:
+        if bisque_fired and glaze_temp != "None":
             glaze_fired = np.random.choice([True, False], p=[0.1, 0.9])
         else:
             glaze_fired = False
         damaged = np.random.choice([True, False], p=[0.01, 0.99])
-# TODO: FIX THIS SO IT FILTERS BY STUDENTS
-        #course = CourseInstance.objects.filter(students__contains=ghp_user).order_by('?')[0]
-        course = CourseInstance.objects.all().order_by('?')[0]
-        piece = Piece(
-            ghp_user = ghp_user,
-            ghp_user_piece_id = ghp_user_piece_id,
-            date=date,
-            length = length,
-            width = width,
-            height = height,
-            size = size,
-            price = price,
-            bisque_fired = bisque_fired,
-            glaze_fired = glaze_fired,
-            damaged = damaged
-        )
+        course = ghp_user.students.first()
+        if course:
+            piece = Piece(
+                ghp_user = ghp_user,
+                ghp_user_piece_id = ghp_user_piece_id,
+                date=date,
+                length = length,
+                width = width,
+                height = height,
+                size = size,
+                glaze_temp = glaze_temp,
+                price = price,
+                bisque_fired = bisque_fired,
+                glaze_fired = glaze_fired,
+                damaged = damaged,
+                course = course ,
+            )
+        else:
+            piece = Piece(
+                ghp_user = ghp_user,
+                ghp_user_piece_id = ghp_user_piece_id,
+                date=date,
+                length = length,
+                width = width,
+                height = height,
+                size = size,
+                glaze_temp = glaze_temp,
+                price = price,
+                bisque_fired = bisque_fired,
+                glaze_fired = glaze_fired,
+                damaged = damaged,
+            )
+        
         piece.save()
 
 
+def generate_all():
+    """ Generate all the data for the database.
+    
+    NOTE THIS FUNCTION MODIFIES THE DATABASE. DO NOT RUN THIS FUNCTION ON A PRODUCTION DATABASE.
+    """
+    generate_ghp_user()
+    generate_course()
+    generate_location()
+    generate_term()
+    generate_course_instance()
+    generate_piece()

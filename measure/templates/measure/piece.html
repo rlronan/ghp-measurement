@@ -14,12 +14,16 @@
     <script>
         $(document).ready(function() {
             // listen for changes in the length, width, and height fields
-            $('input[name=length], input[name=width], input[name=height]').on('change', function() {
+            $('input[name=length], input[name=width], input[name=height], input[name=glaze_temp]').on('change', function() {
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
                 var width = parseFloat($('input[name=width]').val());
                 var height = parseFloat($('input[name=height]').val());
-
+                
+                
+                // get the current values of glaze_temp string
+                var glaze_temp = $('input[name=glaze_temp]').val();
+                
                 // calculate the new value of size
                 var size = length * width * height;
 
@@ -29,6 +33,10 @@
                 // calculate the new value of price
                 var price = 0.06 * size;
 
+                // if glaze_temp is not 'None', double the price
+                if (glaze_temp != 'None') {
+                    price = price * 2;
+                }
                 // update the value of the price field
                 $('input[name=price]').val(price.toFixed(2));
             });
