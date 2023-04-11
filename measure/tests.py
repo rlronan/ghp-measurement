@@ -187,6 +187,22 @@ def generate_piece(num_pieces=1000):
             glaze_fired = False
         damaged = np.random.choice([True, False], p=[0.01, 0.99])
         course = ghp_user.students.first()
+        piece_description = np.random.choice(['Bowl', 'Vase', 'Cup', 'Mug', 'Lamp', 'Sculpture', 'Plate'])
+        if glaze_temp != "None":
+            glaze_description = np.random.choice(['Blue', 'Green', 'Red', 'Yellow', 'Orange', 'Purple', 'White', 'Black'])
+            glaze_description += ' ' + np.random.choice(['Gloss', 'Matte', 'Satin', 'Shiny', 'Sparkly', 'Glowing', 'Frosted', ''])
+            if np.random.random() < 0.2:
+                glaze_description += np.random.choice(['Blue', 'Green', 'Red', 'Yellow', 'Orange', 'Purple', 'White', 'Black'])
+                glaze_description += ' ' + np.random.choice(['Gloss', 'Matte', 'Satin', 'Shiny', 'Sparkly', 'Glowing', 'Frosted', ''])
+        else:
+            glaze_description = ''
+        
+        if glaze_description == '':
+            note = piece_description
+        else:
+            note = piece_description + ' with ' + glaze_description + ' glaze'
+
+
         if course:
             piece = Piece(
                 ghp_user = ghp_user,
@@ -202,6 +218,9 @@ def generate_piece(num_pieces=1000):
                 glaze_fired = glaze_fired,
                 damaged = damaged,
                 course = course ,
+                piece_description = piece_description,
+                glaze_description = glaze_description,
+                note = note,
             )
         else:
             piece = Piece(
@@ -217,6 +236,9 @@ def generate_piece(num_pieces=1000):
                 bisque_fired = bisque_fired,
                 glaze_fired = glaze_fired,
                 damaged = damaged,
+                piece_description = piece_description,
+                glaze_description = glaze_description,
+                note = note,
             )
         
         piece.save()

@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+import decimal
 # Create your models here.
 
 class Account(models.Model):
@@ -153,6 +154,9 @@ class Piece(models.Model):
     glaze_fired = models.BooleanField(blank=True, null=True)
     damaged = models.BooleanField(blank=True, null=True)
     course = models.ForeignKey(CourseInstance, models.SET_NULL, blank=True, null=True)
+    piece_description = models.CharField(max_length=1000, blank=True)
+    glaze_description = models.CharField(max_length=1000, blank=True)
+    note = models.CharField(max_length=1000, blank=True)
 
     GLAZE_TEMPS  = [
         ("10", "Cone 10"),
@@ -164,14 +168,15 @@ class Piece(models.Model):
     ]
 
 
-    glaze_temp_help_text = """
-    Glaze firing temperature. Cone 10 is the 'standard'. 
-    You will be charged for the glaze firing if you select a temperature.
-    Select 'None' if you do not wish to glaze this piece, or if you do not know 
-    the glaze firing temperature you want to use.  
-    """
+    # glaze_temp_help_text = """
+    # Glaze firing temperature. Cone 10 is the 'standard'. 
+    # You will be charged for the glaze firing if you select a temperature.
+    # Select 'None' if you do not wish to glaze this piece, or if you do not know 
+    # the glaze firing temperature you want to use.  
+    # """
     glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="Cone 10",
-                                  help_text=glaze_temp_help_text)
+                                  )
+    #help_text=glaze_temp_help_text
     class Meta:
         managed = True
         db_table = 'piece'
@@ -187,8 +192,12 @@ class Piece(models.Model):
         # get previous (maximum) ghp_user_piece_id so we can increment it
         self.ghp_user_piece_id = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
         self.date = timezone.now()
-        # Check the size of the piece is correct (length * width * height)
-        assert(self.size == self.length * self.width * self.height)
+
+        # Check the size of the piece is correct (length * width * height) up to 2 decimal places
+        size_test = self.length * self.width * self.height
+        print(size_test, type(size_test), self.size, type(self.size))
+        size_test = size_test.quantize(decimal.Decimal('0.01'), rounding=decimal.ROUND_UP)
+        assert(size_test == self.size)
 
         # price should be depdent on size and whethere or not it is being glazed
         # This assumes 

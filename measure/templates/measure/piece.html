@@ -7,36 +7,66 @@
 <body>
     <form method="POST">
         {% csrf_token %}
-        {{ form.as_p }}
+        {{ form.as_div }}
         <button type="submit">Submit</button>
     </form>
 
     <script>
         $(document).ready(function() {
-            // listen for changes in the length, width, and height fields
-            $('input[name=length], input[name=width], input[name=height], input[name=glaze_temp]').on('change', function() {
+            // listen for changes in the length, width, and height, and glaze_temp fields
+            // glaze_temp is a choice field, so it is a select element
+            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp]').change(function() {
+                
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
                 var width = parseFloat($('input[name=width]').val());
                 var height = parseFloat($('input[name=height]').val());
                 
+                // if any of the values are NaN, set them to 0
+                if (isNaN(length)) {
+                    length = 0;
+                }
+                if (isNaN(width)) {
+                    width = 0;
+                }
+                if (isNaN(height)) {
+                    height = 0;
+                }
+
+                // round the values to nearest 0.25 inch 
+                length = Math.round(length * 4) / 4;
+                width = Math.round(width * 4) / 4;
+                height = Math.round(height * 4) / 4;
+
+                // round the values to 2 decimal places
+                length = length.toFixed(2);
+                width = width.toFixed(2);
+                height = height.toFixed(2);
+
+                // update the value of the length, width, and height fields
+                $('input[name=length]').val(length);
+                $('input[name=width]').val(width);
+                $('input[name=height]').val(height);
                 
-                // get the current values of glaze_temp string
-                var glaze_temp = $('input[name=glaze_temp]').val();
-                
+                // get the current values of glaze_temp selection and convert it to a string
+                var glaze_temp = $('select[name=glaze_temp]').val();
+
                 // calculate the new value of size
                 var size = length * width * height;
 
                 // update the value of the size field
                 $('input[name=size]').val(size.toFixed(2));
 
-                // calculate the new value of price
-                var price = 0.06 * size;
-
-                // if glaze_temp is not 'None', double the price
+                // Set the value of glaze_temp_scalar to be 2 if glaze_temp is not 'None'
+                var glaze_temp_scalar = 1;
                 if (glaze_temp != 'None') {
-                    price = price * 2;
+                    glaze_temp_scalar = 2;
                 }
+
+
+                // calculate the new value of price
+                var price = 0.06 * size * glaze_temp_scalar;
+
                 // update the value of the price field
                 $('input[name=price]').val(price.toFixed(2));
             });
