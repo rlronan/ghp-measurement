@@ -45,31 +45,6 @@ class PieceForm(forms.ModelForm):
         self.fields['size'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
         self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
 
-        # if 'length' in self.data and 'width' in self.data and 'height' in self.data:
-        #     length = decimal.Decimal(self.data.get('length'))
-        #     width = decimal.Decimal(self.data.get('width'))
-        #     height = decimal.Decimal(self.data.get('height'))
-        #     size = decimal.Decimal(length * width * height) 
-        #     self.fields['size'].initial = size
-        # elif self.instance.pk:
-        #     self.fields['size'].initial 
-            
-        # # Set initial value for price
-        # if 'size' in self.data:
-        #     size = decimal.Decimal(self.data.get('size'))
-        #     price = decimal.Decimal(0.06) * size
-        #     self.fields['price'].initial = price
-        # elif self.instance.pk:
-        #     self.fields['price'].initial = decimal.Decimal(0.06) * decimal.Decimal(self.instance.size)
-        
-        # if 'glaze_temp' in self.data:
-        #     glaze_temp = self.data.get('glaze_temp')
-        #     if glaze_temp != 'None':
-        #         price = decimal.Decimal(self.data.get('price'))
-        #         price *= 2
-        #         self.fields['price'].initial = price
-
-
         # Set widget for size field to ReadOnlyInput
         self.fields['size'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
         self.fields['price'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
