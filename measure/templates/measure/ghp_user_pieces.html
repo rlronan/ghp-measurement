@@ -14,13 +14,13 @@
                 <th>Size</th>
                 <th>Glaze Temp</th>
                 <th>Price</th>
-                <th>Course</th>
+                <th>Course Number</th>
                 <th>Bisque Fired</th>
                 <th>Glaze Fired</th>
-                <th>Damaged</th>
                 <th>Piece Description</th>
                 <th>Glaze Description</th>
                 <th>Note Description</th>
+                <th>Image</th>
             </tr>
         </thead>
         {% for p in ghp_user_piece_list %}
@@ -32,13 +32,13 @@
                     <td>{{ p.size }} in<sup>3</sup></td>
                     <td>{{ p.glaze_temp }}</td>
                     <td>${{ p.price }}</td>
-                    <td>{{ p.course }}</td>
+                    <td>{{ p.course_number }}</td>
                     <td>{{ p.bisque_fired }}</td>
                     <td>{{ p.glaze_fired }}</td>
-                    <td>{{ p.damaged }}</td>
                     <td>{{ p.piece_description }}</td>
                     <td>{{ p.glaze_description }}</td>
                     <td>{{ p.note }}</td>
+                    <td>{{ p.image }}</td>
                 </tr>
             </tbody>
         {% endfor %}

@@ -3,7 +3,9 @@ from django.utils import timezone
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+import numpy as np
 import decimal
+from .constants import GLAZE_TEMPS
 # Create your models here.
 
 class Account(models.Model):
@@ -22,18 +24,21 @@ class Account(models.Model):
 
 
 class GHPUser(models.Model):
-#    id = models.BigAutoField(primary_key=True)
     # auto primary key here
-    #user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length = 12, unique=True, blank=True, default='')
+    phone_number = models.CharField(max_length = 12, unique=False, blank=True, default='')
     email = models.EmailField(unique=True, max_length=200, blank=True)
-    dob = models.DateField(blank=True, null=True)
+
     current_student = models.BooleanField(default=False)
-    current_teacher = models.BooleanField(default=False)
     current_staff = models.BooleanField(default=False)
     current_admin = models.BooleanField(default=False)  
+
+    last_measure_date = models.DateField(null=True)
+
+    consent = models.BooleanField(default=False)
+    consent_date = models.DateField(null=True)
 
     class Meta:
         managed = True
@@ -43,6 +48,21 @@ class GHPUser(models.Model):
         #do_something()
         super().save(*args, **kwargs)  # Call the "real" save() method.
         #do_something_else()
+
+        # Create a user for the GHPUser if they don't have one
+        if not User.objects.filter(ghpuser=self).exists():
+            User.objects.create_user(username=self.email, email=self.email, 
+                                     password='password', ghpuser=self, 
+                                     first_name=self.first_name, 
+                                     last_name=self.last_name)
+            
+            # Update the GHPUser object with the new user
+            self.user = User.objects.get(ghpuser=self)
+
+            # Save the GHPUser object
+            super().save(*args, **kwargs)
+            
+        
         # Create an account for the user if they don't have one
         if not Account.objects.filter(ghp_user=self).exists():
             Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
@@ -53,93 +73,16 @@ class GHPUser(models.Model):
     def __str__(self):
         s = self.first_name + ' ' + self.last_name
         if self.current_admin:
-            s += ' (admin)'
+            s += ' (Admin)'
         elif self.current_staff:
-            s += ' (staff)'
-        elif self.current_teacher:
-            s += ' (teacher)'
+            s += ' (Faculty/Resident)'
         elif self.current_student:
-            s += ' (student)'
+            s += ' (Student)'
         return s
 
 
-
-class Course(models.Model):
-    # auto primary key here
-    code = models.CharField(max_length=30, help_text="Code for the course, e.g. 'W7', 'W1'")
-    name = models.CharField(max_length=300, help_text="Full name for the course, without the term or teacher e.g. 'INT./ADV. Handbuilding', 'Beginner Wheel")
-
-    class Meta:
-        managed = True
-        db_table = 'course'
-    
-    def __str__(self):
-        return self.name
-
-class Location(models.Model):
-    room = models.CharField(max_length=300, blank=False, help_text="e.g. '2nd Floor Wheel', or '301'")
-    address = models.CharField(max_length=300, blank=True, help_text="Building address")
-    type = models.CharField(max_length=50, blank=True, help_text="e.g. 'Wheel', 'Handbuilding', 'Glaze'")
-    
-    class Meta:
-        managed = True
-        db_table = 'location'
-
-    def __str__(self):
-        return self.room
-
-class Term(models.Model):
-    name = models.CharField(max_length=200, blank=True, help_text="Name of the term, e.g. 'Spring 2023', or, 'Summer-8-Week 2023'")
-    start_date = models.DateField(blank=True, null=True)
-    end_date = models.DateField(blank=True, null=True)
-    current = models.BooleanField(default=False)
-
-    class Meta:
-        managed = True
-        db_table = 'term'
-    constraints = [
-            models.CheckConstraint(check=models.Q(end_date__gte=start_date), name='end_date_gte_start_date'),
-        ]
-    def __str__(self):
-        return self.name + ' (' + str(self.start_date) + ' - ' + str(self.end_date) + ')'
-
-class CourseInstance(models.Model):
-    #id = models.IntegerField(primary_key=True)
-    # auto primary key here
-    name = models.CharField(max_length=1000, blank=True, help_text="Name of the course instance, e.g. 'W15 INT/ADV Wheel Throwing w/ Haakon', or 'ST4 Glass Casting w/ Jessi'")
-    term = models.ForeignKey(Term, models.SET_NULL, null=True, help_text="Term the course instance is in. e.g., 'Spring 2023', or, 'Summer-8-Week 2023'")
-    teachers = models.ManyToManyField(GHPUser, related_name='teachers') # need to change the form for this
-    students = models.ManyToManyField(GHPUser, related_name='students') # need to change the form for this
-    course = models.ForeignKey(Course, models.SET_NULL, null=True, blank=True)
-    location = models.ForeignKey(Location, models.SET_NULL, null=True, blank=True)
-    type = models.CharField(max_length=100, blank=True)
-    weekday = models.CharField(max_length=100, blank=True) #models.ForeignKey(DayOfWeek, models.DO_NOTHING, blank=True, null=True)
-    start_time = models.TimeField(blank=True, null=True)
-    end_time = models.TimeField(blank=True, null=True)
-
-    class Meta:
-        managed = True
-        db_table = 'course_instance'
-
-
-    def __str__(self):
-        return '(' + self.course.code + ') ' +self.course.name 
-        # if self.start_time is None or self.end_time is None:
-        #     s_end = ' ' + self.weekday #' (' + str(self.term.name) + ')' 
-        # else:
-        #     s_end = ' ' + self.course.code + ' (' + self.weekday + ' ' +  str(self.start_time.hour) + ':' + str(self.start_time.minute) + ')' #+ ' - ' + str(self.end_time)
-        # if self.teachers.count() > 1:
-        #     return self.name + ' with ' + ' +'.join(self.teachers.all().get_name()) + s_end
-        # elif self.teachers.count() == 1:
-        #     return self.name + ' with ' + str(self.teachers.first().get_name()) + s_end
-        # else:
-        #     return self.name + s_end
-
-
-
-
-
 class Piece(models.Model):
+    
     # id = models.IntegerField(primary_key=True)
     # auto pk 
     ghp_user = models.ForeignKey(GHPUser, models.CASCADE, null=False)
@@ -150,22 +93,16 @@ class Piece(models.Model):
     height = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     size = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
-    bisque_fired = models.BooleanField(blank=True, null=True)
-    glaze_fired = models.BooleanField(blank=True, null=True)
-    damaged = models.BooleanField(blank=True, null=True)
-    course = models.ForeignKey(CourseInstance, models.SET_NULL, blank=True, null=True)
+    course_number = models.CharField(max_length=4, blank=True)
     piece_description = models.CharField(max_length=1000, blank=True)
     glaze_description = models.CharField(max_length=1000, blank=True)
-    note = models.CharField(max_length=1000, blank=True)
+    glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="Δ 10") # imported from constants.py
 
-    GLAZE_TEMPS  = [
-        ("10", "Cone 10"),
-        ("06", "Cone 06"),
-        ("04", "Cone 04"),
-        ("02", "Cone 02"),
-        ("14", "Cone 14"),
-        ("None", "None"),
-    ]
+    note = models.CharField(max_length=1000, blank=True)
+    image = models.ImageField(upload_to='images/', blank=True, null=True)
+    bisque_fired = models.BooleanField(blank=True, null=True)
+    glaze_fired = models.BooleanField(blank=True, null=True)
+
 
 
     # glaze_temp_help_text = """
@@ -174,16 +111,15 @@ class Piece(models.Model):
     # Select 'None' if you do not wish to glaze this piece, or if you do not know 
     # the glaze firing temperature you want to use.  
     # """
-    glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="Cone 10",
-                                  )
+                                  
     #help_text=glaze_temp_help_text
     class Meta:
         managed = True
         db_table = 'piece'
         constraints = [
-            models.CheckConstraint(check=models.Q(length__gte=0.25), name='length_gte_0.25'),
-            models.CheckConstraint(check=models.Q(width__gte=0.25), name='width_gte_0.25'),
-            models.CheckConstraint(check=models.Q(height__gte=1.5), name='height_gte_1.5'),
+            models.CheckConstraint(check=models.Q(length__gte=0.5), name='length_gte_0.5', violation_error_message="Length must be at least 0.5 inches"),
+            models.CheckConstraint(check=models.Q(width__gte=0.5), name='width_gte_0.5', violation_error_message="Width must be at least 0.5 inches"),
+            models.CheckConstraint(check=models.Q(height__gte=3.0), name='height_gte_3.0', violation_error_message="Height must be at least 3 inches"),
         ]
     
     
@@ -195,9 +131,8 @@ class Piece(models.Model):
 
         # Check the size of the piece is correct (length * width * height) up to 2 decimal places
         size_test = self.length * self.width * self.height
-        print(size_test, type(size_test), self.size, type(self.size))
         size_test = size_test.quantize(decimal.Decimal('0.01'), rounding=decimal.ROUND_UP)
-        assert(size_test == self.size)
+        assert(np.abs(size_test - self.size) < 0.01)
 
         # price should be depdent on size and whethere or not it is being glazed
         # This assumes 
@@ -249,6 +184,8 @@ class Piece(models.Model):
                     )
 
 
+        # update the last measure date for the user
+        self.ghp_user.last_measure_date = self.date
 
     def __str__(self):
         return str(self.ghp_user) + ' #' + str(self.ghp_user_piece_id) + ' ' \

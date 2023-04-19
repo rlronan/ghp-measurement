@@ -11,31 +11,23 @@
         <colgroup>
             <col span="1">
             <col span="1">
-            <col span="2">
             <col span="1">
-            <col span="2">
             <col span="1">
-            <col span="2">
             <col span="1">
-            <col span="2">
+            <col span="1">
+            <col span="1">
         </colgroup>    
 
         <thead>
-            <th colspan="13">User Accounts</th>
+            <th colspan="7">User Accounts</th>
             <tr>
                 <td colspan="1">#</td>
                 <td colspan="1"></td>
                 <th>Name</th>
-                <th>Course</th>
                 <td colspan="1"></td>
                 <th>Name</th>
-                <th>Course</th>
                 <td colspan="1"></td>
                 <th>Name</th>
-                <th>Course</th>
-                <td colspan="1"></td>
-                <th>Name</th>
-                <th>Course</th>
             </tr>
 
         </thead>
@@ -50,10 +42,8 @@
                     {% if forloop.counter0 < ghp_user_admins|length %}
                         {% with ghp_user_admins|list_index:forloop.counter0 as u %}
                         <td><a href="{% url 'measure:ghp_user_piece_view' u.id %}" > {{u.first_name}} {{u.last_name}} </a></td>
-                        <td>None</td>
                         {% endwith %}
                     {% else %}
-                        <td> </td>
                         <td> </td>
                         <td> </td>
                     {% endif %}
@@ -65,27 +55,12 @@
                     {% if forloop.counter0 < ghp_user_staff|length %}
                         {% with ghp_user_staff|list_index:forloop.counter0 as u1 %}
                         <td><a href="{% url 'measure:ghp_user_piece_view' u1.id %}" > {{u1.first_name}} {{u1.last_name}} </a></td>
-                        <td>None</td>
                         {% endwith %}
                     {% else %}
                         <td> </td>
                         <td> </td>
-                        <td></td>
                     {% endif %}
                     
-                    {% if forloop.counter0 == 0 %}
-                        <th rowspan = {{ghp_user_teachers|length}} colspan="1" vetical-align="center"> Teachers </th>
-                    {% endif %}
-                    {% if forloop.counter0 < ghp_user_teachers|length %}
-                        {% with ghp_user_teachers|list_index:forloop.counter0 as u2 %}
-                        <td><a href="{% url 'measure:ghp_user_piece_view' u2.id %}" > {{u2.first_name}} {{u2.last_name}} </a></td>
-                        <td>None</td>
-                        {% endwith %}
-                    {% else %}
-                        <td> </td>
-                        <td> </td>
-                        <td> </td>
-                    {% endif %}
 
                     {% if forloop.counter0 == 0 %}
                         <th rowspan = {{ghp_user_students|length}} colspan="1" vetical-align="center"> Students </th>
@@ -93,10 +68,8 @@
                     {% if forloop.counter0 < ghp_user_students|length %}
                         {% with ghp_user_students|list_index:forloop.counter0 as u3 %}
                         <td><a href="{% url 'measure:ghp_user_piece_view' u3.id %}" > {{u3.first_name}} {{u3.last_name}} </a></td>
-                        <td>None</td>
                         {% endwith %}
                     {% else %}
-                        <td> </td>
                         <td> </td>
                         <td> </td>
                     {% endif %}

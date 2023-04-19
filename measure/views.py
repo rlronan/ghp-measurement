@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from .forms import PieceForm
-from .models import GHPUser, Account, Course, Location, Term, CourseInstance, Piece, Ledger
+from .models import GHPUser, Account, Piece, Ledger #Course, Location, Term, CourseInstance,
 from django.contrib.auth.models import User
 import csv
 import numpy as np
@@ -18,9 +18,9 @@ def index_view(request):
     #ghp_user_list = GHPUser.objects.order_by('last_name').all()
     ghp_user_admins = GHPUser.objects.filter(current_admin=True).order_by('last_name').all()
     ghp_user_staff = GHPUser.objects.filter(current_staff=True).order_by('last_name').all()
-    ghp_user_teachers = GHPUser.objects.filter(current_teacher=True).order_by('last_name').all()
+    # ghp_user_teachers = GHPUser.objects.filter(current_teacher=True).order_by('last_name').all()
     ghp_user_students = GHPUser.objects.filter(current_student=True).order_by('last_name').all()
-    num_rows = max([ghp_user_admins.count(), ghp_user_staff.count(), ghp_user_teachers.count(), ghp_user_students.count()])
+    num_rows = max([ghp_user_admins.count(), ghp_user_staff.count(), ghp_user_students.count()])
 
     # Cannot iterate over a range in a template so replace num_rows with a list of the same length
     num_rows = list(range(num_rows))
@@ -28,7 +28,7 @@ def index_view(request):
         'num_rows': num_rows,
         'ghp_user_admins': ghp_user_admins,
         'ghp_user_staff': ghp_user_staff,
-        'ghp_user_teachers': ghp_user_teachers,
+        # 'ghp_user_teachers': ghp_user_teachers,
         'ghp_user_students': ghp_user_students,})
 
 # class GHPUserView(generic.DetailView):
