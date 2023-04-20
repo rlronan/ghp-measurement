@@ -78,7 +78,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'ghp-db',
         'USER': 'postgres',
-        'PASSWORD': os.environ.get('GHP-DB-PW', ''),
+        'PASSWORD': os.environ.get('GHP_DB_PW', ''),
         'HOST': '127.0.0.1',
         'PORT': '5432',
 

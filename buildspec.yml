@@ -1,5 +1,10 @@
 version: 0.2
 
+env:
+  parameter-store:
+    GHP_DB_PW: /ghp-measurement/credentials/GHP_DB_PW
+    GHP_DJANGO_SK: /ghp-measurement/credentials/GHP_DJANGO_SK
+
 phases:
   install:
     runtime-versions:
