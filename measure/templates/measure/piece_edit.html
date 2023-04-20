@@ -1,0 +1,173 @@
+<style>
+    .MeasureForm {
+        position: relative;
+        width:100%;
+        height:30em;    
+    }
+
+    .MeasureForm form {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+    }
+
+</style>
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Form</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="MeasureForm">
+        <form method="POST">
+            {% csrf_token %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="13">New Piece</th>
+                        </tr>
+                        <tr>
+                            <th>Length</th>
+                            <th>Width</th>
+                            <th>Height</th>
+                            <th>Glaze Temp</th>
+                            <th>Size</th>
+                            <th>Price</th>
+                            <!-- <th>Course Number</th>
+                            <th>Bisque Fired</th>
+                            <th>Glaze Fired</th>
+                            <th>Piece Description</th>
+                            <th>Glaze Description</th>
+                            <th>Note Description</th>
+                            <th>Image</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ form.length }}</td>
+                            <td>{{form.width}}</td> 
+                            <td>{{form.height}}</td>
+                            <td>{{ form.glaze_temp }}</td>
+                            <td>{{ form.size }}</td>
+                            <td>{{ form.price }}</td>
+                            <!-- <td>{{ form.course_number }}</td>
+                            <td>{{ form.bisque_fired }}</td>
+                            <td>{{ form.glaze_fired }}</td>
+                            <td>{{ form.piece_description }}</td>
+                            <td>{{ form.glaze_description }}</td>
+                            <td>{{ form.note }}</td>
+                            <td>{{ form.image }}</td> -->
+                        </tr>
+
+                </table>
+
+                <table>
+                    <thead>
+                        <tr>
+
+                            <th>Course Number</th>
+                            <th>Bisque Fired</th>
+                            <th>Glaze Fired</th>
+                            <th>Piece Description</th>
+                            <th>Glaze Description</th>
+                            <th>Note Description</th>
+                            <th>Image</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ form.course_number }}</td>
+                            <td>{{ form.bisque_fired }}</td>
+                            <td>{{ form.glaze_fired }}</td>
+                            <td>{{ form.piece_description }}</td>
+                            <td>{{ form.glaze_description }}</td>
+                            <td>{{ form.note }}</td>
+                            <td>{{ form.image }}</td>
+                        </tr>
+
+                </table>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    <script>
+        $(document).ready(function() {
+            // listen for changes in the length, width, and height, and glaze_temp fields
+            // glaze_temp is a choice field, so it is a select element
+            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp]').change(function() {
+                
+                // get the current values of length, width, and height
+                var length = parseFloat($('input[name=length]').val());
+                var width = parseFloat($('input[name=width]').val());
+                var height = parseFloat($('input[name=height]').val());
+                
+                // if any of the values are NaN, set them to the minimum
+                if (isNaN(length)) {
+                    length = 0.5;
+                }
+                if (isNaN(width)) {
+                    width = 0.5;
+                }
+                if (isNaN(height)) {
+                    height = 3.0;
+                }
+
+                // round the values UP to nearest 0.5 inch 
+                length = Math.ceil(length * 2) / 2;
+                width = Math.ceil(width * 2) / 2;
+                height = Math.ceil(height * 2) / 2;
+
+                // round the values to 2 decimal places
+                length = length.toFixed(2);
+                width = width.toFixed(2);
+                height = height.toFixed(2);
+
+                // update the value of the length, width, and height fields
+                $('input[name=length]').val(length);
+                $('input[name=width]').val(width);
+                $('input[name=height]').val(height);
+                
+                // get the current values of glaze_temp selection and convert it to a string
+                var glaze_temp = $('select[name=glaze_temp]').val();
+
+                // calculate the new value of size
+                var size = length * width * height;
+
+                // update the value of the size field
+                $('input[name=size]').val(size.toFixed(2));
+
+
+                // need to figure out how to import variables from the form for this part
+                // Set the value of glaze_temp_scalar to be 2 if glaze_temp is not 'None'
+
+
+                var glaze_temp_scalar = 1;
+                if (glaze_temp != 'None') {
+                    glaze_temp_scalar = 2;
+                }
+
+
+                // calculate the new value of price
+                // need to figure out how to import variables from the form for this part
+                
+                // pull the price per cubic inch from the django constants in constants.py dynamically
+                //var price_per_cubic_inch = {{ PRICE_PER_CUBIC_INCH }};
+                //var price_per_cubic_inch = 
+
+               
+                 var price = 0.03 * size * glaze_temp_scalar;
+
+                // if price is less than 1.00, set it to 1.00
+                if (price < 1.00) {
+                    price = 1.00;
+                }
+                
+                // update the value of the price field
+                $('input[name=price]').val(price.toFixed(2));
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 from django import forms
-from .models import Piece
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
+from .models import Piece, GHPUser, User
 from .constants import *
 import decimal
 # class PieceForm(forms.ModelForm):
@@ -128,4 +129,39 @@ class PieceForm(forms.ModelForm):
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
         # Return the cleaned data
         return cleaned_data
+
+
+
+
+class CreateGHPUserForm(UserCreationForm):
+    error_css_class = "error"
+    required_css_class = "required"
+    class Meta:
+        model = GHPUser
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'consent']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'placeholder': 'First Name'}),
+            'last_name': forms.TextInput(attrs={'placeholder': 'Last Name'}),
+        }
+        # 'username', 'password1', 'password2', 
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['consent'].label = "I agree to the terms of service and privacy policy"
+        self.fields['consent'].required = True
+        self.fields['consent'].error_messages = {'required': 'You must agree to the terms of service and privacy policy'}
+        self.fields['password1'].widget.attrs['placeholder'] = 'Password'
+        self.fields['password2'].widget.attrs['placeholder'] = 'Confirm Password'
+    
+    def clean(self):
+        # Get the cleaned data
+        cleaned_data = super().clean()
+        # Check that the password and confirm password match
+        if cleaned_data.get('password1') != cleaned_data.get('password2'):
+            self.add_error('password2', 'Passwords do not match')
+        # Return the cleaned data
+        return cleaned_data
+    
+
+
 

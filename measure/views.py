@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.views import generic
 from .forms import PieceForm
 from .models import GHPUser, Account, Piece, Ledger #Course, Location, Term, CourseInstance,
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth.models import User
 import csv
 import numpy as np
@@ -31,14 +32,14 @@ def index_view(request):
         # 'ghp_user_teachers': ghp_user_teachers,
         'ghp_user_students': ghp_user_students,})
 
-# class GHPUserView(generic.DetailView):
-#     model = GHPUser
-#     template_name = 'measure/ghp_user.html'
-#     context_object_name = 'ghp_user_piece_list'
+class GHPUserView(generic.DetailView):
+    model = GHPUser
+    template_name = 'measure/ghp_user.html'
+    context_object_name = 'ghp_user_piece_list'
 
-#     def get_queryset(self):
-#         """Return the list of all pieces associated with a ghp_user."""
-#         return Piece.objects.filter(ghp_user_id=self.ghp_user_id).order_by('date').all()
+    def get_queryset(self):
+        """Return the list of all pieces associated with a ghp_user."""
+        return Piece.objects.filter(ghp_user_id=self.ghp_user_id).order_by('date').first()
 
 def ghp_user_piece_view(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
@@ -75,6 +76,23 @@ def PieceView(request, ghp_user_id):
     return render(request, 'measure/piece.html', {'form': form})
 
 
+#@unauthenticated_user
+def register_page(request):
+#   form = CustomerForm()
+#   form1 = CreateUserForm()
+    
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        # form1 = CreateUserForm(request.POST)
+        # form = CustomerForm(request.POST)
+        if form.is_valid():# and form1.is_valid():
+            instance = form.save(commit=False)
+            instance.save()
+            return redirect('/index/')
+    else:
+        form = UserCreationForm()
+
+    return render(request, 'measure/register.html', {'form': form})
 
 # def index(request):
 #     ghp_user_list = GHPUser.objects.order_by('last_name').all()

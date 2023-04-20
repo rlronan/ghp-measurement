@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.contrib import admin
 
@@ -11,6 +11,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     path('', views.index_view, name='index'),
+    path('register/', views.register_page, name='register'),
     #path('', views.IndexView.as_view(), name='index'),
 
     # the 'name' value as called by the {% url %} template tag
@@ -20,6 +21,7 @@ urlpatterns = [
     #path('<int:pk>/email/', views.email, name='email'),
     path('<int:ghp_user_id>/piece/', views.PieceView, name='piece'),
 
+    path("accounts/", include("django.contrib.auth.urls")),
 
     path(
         "admin/password_reset/",

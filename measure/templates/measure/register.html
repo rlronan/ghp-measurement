@@ -1,0 +1,78 @@
+{% load static %}
+  
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="{% static 'measure/style.css' %}">
+
+        <title>Register</title>
+      </head>
+  <body>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="container">
+          <h1>Register</h1>
+          <p>Kindly fill in this form to register.</p>
+          <label for="first_name"><b>First Name</b></label>
+          <input
+            type="text"
+            placeholder="First Name"
+            name="first_name"
+            id="first_name"
+            required
+          />
+          <label for="last_name"><b>Last Name</b></label>
+          <input
+            type="text"
+            placeholder="Last Name"
+            name="last_name"
+            id="last_name"
+            required
+          />
+          <label for="email"><b>Email</b></label>
+          <input
+            type="text"
+            placeholder="Enter Email"
+            name="email"
+            id="email"
+            required
+          />
+  
+          <label for="pwd"><b>Password</b></label>
+          <input
+            type="password"
+            placeholder="Enter Password"
+            name="pwd"
+            id="pwd"
+            required
+          />
+  
+          <label for="pwd-repeat"><b>Repeat Password</b></label>
+          <input
+            type="password"
+            placeholder="Repeat Password"
+            name="pwd-repeat"
+            id="pwd-repeat"
+            required
+          />
+          <label for="consent"><b>I Agree To the Terms And Conditions</b></label>
+          <input
+            type="checkbox"
+            name="consent"
+            id="consent"
+            required
+          />
+          <button type="submit">Register</button>
+        </div>
+       <!-- wrapping the text inside the p tag with a tag for routing to the login page URL-->
+        <!-- the # must ideally be replaced by the login page URL -->
+        <div>
+          <p>Already have an account? <a href="#">Log in</a>.</p>
+        </div>
+      </form>
+    </body>
+</html>

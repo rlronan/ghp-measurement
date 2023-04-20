@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 import numpy as np
 import decimal
 from .constants import GLAZE_TEMPS
+from django.db import IntegrityError
 # Create your models here.
 
 class Account(models.Model):
@@ -46,24 +47,101 @@ class GHPUser(models.Model):
 
     def save(self, *args, **kwargs):
         #do_something()
-        super().save(*args, **kwargs)  # Call the "real" save() method.
-        #do_something_else()
+        print("Saving GHPUser: " + self.first_name + " " + self.last_name )
 
-        # Create a user for the GHPUser if they don't have one
-        if not User.objects.filter(ghpuser=self).exists():
-            User.objects.create_user(username=self.email, email=self.email, 
-                                     password='password', ghpuser=self, 
-                                     first_name=self.first_name, 
-                                     last_name=self.last_name)
+        # Check if the user exists, if not, create one
+        if self.user is None:
+            print("Creating user for GHPUser: " + self.first_name + " " + self.last_name)
+            try:
+                # don't think I can give a ghpuser attribute here. The user is created before the GHPUser object
+                user = User.objects.create_user(username=self.email, email=self.email,
+                                                password='password', 
+                                                first_name=self.first_name,
+                                                last_name=self.last_name)
+                print("User created for GHPUser")
+# 
+            except IntegrityError as e:
+                print(e)
+                print("User may already exist with that email address")
+                user = User.objects.get(email=self.email)
+                print("User found: " + str(user))
             
+                # If the User is a superuser, or staff, then we probably 
+                # don't want to attach this GHPUser to it
+                if user.is_superuser or user.is_staff:
+                    print("User is a superuser or staff, not attaching GHPUser to it")
+                    user = None
+# TODO: This does not feel safe. 
+                else:
+                    print("User is not a superuser or staff, attaching GHPUser to it")
+                    # Update the GHPUser object with the new user
+                    self.user = user
+                    print("User attached to GHPUser")
+
+
             # Update the GHPUser object with the new user
-            self.user = User.objects.get(ghpuser=self)
+            self.user = user
 
-            # Save the GHPUser object
-            super().save(*args, **kwargs)
-            
+
+
+
+
+
+
+
+        # # Create a user for the GHPUser if they don't have one
+        # # Check if a user exists for the GHPUser, if not create one
+        # # print(User.objects.all())
+        # # print(User.objects.filter(ghpuser=self), User.objects.filter(ghpuser=self).exists())
+
+        # # check if self.user is None, if so, then create a user. If not, then update the user
+        # if self.user is None:
+        #     User_exists = False
+        # else:
+        #     User_exists = True
+
+
+        # # running a bug here where User.objects.filter(ghpuser=self) returns the admin User object
+        # # who has no associated GHPUser object, so it's always true that User.objects.filter(ghpuser=self).exists().
+        # # Not sure why the admin user is being returned, but I'm going to try to fix it by checking
+        # # if the user has a ghpuser attribute, which should only be true for the GHPUser objects
+        # if User.objects.filter(ghpuser=self).exists():
+
+        #     # need to check if any of the users returned have a ghpuser attribute
+        #     # if not, then the admin user is being returned
+        #     for user in User.objects.filter(ghpuser=self):
+        #         if not hasattr(user, 'ghpuser'):
+        #             print("Admin user returned, ignoring")
+        #         else:
+        #             User_exists = True
+        #             # User exists for the GHPUser, update the User
+        #             print("User found for GHPUser, updating user")
+        #             print("User: " + str(self.user))
+        #             # Update the user with the new GHPUser info
+        #             self.user.first_name = self.first_name
+        #             self.user.last_name = self.last_name
+        #             self.user.email = self.email
+        #             self.user.save()
+        #             print("User updated")
+        #             break
+
+
+        # if not User_exists:
+        #     print("Assigning user to GHPUser")
+        #     user = User.objects.create_user(username=self.email, email=self.email, 
+        #                             password='password', ghpuser=self, 
+        #                             first_name=self.first_name, 
+        #                             last_name=self.last_name)
+
+        #     # Update the GHPUser object with the new user
+        #     self.user = user
+        #     print("User assigned to GHPUser")
+        #     User_exists = True
+
+        super().save(*args, **kwargs)  # Call the "real" save() method.
         
         # Create an account for the user if they don't have one
+        # Should not have the same bug as above because User objects don't have an account attribute
         if not Account.objects.filter(ghp_user=self).exists():
             Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
 
@@ -100,8 +178,8 @@ class Piece(models.Model):
 
     note = models.CharField(max_length=1000, blank=True)
     image = models.ImageField(upload_to='images/', blank=True, null=True)
-    bisque_fired = models.BooleanField(blank=True, null=True)
-    glaze_fired = models.BooleanField(blank=True, null=True)
+    bisque_fired = models.BooleanField(default=False)
+    glaze_fired = models.BooleanField(default=False)
 
 
 
@@ -132,8 +210,17 @@ class Piece(models.Model):
         # Check the size of the piece is correct (length * width * height) up to 2 decimal places
         size_test = self.length * self.width * self.height
         size_test = size_test.quantize(decimal.Decimal('0.01'), rounding=decimal.ROUND_UP)
-        assert(np.abs(size_test - self.size) < 0.01)
-
+        try:
+            assert(np.abs(size_test - self.size) < 0.01)
+        except AssertionError:
+            print("Size is not correct, recalculating")
+            print("size_test: " + str(size_test))
+            print("self.size: " + str(self.size))
+            print("np.abs(size_test - self.size): " + str(np.abs(size_test - self.size)))
+            print("type(size_test): " + str(type(size_test)))
+            print("type(self.size): " + str(type(self.size)))
+            print("type(np.abs(size_test - self.size)): " + str(type(np.abs(size_test - self.size))))
+            self.size = size_test
         # price should be depdent on size and whethere or not it is being glazed
         # This assumes 
         super().save(*args, **kwargs)  # Call the "real" save() method.
