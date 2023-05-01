@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator, EmailValidator, MinLengthValidator
 from .models import Piece, GHPUser, User
 from .constants import *
 import decimal
@@ -29,20 +30,20 @@ class PieceForm(forms.ModelForm):
 
         self.fields['glaze_temp'].initial = 'Cone 10'
 
-        self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.5)
+        self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
         self.fields['length'].widget.attrs['min'] = 0.5
         self.fields['length'].widget.attrs['step'] = 0.5
-        self.fields['length'].widget.attrs['value'] = 0.5
+        self.fields['length'].widget.attrs['value'] = 0.0
       
-        self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.5)
+        self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
         self.fields['width'].widget.attrs['min'] = 0.5
         self.fields['width'].widget.attrs['step'] = 0.5
-        self.fields['width'].widget.attrs['value'] = 0.5
+        self.fields['width'].widget.attrs['value'] = 0.0
 
         self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=3.0)
         self.fields['height'].widget.attrs['min'] = 3.0
         self.fields['height'].widget.attrs['step'] = 0.5
-        self.fields['height'].widget.attrs['value'] = 3.0
+        self.fields['height'].widget.attrs['value'] = 0.0
         
 
 
@@ -138,7 +139,7 @@ class CreateGHPUserForm(UserCreationForm):
     required_css_class = "required"
     class Meta:
         model = GHPUser
-        fields = ['first_name', 'last_name', 'email', 'phone_number', 'consent']
+        fields = ['first_name', 'last_name', 'email', 'username', 'phone_number', 'consent']
         widgets = {
             'first_name': forms.TextInput(attrs={'placeholder': 'First Name'}),
             'last_name': forms.TextInput(attrs={'placeholder': 'Last Name'}),
@@ -152,6 +153,56 @@ class CreateGHPUserForm(UserCreationForm):
         self.fields['consent'].error_messages = {'required': 'You must agree to the terms of service and privacy policy'}
         self.fields['password1'].widget.attrs['placeholder'] = 'Password'
         self.fields['password2'].widget.attrs['placeholder'] = 'Confirm Password'
+        self.fields['password1'].widget.attrs['class'] = 'password'
+        self.fields['password2'].widget.attrs['class'] = 'password'
+        self.fields['password1'].widget.attrs['autocomplete'] = 'new-password'
+        self.fields['password2'].widget.attrs['autocomplete'] = 'new-password'
+        self.fields['email'].widget.attrs['placeholder'] = 'Email'
+        self.fields['phone_number'].widget.attrs['placeholder'] = 'Phone Number'
+        self.fields['phone_number'].widget.attrs['type'] = 'tel'
+        self.fields['phone_number'].widget.attrs['pattern'] = '[0-9]{3}-[0-9]{3}-[0-9]{4}'
+        self.fields['phone_number'].widget.attrs['title'] = 'Phone number must be in the format XXX-XXX-XXXX'
+        self.fields['phone_number'].widget.attrs['autocomplete'] = 'tel-national'
+        self.fields['phone_number'].widget.attrs['required'] = True
+        self.fields['phone_number'].error_messages = {'required': 'Phone number is required'}
+        self.fields['phone_number'].help_text = 'Phone number must be in the format XXX-XXX-XXXX'
+        #self.fields['phone_number'].validators = [RegexValidator(regex='[0-9]{3}-[0-9]{3}-[0-9]{4}', message='Phone number must be in the format XXX-XXX-XXXX')]
+        
+        self.fields['email'].widget.attrs['autocomplete'] = 'email'
+        self.fields['email'].widget.attrs['required'] = True
+        self.fields['email'].error_messages = {'required': 'Email is required'}
+        self.fields['email'].help_text = 'Email is required'
+       # self.fields['email'].validators = [EmailValidator(message='Email is invalid')]
+        
+        self.fields['first_name'].widget.attrs['autocomplete'] = 'given-name'
+        self.fields['first_name'].widget.attrs['required'] = True
+        self.fields['first_name'].error_messages = {'required': 'First name is required'}
+        self.fields['first_name'].help_text = 'First name is required'
+        
+        self.fields['last_name'].widget.attrs['autocomplete'] = 'family-name'
+        self.fields['last_name'].widget.attrs['required'] = True
+        self.fields['last_name'].error_messages = {'required': 'Last name is required'}
+        self.fields['last_name'].help_text = 'Last name is required'
+        
+        self.fields['password1'].help_text = 'Password must be at least 8 characters long'
+        self.fields['password2'].help_text = 'Enter the same password as before, for verification'
+        self.fields['password1'].validators = [MinLengthValidator(8, message='Password must be at least 8 characters long')]
+        self.fields['password2'].validators = [MinLengthValidator(8, message='Password must be at least 8 characters long')]
+        self.fields['password1'].error_messages = {'required': 'Password is required'}
+        self.fields['password2'].error_messages = {'required': 'Password is required'}
+        self.fields['password1'].required = True
+        self.fields['password2'].required = True
+        self.fields['password1'].label = 'Password'
+        self.fields['password2'].label = 'Confirm Password'
+
+        self.fields['username'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['username'].required = False
+        self.fields['username'].initial = self.fields['email'].initial
+        self.fields['username'].validators = []
+        self.fields['username'].error_messages = {}
+        self.fields['username'].help_text = ''
+        self.fields['username'].label = ''
+
     
     def clean(self):
         # Get the cleaned data
@@ -159,6 +210,9 @@ class CreateGHPUserForm(UserCreationForm):
         # Check that the password and confirm password match
         if cleaned_data.get('password1') != cleaned_data.get('password2'):
             self.add_error('password2', 'Passwords do not match')
+
+        cleaned_data['username'] = cleaned_data['email']
+
         # Return the cleaned data
         return cleaned_data
     

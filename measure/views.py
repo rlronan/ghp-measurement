@@ -2,7 +2,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
-from .forms import PieceForm
+from .forms import PieceForm, CreateGHPUserForm
 from .models import GHPUser, Account, Piece, Ledger #Course, Location, Term, CourseInstance,
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth.models import User
@@ -82,15 +82,29 @@ def register_page(request):
 #   form1 = CreateUserForm()
     
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        #form = UserCreationForm(request.POST)
+        form = CreateGHPUserForm(request.POST)
         # form1 = CreateUserForm(request.POST)
         # form = CustomerForm(request.POST)
+        #form['username'] = form['email']
         if form.is_valid():# and form1.is_valid():
+            print("Register form is valid")
             instance = form.save(commit=False)
             instance.save()
-            return redirect('/index/')
+            #instance.refresh_from_db()  # load the profile instance created by the signal
+            
+            ghp_user_email = instance.email
+            print("Found ghp user email: ", ghp_user_email)
+            ghp_user = get_object_or_404(GHPUser, email=ghp_user_email)
+            print("Found ghp_user: ", ghp_user)
+            return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(ghp_user.id,)))
+            #return redirect('/index/')
+        else:
+            print("Register form is not valid")
+            print(form.errors)
     else:
-        form = UserCreationForm()
+        #form = UserCreationForm()
+        form = CreateGHPUserForm()
 
     return render(request, 'measure/register.html', {'form': form})
 

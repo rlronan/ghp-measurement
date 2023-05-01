@@ -45,6 +45,9 @@ def generate_ghp_user(num_customers=100, p_student=0.9, p_staff=0.1, p_admin=0.0
         try:
             print("attempting to create GHPuser: " + first_name + " " + last_name + " ...")
             ghp_user = GHPUser.objects.create(
+                username = first_name + '_' + last_name + '@gmail.com',
+                password = 'VeryComplexPassword123!',
+                #password2 = 'VeryComplexPassword123!', 
                 first_name = first_name,
                 last_name = last_name,
                 phone_number = phone_numbers[i],

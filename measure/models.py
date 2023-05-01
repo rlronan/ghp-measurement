@@ -24,13 +24,13 @@ class Account(models.Model):
         return str(self.ghp_user) + s_end
 
 
-class GHPUser(models.Model):
+class GHPUser(User):
     # auto primary key here
-    user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    #user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
+    #first_name = models.CharField(max_length=100)
+    #last_name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length = 12, unique=False, blank=True, default='')
-    email = models.EmailField(unique=True, max_length=200, blank=True)
+    #email = models.EmailField(unique=True, max_length=200, blank=True)
 
     current_student = models.BooleanField(default=False)
     current_staff = models.BooleanField(default=False)
@@ -49,38 +49,38 @@ class GHPUser(models.Model):
         #do_something()
         print("Saving GHPUser: " + self.first_name + " " + self.last_name )
 
-        # Check if the user exists, if not, create one
-        if self.user is None:
-            print("Creating user for GHPUser: " + self.first_name + " " + self.last_name)
-            try:
-                # don't think I can give a ghpuser attribute here. The user is created before the GHPUser object
-                user = User.objects.create_user(username=self.email, email=self.email,
-                                                password='password', 
-                                                first_name=self.first_name,
-                                                last_name=self.last_name)
-                print("User created for GHPUser")
-# 
-            except IntegrityError as e:
-                print(e)
-                print("User may already exist with that email address")
-                user = User.objects.get(email=self.email)
-                print("User found: " + str(user))
+#         # Check if the user exists, if not, create one
+#         if self.user is None:
+#             print("Creating user for GHPUser: " + self.first_name + " " + self.last_name)
+#             try:
+#                 # don't think I can give a ghpuser attribute here. The user is created before the GHPUser object
+#                 user = User.objects.create_user(username=self.email, email=self.email,
+#                                                 password='password', 
+#                                                 first_name=self.first_name,
+#                                                 last_name=self.last_name)
+#                 print("User created for GHPUser")
+# # 
+#             except IntegrityError as e:
+#                 print(e)
+#                 print("User may already exist with that email address")
+#                 user = User.objects.get(email=self.email)
+#                 print("User found: " + str(user))
             
-                # If the User is a superuser, or staff, then we probably 
-                # don't want to attach this GHPUser to it
-                if user.is_superuser or user.is_staff:
-                    print("User is a superuser or staff, not attaching GHPUser to it")
-                    user = None
-# TODO: This does not feel safe. 
-                else:
-                    print("User is not a superuser or staff, attaching GHPUser to it")
-                    # Update the GHPUser object with the new user
-                    self.user = user
-                    print("User attached to GHPUser")
+#                 # If the User is a superuser, or staff, then we probably 
+#                 # don't want to attach this GHPUser to it
+#                 if user.is_superuser or user.is_staff:
+#                     print("User is a superuser or staff, not attaching GHPUser to it")
+#                     user = None
+# # TODO: This does not feel safe. 
+#                 else:
+#                     print("User is not a superuser or staff, attaching GHPUser to it")
+#                     # Update the GHPUser object with the new user
+#                     self.user = user
+#                     print("User attached to GHPUser")
 
 
-            # Update the GHPUser object with the new user
-            self.user = user
+#             # Update the GHPUser object with the new user
+#             self.user = user
 
 
 
