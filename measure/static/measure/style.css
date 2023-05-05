@@ -1,11 +1,44 @@
-table {
-    border: 1px solid black;
+
+/* .index {
+  border: 1px solid black;
+  font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+.index.th,
+.index.td {
+border: 1px solid black;
+padding: 4px 6px;
+text-align: center;
+vertical-align: center;
+
+} */
+
+/* thead > tr {
+  background-color: rgb(228, 240, 245);
+}
+
+thead > tr:nth-of-type(2) {
+  border-bottom: 2px solid black;
+}
+
+
+tbody > tr:nth-of-type(odd) {
+  background-color: rgb(245, 245, 245);
+} */
+
+
+
+
+
+
+
+/* table {
     font: 16px "Open Sans", Helvetica, Arial, sans-serif;
-    border-spacing: 0;
-    border-collapse: collapse;
-  }
-  
-  th,
+}
+   */
+  /* th,
 td {
   border: 1px solid black;
   padding: 4px 6px;
@@ -25,11 +58,36 @@ thead > tr {
 
 tbody > tr:nth-of-type(odd) {
     background-color: rgb(245, 245, 245);
+} */
+
+
+.center {
+  margin-left: auto;
+  margin-right: auto;
 }
 
+
+
+
+
+
+/* alignmentTable {
+  font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+alignmentCell {
+padding: 4px 6px;
+text-align: center;
+vertical-align: center;
+
+} */
+
+/* 
 body {
   font-family: Arial, Helvetica, sans-serif;
-}
+} */
 
 form {
   display: flex;
@@ -48,14 +106,14 @@ h1, p {
 }
 
 input {
-  margin: 0.25em 0em 1em 0em;
+  margin: 0.25em;
   outline: none;
   padding: 0.5em;
   border: none;
   background-color: rgb(225, 225, 225);
   border-radius: 0.25em;
   color: black;
-}
+} 
 
 button {
   padding: 0.75em;
@@ -64,6 +122,8 @@ button {
   background-color: rgb(68, 18, 232);
   color: white;
   border-radius: 0.25em;
+  font-weight: bold;
+  align-self: left;
 }
 
 button:hover {

@@ -22,8 +22,8 @@ class PieceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
         super().__init__(*args, **kwargs)
-        self.fields['ghp_user'].widget = forms.HiddenInput()
-        self.fields['ghp_user_piece_id'].widget = forms.HiddenInput()
+        self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['ghp_user_piece_id'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         # Set initial values for ghp_user and ghp_user_piece_id
         self.fields['ghp_user'].initial = self.ghp_user
         self.fields['ghp_user_piece_id'].initial = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
@@ -33,27 +33,34 @@ class PieceForm(forms.ModelForm):
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
         self.fields['length'].widget.attrs['min'] = 0.5
         self.fields['length'].widget.attrs['step'] = 0.5
-        self.fields['length'].widget.attrs['value'] = 0.0
       
         self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
         self.fields['width'].widget.attrs['min'] = 0.5
         self.fields['width'].widget.attrs['step'] = 0.5
-        self.fields['width'].widget.attrs['value'] = 0.0
 
         self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=3.0)
         self.fields['height'].widget.attrs['min'] = 3.0
         self.fields['height'].widget.attrs['step'] = 0.5
-        self.fields['height'].widget.attrs['value'] = 0.0
-        
-
 
         # Set initial value for size
-        self.fields['size'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.75)
-        self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=1.0)
+        self.fields['size'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.00)
+        self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=1.00)
 
         # Set widget for size field to ReadOnlyInput
         self.fields['size'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
         self.fields['price'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
+
+
+        self.fields['course_number'].widget.attrs['placeholder'] = 'e.g. W7'
+        self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'columns': 10})
+        self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
+
+        self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'columns': 10})
+        self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
+
+        self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'columns': 10})
+        self.fields['note'].widget.attrs['placeholder'] = 'e.g. This piece is for my mom\'s birthday'
+
 
     def clean(self):
         # Get the cleaned data
@@ -155,31 +162,32 @@ class CreateGHPUserForm(UserCreationForm):
         self.fields['password2'].widget.attrs['placeholder'] = 'Confirm Password'
         self.fields['password1'].widget.attrs['class'] = 'password'
         self.fields['password2'].widget.attrs['class'] = 'password'
-        self.fields['password1'].widget.attrs['autocomplete'] = 'new-password'
-        self.fields['password2'].widget.attrs['autocomplete'] = 'new-password'
+        #self.fields['password1'].widget.attrs['autocomplete'] = 'new-password'
+        #self.fields['password2'].widget.attrs['autocomplete'] = 'new-password'
         self.fields['email'].widget.attrs['placeholder'] = 'Email'
+        
         self.fields['phone_number'].widget.attrs['placeholder'] = 'Phone Number'
-        self.fields['phone_number'].widget.attrs['type'] = 'tel'
+        #self.fields['phone_number'].widget.attrs['type'] = 'tel'
         self.fields['phone_number'].widget.attrs['pattern'] = '[0-9]{3}-[0-9]{3}-[0-9]{4}'
         self.fields['phone_number'].widget.attrs['title'] = 'Phone number must be in the format XXX-XXX-XXXX'
-        self.fields['phone_number'].widget.attrs['autocomplete'] = 'tel-national'
+        #self.fields['phone_number'].widget.attrs['autocomplete'] = 'tel-national'
         self.fields['phone_number'].widget.attrs['required'] = True
         self.fields['phone_number'].error_messages = {'required': 'Phone number is required'}
         self.fields['phone_number'].help_text = 'Phone number must be in the format XXX-XXX-XXXX'
         #self.fields['phone_number'].validators = [RegexValidator(regex='[0-9]{3}-[0-9]{3}-[0-9]{4}', message='Phone number must be in the format XXX-XXX-XXXX')]
         
-        self.fields['email'].widget.attrs['autocomplete'] = 'email'
+        #self.fields['email'].widget.attrs['autocomplete'] = 'email'
         self.fields['email'].widget.attrs['required'] = True
         self.fields['email'].error_messages = {'required': 'Email is required'}
         self.fields['email'].help_text = 'Email is required'
        # self.fields['email'].validators = [EmailValidator(message='Email is invalid')]
         
-        self.fields['first_name'].widget.attrs['autocomplete'] = 'given-name'
+        #self.fields['first_name'].widget.attrs['autocomplete'] = 'given-name'
         self.fields['first_name'].widget.attrs['required'] = True
         self.fields['first_name'].error_messages = {'required': 'First name is required'}
         self.fields['first_name'].help_text = 'First name is required'
         
-        self.fields['last_name'].widget.attrs['autocomplete'] = 'family-name'
+        #self.fields['last_name'].widget.attrs['autocomplete'] = 'family-name'
         self.fields['last_name'].widget.attrs['required'] = True
         self.fields['last_name'].error_messages = {'required': 'Last name is required'}
         self.fields['last_name'].help_text = 'Last name is required'

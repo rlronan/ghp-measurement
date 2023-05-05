@@ -12,6 +12,10 @@ urlpatterns = [
 
     path('', views.index_view, name='index'),
     path('register/', views.register_page, name='register'),
+    path('login/', auth_views.LoginView.as_view(), name='login'),
+    # path('accounts/login', views.login, name='login'),
+    # path('measure/accounts/login', views.login, name='login'),
+    
     #path('', views.IndexView.as_view(), name='index'),
 
     # the 'name' value as called by the {% url %} template tag

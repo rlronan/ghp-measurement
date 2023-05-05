@@ -40,7 +40,8 @@ class GHPUser(User):
 
     consent = models.BooleanField(default=False)
     consent_date = models.DateField(null=True)
-
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name']
     class Meta:
         managed = True
         db_table = 'ghp_user'

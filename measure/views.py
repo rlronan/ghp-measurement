@@ -3,8 +3,9 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from .forms import PieceForm, CreateGHPUserForm
-from .models import GHPUser, Account, Piece, Ledger #Course, Location, Term, CourseInstance,
+from .models import GHPUser, Account, Piece, Ledger
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 import csv
 import numpy as np
@@ -16,20 +17,16 @@ import datetime
 #     return render(request, 'measure/index.html', {'ghp_user_list': ghp_user_list})
 
 def index_view(request):
-    #ghp_user_list = GHPUser.objects.order_by('last_name').all()
     ghp_user_admins = GHPUser.objects.filter(current_admin=True).order_by('last_name').all()
     ghp_user_staff = GHPUser.objects.filter(current_staff=True).order_by('last_name').all()
-    # ghp_user_teachers = GHPUser.objects.filter(current_teacher=True).order_by('last_name').all()
     ghp_user_students = GHPUser.objects.filter(current_student=True).order_by('last_name').all()
     num_rows = max([ghp_user_admins.count(), ghp_user_staff.count(), ghp_user_students.count()])
 
-    # Cannot iterate over a range in a template so replace num_rows with a list of the same length
     num_rows = list(range(num_rows))
     return render(request, 'measure/index.html', {
         'num_rows': num_rows,
         'ghp_user_admins': ghp_user_admins,
         'ghp_user_staff': ghp_user_staff,
-        # 'ghp_user_teachers': ghp_user_teachers,
         'ghp_user_students': ghp_user_students,})
 
 class GHPUserView(generic.DetailView):
@@ -67,10 +64,14 @@ def PieceView(request, ghp_user_id):
     if request.method == 'POST':
         form = PieceForm(request.POST, ghp_user=ghp_user)
         if form.is_valid():
+            print("Measuring pice form is valid")
             instance = form.save(commit=False)
             instance.save()
             # process the data in form.cleaned_data as required
             return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
+        else:
+            print("Measuring piece form is not valid")
+            print(form.errors)
     else:
         form = PieceForm(ghp_user=ghp_user)
     return render(request, 'measure/piece.html', {'form': form})
@@ -78,27 +79,27 @@ def PieceView(request, ghp_user_id):
 
 #@unauthenticated_user
 def register_page(request):
-#   form = CustomerForm()
-#   form1 = CreateUserForm()
-    
     if request.method == 'POST':
-        #form = UserCreationForm(request.POST)
         form = CreateGHPUserForm(request.POST)
-        # form1 = CreateUserForm(request.POST)
-        # form = CustomerForm(request.POST)
-        #form['username'] = form['email']
-        if form.is_valid():# and form1.is_valid():
+        if form.is_valid():
             print("Register form is valid")
             instance = form.save(commit=False)
-            instance.save()
-            #instance.refresh_from_db()  # load the profile instance created by the signal
+            # process the data in form.cleaned_data as required
+
+            # check if the user is already in the database
+            # if so, return a message that the user already exists, and redirect to the login page
+            # if not, create the user and redirect to the user's account page
             
             ghp_user_email = instance.email
-            print("Found ghp user email: ", ghp_user_email)
-            ghp_user = get_object_or_404(GHPUser, email=ghp_user_email)
-            print("Found ghp_user: ", ghp_user)
-            return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(ghp_user.id,)))
-            #return redirect('/index/')
+            ghp_user = GHPUser.objects.filter(email=ghp_user_email).first()
+            if ghp_user:
+                print("User already exists")
+                form.add_error('email', "Looks like a user with that email already exists")
+            else:
+                instance.save()
+                ghp_user = get_object_or_404(GHPUser, email=ghp_user_email)
+                print("Found ghp_user: ", ghp_user)
+                return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(ghp_user.id,)))
         else:
             print("Register form is not valid")
             print(form.errors)
@@ -107,6 +108,35 @@ def register_page(request):
         form = CreateGHPUserForm()
 
     return render(request, 'measure/register.html', {'form': form})
+
+
+
+# #@
+# def login(request):
+
+
+#     if request.method == 'POST':
+#         form = LoginForm(request.POST)
+#         if form.is_valid():
+#             username = request.POST["email"]
+#             password = request.POST["password"]
+#             user = authenticate(request, username=username, password=password)
+#             if user is not None:
+#                 login(request, user)
+#                 print("User is authenticated")
+#                 return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(user.ghp_user.id,)))
+#                 # Redirect to a success page.
+#                 #...
+#             else:
+#                 # Return an 'invalid login' error message.
+#                 #...
+#                 print("Invalid login")
+#                 form.add_error('email', "Invalid login")
+#     else:
+#         form = LoginForm()
+#     return render(request, 'measure/login.html', {'form': form})
+
+
 
 # def index(request):
 #     ghp_user_list = GHPUser.objects.order_by('last_name').all()

@@ -1,5 +1,36 @@
 <!DOCTYPE html>
 
+<style>
+table {
+    border: 1px solid black;
+    font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+    border-spacing: 0;
+    border-collapse: collapse;
+  }
+  
+  th,
+td {
+  border: 1px solid black;
+  padding: 4px 6px;
+  text-align: center;
+  vertical-align: center;
+
+}
+
+thead > tr {
+    background-color: rgb(228, 240, 245);
+  }
+  
+  thead > tr:nth-of-type(2) {
+    border-bottom: 2px solid black;
+  }
+  
+
+tbody > tr:nth-of-type(odd) {
+    background-color: rgb(245, 245, 245);
+}    
+</style>
+
 {% load static %}
 <link rel="stylesheet" href="{% static 'measure/style.css' %}">
 
@@ -7,7 +38,7 @@
 
 
 {% if num_rows|length > 0 %}
-    <table>
+    <table class="center index">
         <colgroup>
             <col span="1">
             <col span="1">
@@ -18,7 +49,7 @@
             <col span="1">
         </colgroup>    
 
-        <thead>
+        <thead class="index">
             <th colspan="7">User Accounts</th>
             <tr>
                 <td colspan="1">#</td>
@@ -31,7 +62,7 @@
             </tr>
 
         </thead>
-        <tbody>
+        <tbody class="index">
             {% for idx in num_rows %}
                 <tr>
                     <td> {{idx}} </td>

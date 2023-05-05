@@ -1,3 +1,34 @@
+<style>
+    table {
+        border: 1px solid black;
+        font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+        border-spacing: 0;
+        border-collapse: collapse;
+      }
+      
+      th,
+    td {
+      border: 1px solid black;
+      padding: 4px 6px;
+      text-align: center;
+      vertical-align: center;
+    
+    }
+    
+    thead > tr {
+        background-color: rgb(228, 240, 245);
+      }
+      
+      thead > tr:nth-of-type(2) {
+        border-bottom: 2px solid black;
+      }
+      
+    
+    tbody > tr:nth-of-type(odd) {
+        background-color: rgb(245, 245, 245);
+    }    
+    </style>
+
 {% load static %}
 <link rel="stylesheet" href="{% static 'measure/style.css' %}">
 
@@ -5,7 +36,7 @@
 
 
 {% if ghp_user %}
-    <table>
+    <table class="center">
         <thead>
             <tr>
                 <th colspan="6">{{ghp_user.first_name}} {{ghp_user.last_name}} Account</th>
