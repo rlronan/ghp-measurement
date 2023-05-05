@@ -60,7 +60,7 @@ def ghp_user_account_view(request, ghp_user_id):
 #class PieceView(generic.FormView):
 def PieceView(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
-
+    
     if request.method == 'POST':
         form = PieceForm(request.POST, ghp_user=ghp_user)
         if form.is_valid():

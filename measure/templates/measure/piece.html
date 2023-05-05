@@ -21,31 +21,31 @@
     }
         th,
     td {
-    padding: 4px 6px;
+    padding: 0px 0px;
     text-align: center;
     vertical-align: center;
 
     }
 
     table {
-    border: 1px solid black;
+    /* border: 1px solid black; */
     font: 16px "Open Sans", Helvetica, Arial, sans-serif;
     border-spacing: 0;
     border-collapse: collapse;
-    width: 150px;
+    /* width: 150px; */
     
     }
   
   th,
 td {
-  border: 1px solid black;
+  /* border: 1px solid black; */
   padding: 4px 6px;
   text-align: center;
   vertical-align: center;
 
     }
 
-thead > tr {
+/* thead > tr {
     background-color: rgb(228, 240, 245);
   }
   
@@ -56,7 +56,7 @@ thead > tr {
 
 tbody > tr:nth-of-type(odd) {
     background-color: rgb(245, 245, 245);
-}    
+}     */
 </style>
 
 
@@ -70,9 +70,9 @@ tbody > tr:nth-of-type(odd) {
 <body>
     <form  class="MeasureForm" method="POST">
         {% csrf_token %}
-        <p> Measure A New Piece</p>
         {{ form.non_field_errors }}
         {{ form.field_errors }}
+        
         {% for hidden in form.hidden_fields %}
         {{ hidden }}
         {% endfor %}
@@ -123,15 +123,11 @@ tbody > tr:nth-of-type(odd) {
                     <th>Image {{form.image.erros}}</th>
                     <td>{{ form.image }}</td>
                 </tr>
-                        <!-- <th>Bisque Fired</th>
-                        <th>Glaze Fired</th> -->
 
-                <!-- <td>{{ form.bisque_fired }}</td>
-                        <td>{{ form.glaze_fired }}</td> -->
-
-                <!-- </tbody> -->
             </table>
-                <button type="submit">Submit</button>
+            <!-- {{ form.bisque_fired }}
+            {{ form.glaze_fired }} -->
+            <button type="submit">Submit</button>
     </form>
 
     <script>
@@ -180,26 +176,18 @@ tbody > tr:nth-of-type(odd) {
                 // update the value of the size field
                 $('input[name=size]').val(size.toFixed(2));
 
-
-                // need to figure out how to import variables from the form for this part
-                // Set the value of glaze_temp_scalar to be 2 if glaze_temp is not 'None'
-
-
-                var glaze_temp_scalar = 1;
+                // Set the value of glaze_temp_scalar to be 1 if glaze_temp is not 'None'
+                var glaze_temp_scalar = 0;
                 if (glaze_temp != 'None') {
-                    glaze_temp_scalar = 2;
+                    glaze_temp_scalar = 1;
                 }
 
+                // pull the price per cubic inch from the django constants in constants.py dynamically
+                var firing_price_per_cubic_inch = $('input[name=firing_price_per_cubic_inch]').val();
+                var glazing_price_per_cubic_inch = $('input[name=glazing_price_per_cubic_inch]').val();
 
                 // calculate the new value of price
-                // need to figure out how to import variables from the form for this part
-                
-                // pull the price per cubic inch from the django constants in constants.py dynamically
-                //var price_per_cubic_inch = {{ PRICE_PER_CUBIC_INCH }};
-                //var price_per_cubic_inch = 
-
-               
-                 var price = 0.03 * size * glaze_temp_scalar;
+                 var price = firing_price_per_cubic_inch * size  + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
 
                 // if price is less than 1.00, set it to 1.00
                 if (price < 1.00) {

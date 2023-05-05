@@ -13,11 +13,15 @@ import decimal
 class PieceForm(forms.ModelForm):
     error_css_class = "error"
     required_css_class = "required"
+    firing_price_per_cubic_inch = forms.DecimalField(label="firing_price_per_cubic_inch" , max_digits=5, decimal_places=3, initial=0.00)
+    firing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
+    glazing_price_per_cubic_inch = forms.DecimalField(label="glazing_price_per_cubic_inch" , max_digits=5, decimal_places=3, initial=0.00)
+    glazing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'length', 'width', 'height', 
                   'glaze_temp', 'size', 'price', 'course_number', 
-                  'piece_description', 'glaze_description', 'note', 'image',]
+                  'piece_description', 'glaze_description', 'note', 'image']
         #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
@@ -43,7 +47,7 @@ class PieceForm(forms.ModelForm):
         self.fields['height'].widget.attrs['step'] = 0.5
 
         # Set initial value for size
-        self.fields['size'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.00)
+        self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
         self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=1.00)
 
         # Set widget for size field to ReadOnlyInput
@@ -60,6 +64,15 @@ class PieceForm(forms.ModelForm):
 
         self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'columns': 10})
         self.fields['note'].widget.attrs['placeholder'] = 'e.g. This piece is for my mom\'s birthday'
+
+        self.fields['firing_price_per_cubic_inch'].initial = self.ghp_user.get_price_scale()[0]
+        self.fields['glazing_price_per_cubic_inch'].initial = self.ghp_user.get_price_scale()[1]
+
+        self.fields['firing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['glazing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+
+        # Set initial values for ghp_user and ghp_user_piece_id
+
 
 
     def clean(self):

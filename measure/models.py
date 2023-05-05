@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 import numpy as np
 import decimal
-from .constants import GLAZE_TEMPS
+from .constants import GLAZE_TEMPS, USER_FIRING_SCALE, STAFF_FIRING_SCALE, USER_GLAZING_SCALE, STAFF_GLAZING_SCALE, MINIMUM_PRICE
 from django.db import IntegrityError
 # Create your models here.
 
@@ -146,8 +146,19 @@ class GHPUser(User):
         if not Account.objects.filter(ghp_user=self).exists():
             Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
 
-    def get_name(self):
-        return self.first_name + ' ' + self.last_name
+    # def get_name(self):
+    #     return self.first_name + ' ' + self.last_name
+
+    def get_price_scale(self):
+        if self.current_admin or self.current_staff:
+            return (STAFF_FIRING_SCALE, STAFF_GLAZING_SCALE)
+        elif self.current_student:
+            return (USER_FIRING_SCALE, USER_GLAZING_SCALE)
+        else:
+            # later we can add a default scale for non-students if ghp ever wants
+            return (USER_FIRING_SCALE, USER_GLAZING_SCALE)
+
+
 
     def __str__(self):
         s = self.first_name + ' ' + self.last_name
