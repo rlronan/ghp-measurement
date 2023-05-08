@@ -183,6 +183,9 @@ class Piece(models.Model):
     height = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     size = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+    firing_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+    glazing_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+
     course_number = models.CharField(max_length=4, blank=True)
     piece_description = models.CharField(max_length=1000, blank=True)
     glaze_description = models.CharField(max_length=1000, blank=True)

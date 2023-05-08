@@ -20,7 +20,7 @@ class PieceForm(forms.ModelForm):
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'length', 'width', 'height', 
-                  'glaze_temp', 'size', 'price', 'course_number', 
+                  'glaze_temp', 'size', 'price', 'firing_price', 'glazing_price', 'course_number', 
                   'piece_description', 'glaze_description', 'note', 'image']
         #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
@@ -50,10 +50,16 @@ class PieceForm(forms.ModelForm):
         self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
         self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=1.00)
 
+        self.fields['firing_price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=1.00)
+        self.fields['glazing_price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.00)
+
+
         # Set widget for size field to ReadOnlyInput
         self.fields['size'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
         self.fields['price'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
 
+        self.fields['firing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['glazing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
 
         self.fields['course_number'].widget.attrs['placeholder'] = 'e.g. W7'
         self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
@@ -111,31 +117,40 @@ class PieceForm(forms.ModelForm):
         # Calculate the price
         # get the price scaling based on the user is a current_staff or current_admin or not
         if self.ghp_user.current_staff or self.ghp_user.current_admin:
-            price = decimal.Decimal(STAFF_FIRING_SCALE) * size
+            firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
         else: 
-            price = decimal.Decimal(USER_FIRING_SCALE) * size
+            firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
         # set to 2 decimal places
-        price = price.quantize(decimal.Decimal('0.01'))
+        firing_price = firing_price.quantize(decimal.Decimal('0.01'))
         # Set the cleaned data for price
-        cleaned_data['price'] = price
+        cleaned_data['firing_price'] = firing_price
 
         # Get the glaze temperature
         glaze_temp = cleaned_data.get('glaze_temp')
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
+            # Get the price scaling based on the user is a current_staff or current_admin or not
             if self.ghp_user.current_staff or self.ghp_user.current_admin:
-                glaze_price = decimal.Decimal(STAFF_GLAZING_SCALE) * size
-                glaze_price = glaze_price.quantize(decimal.Decimal('0.01'))
+                glazing_price = decimal.Decimal(STAFF_GLAZING_SCALE) * size
+                glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
             else:
-                glaze_price = decimal.Decimal(USER_GLAZING_SCALE) * size
-                glaze_price = glaze_price.quantize(decimal.Decimal('0.01'))
+                glazing_price = decimal.Decimal(USER_GLAZING_SCALE) * size
+                glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
+        else:
+            glazing_price = decimal.Decimal(0.00)
 
-            # Set the new price
-            price = glaze_price + cleaned_data.get('price')
-            # set to 2 decimal places
-            price = price.quantize(decimal.Decimal('0.01'))
-            # Set the cleaned data for price
-            cleaned_data['price'] = price
+
+        # Set the cleaned data for glazing_price
+        cleaned_data['glazing_price'] = glazing_price
+            
+            
+            
+        # Set the new price
+        price = glazing_price + firing_price
+        # set to 2 decimal places
+        price = price.quantize(decimal.Decimal('0.01'))
+        # Set the cleaned data for price
+        cleaned_data['price'] = price
 
 
 
@@ -153,8 +168,6 @@ class PieceForm(forms.ModelForm):
 
 
 
-
-
 class ModifyPieceForm(forms.ModelForm):
     error_css_class = "error"
     required_css_class = "required"
@@ -165,7 +178,7 @@ class ModifyPieceForm(forms.ModelForm):
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'length', 'width', 'height', 
-                  'glaze_temp', 'size', 'price', 'course_number', 
+                  'glaze_temp', 'size', 'price', 'firing_price', 'glazing_price', 'course_number', 
                   'piece_description', 'glaze_description', 'note', 'image']
         #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
@@ -194,8 +207,15 @@ class ModifyPieceForm(forms.ModelForm):
 
 
         # Initial value for price is zero, because the user may not opt to glaze the piece.
-        self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.00)
+        self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.price)
         self.fields['price'].widget.attrs['readonly'] = 'readonly'
+
+        self.fields['firing_price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.firing_price)
+        self.fields['firing_price'].widget.attrs['readonly'] = 'readonly'
+
+        self.fields['glazing_price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.glazing_price)
+        self.fields['glazing_price'].widget.attrs['readonly'] = 'readonly'
+
 
         # Set widget for size field to ReadOnlyInput
 
@@ -220,8 +240,6 @@ class ModifyPieceForm(forms.ModelForm):
 
         self.fields['firing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['glazing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
-
-        # Set initial values for ghp_user and ghp_user_piece_id
 
     def clean(self):
         # Get the cleaned data
@@ -256,28 +274,45 @@ class ModifyPieceForm(forms.ModelForm):
         # Set the cleaned data for size
         cleaned_data['size'] = size
 
-        # Calculate the price 
-        # No firing fee, since it has already been paid. Price is zero if no glazing is requested
-        price = decimal.Decimal(0.00)
-        cleaned_data['price'] = price
+        # Calculate the price
+        # get the price scaling based on the user is a current_staff or current_admin or not
+        if self.ghp_user.current_staff or self.ghp_user.current_admin:
+            firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
+        else: 
+            firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
+        # set to 2 decimal places
+        firing_price = firing_price.quantize(decimal.Decimal('0.01'))
+        # Set the cleaned data for price
+        cleaned_data['firing_price'] = firing_price
+
         # Get the glaze temperature
         glaze_temp = cleaned_data.get('glaze_temp')
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
+            # Get the price scaling based on the user is a current_staff or current_admin or not
             if self.ghp_user.current_staff or self.ghp_user.current_admin:
-                glaze_price = decimal.Decimal(STAFF_GLAZING_SCALE) * size
-                glaze_price = glaze_price.quantize(decimal.Decimal('0.01'))
+                glazing_price = decimal.Decimal(STAFF_GLAZING_SCALE) * size
+                glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
             else:
-                glaze_price = decimal.Decimal(USER_GLAZING_SCALE) * size
-                glaze_price = glaze_price.quantize(decimal.Decimal('0.01'))
+                glazing_price = decimal.Decimal(USER_GLAZING_SCALE) * size
+                glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
+        else:
+            glazing_price = decimal.Decimal(0.00)
 
-            # Set the new price
-            price = glaze_price
-            # set to 2 decimal places
-            price = price.quantize(decimal.Decimal('0.01'))
-            # Set the cleaned data for price
-            cleaned_data['price'] = price
-            cleaned_data['ghp_user_piece_id'] = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
+
+        # Set the cleaned data for glazing_price
+        cleaned_data['glazing_price'] = glazing_price
+            
+            
+            
+        # Set the new price
+        price = glazing_price + firing_price
+        # set to 2 decimal places
+        price = price.quantize(decimal.Decimal('0.01'))
+        # Set the cleaned data for price
+        cleaned_data['price'] = price
+
+
 
         # Check that the size and price are not negative
         if cleaned_data['size'] < 0:
@@ -285,11 +320,13 @@ class ModifyPieceForm(forms.ModelForm):
         if cleaned_data['price'] < 0:
             self.add_error('price', 'Price must be positive')
         
-        if (glaze_temp != None) and cleaned_data['price'] < MINIMUM_PRICE:
+        if cleaned_data['price'] < MINIMUM_PRICE:
             cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
         # Return the cleaned data
         return cleaned_data
+    
+
 
 class CreateGHPUserForm(UserCreationForm):
     error_css_class = "error"

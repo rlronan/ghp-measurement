@@ -134,7 +134,7 @@ tbody > tr:nth-of-type(odd) {
         $(document).ready(function() {
             // listen for changes in the length, width, and height, and glaze_temp fields
             // glaze_temp is a choice field, so it is a select element
-            $('select[name=glaze_temp]').change(function() {
+            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp]').change(function() {
                 
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
@@ -152,7 +152,12 @@ tbody > tr:nth-of-type(odd) {
                     height = 3.0;
                 }
 
-                // round the values to 1 decimal places
+                // round the values UP to nearest 0.5 inch 
+                length = Math.ceil(length * 2) / 2;
+                width = Math.ceil(width * 2) / 2;
+                height = Math.ceil(height * 2) / 2;
+
+                // round the values to 2 decimal places
                 length = length.toFixed(1);
                 width = width.toFixed(1);
                 height = height.toFixed(1);
@@ -178,17 +183,17 @@ tbody > tr:nth-of-type(odd) {
                 }
 
                 // pull the price per cubic inch from the django constants in constants.py dynamically
+                var firing_price_per_cubic_inch = $('input[name=firing_price_per_cubic_inch]').val();
                 var glazing_price_per_cubic_inch = $('input[name=glazing_price_per_cubic_inch]').val();
 
                 // calculate the new value of price
-                 var price =  glazing_price_per_cubic_inch * size * glaze_temp_scalar;
+                 var price = firing_price_per_cubic_inch * size  + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
 
                 // if price is less than 1.00, set it to 1.00
-                if (glaze_temp != 'None') {
-                    if (price < 1.00) {
-                        price = 1.00;
-                   }
+                if (price < 1.00) {
+                    price = 1.00;
                 }
+                
                 // update the value of the price field
                 $('input[name=price]').val(price.toFixed(2));
             });
