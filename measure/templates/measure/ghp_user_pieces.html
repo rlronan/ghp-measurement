@@ -58,7 +58,7 @@ tbody > tr:nth-of-type(odd) {
         {% for p in ghp_user_piece_list %}
             <tbody>
                 <tr>
-                    <td>{{ p.ghp_user_piece_id }}</td>
+                    <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}" >{{ p.ghp_user_piece_id }}</a></td>
                     <td>{{ p.date|date:"M d Y" }}</td>
                     <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
                     <td>{{ p.size }} in<sup>3</sup></td>

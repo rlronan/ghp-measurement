@@ -2,7 +2,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
-from .forms import PieceForm, CreateGHPUserForm
+from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm
 from .models import GHPUser, Account, Piece, Ledger
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -60,7 +60,7 @@ def ghp_user_account_view(request, ghp_user_id):
 #class PieceView(generic.FormView):
 def PieceView(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
-    
+
     if request.method == 'POST':
         form = PieceForm(request.POST, ghp_user=ghp_user)
         if form.is_valid():
@@ -75,6 +75,29 @@ def PieceView(request, ghp_user_id):
     else:
         form = PieceForm(ghp_user=ghp_user)
     return render(request, 'measure/piece.html', {'form': form})
+
+
+
+def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
+    ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
+    print("Found user: " + str(ghp_user))
+    print("Found piece: " + str(piece))
+    if request.method == 'POST':
+        form = ModifyPieceForm(request.POST, ghp_user=ghp_user, piece=piece)
+        if form.is_valid():
+            print("Modify piece form is valid")
+            instance = form.save(commit=False)
+            instance.save()
+            # process the data in form.cleaned_data as required
+            return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
+        else:
+            print("Modify piece form is not valid")
+            print(form.errors)
+    else:
+        form = ModifyPieceForm(ghp_user=ghp_user, piece=piece)
+    return render(request, 'measure/modify_piece.html', {'form': form})
+
 
 
 #@unauthenticated_user
