@@ -48,10 +48,10 @@ class PieceForm(forms.ModelForm):
 
         # Set initial value for size
         self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
-        self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=1.00)
+        self.fields['price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=1.00)
 
         self.fields['firing_price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=1.00)
-        self.fields['glazing_price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.00)
+        self.fields['glazing_price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
 
 
         # Set widget for size field to ReadOnlyInput

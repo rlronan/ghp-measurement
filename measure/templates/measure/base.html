@@ -1,0 +1,110 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+            html,body
+                {
+                    width: 100%;
+                    margin: 0px 0px 0px 0px;
+                    padding: 0px 0px 0px 0px;
+                    overflow-x: hidden;    
+                }
+            .banner {
+                background-color: #655F79;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                /* padding: 10px; */
+                height: 100px;
+                }
+
+            .icon {
+                display: flex;
+                align-items: center;
+                height: 100%; 
+                }
+
+            .icon img {
+                height: 100%;
+                max-height: 100px;
+                margin-right: 20px;
+                }
+
+            .menu {
+                display: flex;
+                align-items: center;
+                height: 100%;
+            }
+
+            .menu a {
+                margin-left: 10px;
+                margin-right: 10px;
+                padding: 0.25em 0.75em;
+                color: #fff;
+                text-decoration: none;
+                font-size: 18px;
+                font-weight: 600;
+                text-transform: uppercase;
+                }
+
+            .menu a:hover {
+                color: #ffffff;
+                }
+
+            h {
+                    color: #939fb1;
+                    font-size: 25px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    margin: 15px 0px 0px 0px;
+                    padding: 0px 0px 0px 0px;
+                    align-self: baseline;
+                }
+            h.mini {
+                    color: #ffffff;
+                    font-size: 16px;
+                    font-weight: 400;
+                    text-transform: none;
+                    margin: 0px 0px 10px 0px;
+                    padding: 0px 0px 0px 0px;
+                    align-self: end;
+                }
+
+    </style>
+
+    <title>{% block title %}Grenwhich House Pottery Measuring{% endblock %}</title>
+</head>
+
+
+<body>
+    <div class="banner">
+        <div class="icon">
+          <img src="{% static 'measure/banner.jpg' %}" alt="Icon">
+          <h>Grenwhich House Pottery Measuring Site</h>
+        </div>
+        <!-- <div> -->
+            {% if user.is_authenticated %}
+            <h class="mini">Hello, {{ user.username }}</h>
+            {% endif %}
+        <!-- </div> -->
+        <div class="menu">
+          {% if user.is_authenticated %}
+            <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
+            <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account</a>
+            <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
+            <a href="{% url 'measure:logout' %}">Log Out</a>
+          {% else %}
+            <a href="{% url 'measure:login' %}">Log In</a>
+            <a href="{% url 'measure:register' %}">Register</a>
+          {% endif %}
+        </div>
+    </div>
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>

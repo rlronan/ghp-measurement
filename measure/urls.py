@@ -11,20 +11,21 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     path('', views.index_view, name='index'),
+    path('base/', views.base_view, name='base'),
     path('register/', views.register_page, name='register'),
-    path('login/', auth_views.LoginView.as_view(), name='login'),
+    path('login/', auth_views.LoginView.as_view(), name='login', kwargs={'next_page': 'base'}),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout', kwargs={'next_page': 'login'}),
     # path('accounts/login', views.login, name='login'),
     # path('measure/accounts/login', views.login, name='login'),
     
-    #path('', views.IndexView.as_view(), name='index'),
 
     # the 'name' value as called by the {% url %} template tag
     # to change the url, modifiy the path() argument here
     path('<int:ghp_user_id>/', views.ghp_user_piece_view, name='ghp_user_piece_view'), #as_view()
-    path('<int:ghp_user_id>/account', views.ghp_user_account_view, name='ghp_user_account_view'), #as_view()
+    path('<int:ghp_user_id>/account/', views.ghp_user_account_view, name='ghp_user_account_view'), #as_view()
     #path('<int:pk>/email/', views.email, name='email'),
     path('<int:ghp_user_id>/piece/', views.PieceView, name='piece'),
-    path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>', views.ModifyPieceView, name='modify_piece'),
+    path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/', views.ModifyPieceView, name='modify_piece'),
 
     path("accounts/", include("django.contrib.auth.urls")),
 

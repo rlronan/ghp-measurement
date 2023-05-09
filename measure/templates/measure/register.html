@@ -1,47 +1,63 @@
+{% include "measure/base.html" %}
+
 {% load static %}
-  
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <!-- <meta http-equiv="X-UA-Compatible" content="IE=edge" /> -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="{% static 'measure/style.css' %}">
 
-  </head>
-  <body>
-    <form method="post">
-        <p> Create A User Account</p>
+<!-- <!DOCTYPE html>
+<html lang="en"> -->
 
-        {% csrf_token %}
-        {{ form.non_field_errors }}
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{% static 'measure/style.css' %}">
 
-        {% for hidden in form.hidden_fields %}
-        {{ hidden }}
-        {% endfor %}
-        <container>
-        
-        {% for field in form.visible_fields %}
-            {% if field.name != 'consent' %}
-              <div class="fieldWrapper">
-                  {{ field.errors }}
-                  {{ field }}
-              </div>
-            {% endif %}
-        {% endfor %}
-        </container>
-        <div class="fieldWrapperCheckbox">
-              {{ form.consent.errors }}
-              {{ form.consent }} {{ form.consent.label_tag }} 
-        </div>
-        <div>
-        <button type="submit">Register</button>
-        </div>
-       <!-- wrapping the text inside the p tag with a tag for routing to the login page URL-->
-        <!-- the # must ideally be replaced by the login page URL -->
-        <div>
-          <p>Already have an account? <a href="#">Log in</a>.</p>
-        </div>
-      </form>
-    </body>
-</html>
+</head>
+
+<body>
+  <form method="post">
+    <p> Create A User Account</p>
+
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger" role="alert">
+      {% for error in form.non_field_errors %}
+      {{ error }}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if form.field_errors %}
+    <div class="alert alert-danger" role="alert">
+      {% for error in form.field_errors %}
+      {{ error }}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% for hidden in form.hidden_fields %}
+        <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
+    {% endfor %}
+    <container>
+
+      {% for field in form.visible_fields %}
+      {% if field.name != 'consent' %}
+      <div class="fieldWrapper">
+        {{ field.errors }}
+        {{ field }}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </container>
+    <div class="fieldWrapperCheckbox">
+      {{ form.consent.errors }}
+      {{ form.consent }} {{ form.consent.label_tag }}
+    </div>
+    <div>
+      <button type="submit">Register</button>
+    </div>
+    <!-- wrapping the text inside the p tag with a tag for routing to the login page URL-->
+    <!-- the # must ideally be replaced by the login page URL -->
+    <div>
+      <p>Already have an account? <a href="{% url 'measure:login'%}">Log in</a>.</p>
+    </div>
+  </form>
+</body>
+<!-- </html> -->

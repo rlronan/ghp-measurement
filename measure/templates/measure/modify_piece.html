@@ -1,146 +1,126 @@
+{% include "measure/base.html" %}
+
 {% load static %}
 
-
 <!DOCTYPE html>
-
-<style>
-    /* .MeasureForm {
-        position: relative;
-        width:100%;
-        height:30em;    
-    }
-
-    .MeasureForm form {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%,-50%);
-    } */
-    table.center td.centertext {
-         text-align: center;
-    }
-        th,
-    td {
-    padding: 0px 0px;
-    text-align: center;
-    vertical-align: center;
-
-    }
-
-    table {
-    /* border: 1px solid black; */
-    font: 16px "Open Sans", Helvetica, Arial, sans-serif;
-    border-spacing: 0;
-    border-collapse: collapse;
-    /* width: 150px; */
-    
-    }
-  
-  th,
-td {
-  /* border: 1px solid black; */
-  padding: 4px 6px;
-  text-align: center;
-  vertical-align: center;
-
-    }
-
-/* thead > tr {
-    background-color: rgb(228, 240, 245);
-  }
-  
-  thead > tr:nth-of-type(2) {
-    border-bottom: 2px solid black;
-  }
-  
-
-tbody > tr:nth-of-type(odd) {
-    background-color: rgb(245, 245, 245);
-}     */
-</style>
-
-
 <html>
-<head>
-  <title>Modify Measuring Form</title>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link rel="stylesheet" href="{% static 'measure/style.css' %}">
 
+<head>
+    <title>Modify Measuring Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{% static 'measure/style.css' %}">
+
+    <style>
+        table.center td.centertext {
+            text-align: center;
+        }
+
+        th,
+        td {
+            padding: 0px 0px;
+            text-align: center;
+            vertical-align: center;
+
+        }
+
+        table {
+            /* border: 1px solid black; */
+            font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+            border-spacing: 0;
+            border-collapse: collapse;
+            /* width: 150px; */
+
+        }
+
+        th,
+        td {
+            /* border: 1px solid black; */
+            padding: 4px 6px;
+            text-align: center;
+            vertical-align: center;
+
+        }
+    </style>
 </head>
+
 <body>
-    <form  class="MeasureForm" method="POST">
+
+    <form class="MeasureForm" method="POST">
         {% csrf_token %}
         {{ form.non_field_errors }}
         {{ form.field_errors }}
-        
         {% for hidden in form.hidden_fields %}
-        {{ hidden }}
+            {% if hidden.errors %}
+                <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
+            {% endif %}
         {% endfor %}
-        <!-- {{ form.as_div }} -->
-            <table class="center">
-                <tr>
-                    <th colspan="6">Measure A New Piece</th>
-                </tr>
-                <tr>
-                    <th>Length {{form.length.erros}} </th>
-                    <th>Width {{form.width.erros}}</th>
-                    <th>Height {{form.height.erros}}</th>
-                    <th>Glaze Temp {{form.glaze_temp.erros}}</th>
-                    <th>Size {{form.size.erros}}</th>
-                    <th>Price {{form.price.erros}}</th>
-                </tr>
-                <tr>
-                    <td>{{ form.length}} </td>
-                    <td>{{ form.width}}</td> 
-                    <td>{{ form.height}}</td>
-                    <td class="centertext">{{ form.glaze_temp }}</td>
-                    <td>{{ form.size }}</td>
-                    <td>{{ form.price }}</td>
-                </tr>
-            </table>
-            <table class="center">
-                <tr>
-                    <th>Course Number {{form.course_number.erros}}</th>
-                    <td>{{ form.course_number }}</td>
-                </tr>
+        <table class="center">
+            <tr>
+                <th colspan="6">Measure A New Piece</th>
+            </tr>
+            <tr>
+                <th>Length {{form.length.errors}} </th>
+                <th>Width {{form.width.errors}}</th>
+                <th>Height {{form.height.errors}}</th>
+                <th>Glaze Temp {{form.glaze_temp.errors}}</th>
+                <th>Size {{form.size.errors}}</th>
+                <th>Price {{form.price.errors}}</th>
+            </tr>
+            <tr>
+                <td>{{ form.length}} </td>
+                <td>{{ form.width}}</td>
+                <td>{{ form.height}}</td>
+                <td class="centertext">{{ form.glaze_temp }}</td>
+                <td>{{ form.size }}</td>
+                <td>{{ form.price }}</td>
+            </tr>
+        </table>
+        <table class="center">
+            <tr>
+                <th>Course Number {{form.course_number.errors}}</th>
+                <td>{{ form.course_number }}</td>
+            </tr>
 
-                <tr>
-                    <th>Piece Description (Optional) {{form.piece_description.erros}}</th>
-                    <td>{{ form.piece_description }}</td>
-                </tr>
+            <tr>
+                <th>Piece Description (Optional) {{form.piece_description.errors}}</th>
+                <td>{{ form.piece_description }}</td>
+            </tr>
 
-                <tr>
-                    <th>Glaze Description (Optional) {{form.glaze_description.erros}}</th>
-                    <td>{{ form.glaze_description }}</td>
-                </tr>
+            <tr>
+                <th>Glaze Description (Optional) {{form.glaze_description.errors}}</th>
+                <td>{{ form.glaze_description }}</td>
+            </tr>
 
-                <tr>
-                    <th>Note (Optional) {{form.note.erros}}</th>
-                    <td>{{ form.note }}</td>
-                </tr>
+            <tr>
+                <th>Note (Optional) {{form.note.errors}}</th>
+                <td>{{ form.note }}</td>
+            </tr>
 
-                <tr>
-                    <th>Image {{form.image.erros}}</th>
-                    <td>{{ form.image }}</td>
-                </tr>
+            <tr>
+                <th>Image {{form.image.errors}}</th>
+                <td>{{ form.image }}</td>
+            </tr>
 
-            </table>
-            <!-- {{ form.bisque_fired }}
+        </table>
+        <!-- {{ form.bisque_fired }}
             {{ form.glaze_fired }} -->
-            <button type="submit">Submit</button>
+        <button type="submit">Submit</button>
+
+
     </form>
 
+
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             // listen for changes in the length, width, and height, and glaze_temp fields
             // glaze_temp is a choice field, so it is a select element
-            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp]').change(function() {
-                
+            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp]').change(function () {
+
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
                 var width = parseFloat($('input[name=width]').val());
                 var height = parseFloat($('input[name=height]').val());
-                
+
                 // if any of the values are NaN, set them to the minimum
                 if (isNaN(length)) {
                     length = 0.5;
@@ -166,7 +146,7 @@ tbody > tr:nth-of-type(odd) {
                 $('input[name=length]').val(length);
                 $('input[name=width]').val(width);
                 $('input[name=height]').val(height);
-                
+
                 // get the current values of glaze_temp selection and convert it to a string
                 var glaze_temp = $('select[name=glaze_temp]').val();
 
@@ -187,13 +167,13 @@ tbody > tr:nth-of-type(odd) {
                 var glazing_price_per_cubic_inch = $('input[name=glazing_price_per_cubic_inch]').val();
 
                 // calculate the new value of price
-                 var price = firing_price_per_cubic_inch * size  + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
+                var price = firing_price_per_cubic_inch * size + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
 
                 // if price is less than 1.00, set it to 1.00
                 if (price < 1.00) {
                     price = 1.00;
                 }
-                
+
                 // update the value of the price field
                 $('input[name=price]').val(price.toFixed(2));
             });
@@ -201,11 +181,12 @@ tbody > tr:nth-of-type(odd) {
     </script>
     <script>
         // prevent the enter key from submitting the form unless the user is on the submit button
-        $(document).on("keydown", ":input:not(textarea):not(:submit)", function(event) {
+        $(document).on("keydown", ":input:not(textarea):not(:submit)", function (event) {
             if (event.key == "Enter") {
                 event.preventDefault();
-            }        
+            }
         });
     </script>
 </body>
+
 </html>

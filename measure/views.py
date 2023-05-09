@@ -72,6 +72,8 @@ def PieceView(request, ghp_user_id):
         else:
             print("Measuring piece form is not valid")
             print(form.errors)
+            return render(request, 'measure/piece.html', {'form': form})
+
     else:
         form = PieceForm(ghp_user=ghp_user)
     return render(request, 'measure/piece.html', {'form': form})
@@ -94,6 +96,8 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
         else:
             print("Modify piece form is not valid")
             print(form.errors)
+            return render(request, 'measure/modify_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece})
+
     else:
         form = ModifyPieceForm(ghp_user=ghp_user, piece=piece)
     return render(request, 'measure/modify_piece.html', {'form': form})
@@ -120,12 +124,16 @@ def register_page(request):
                 form.add_error('email', "Looks like a user with that email already exists")
             else:
                 instance.save()
-                ghp_user = get_object_or_404(GHPUser, email=ghp_user_email)
-                print("Found ghp_user: ", ghp_user)
-                return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(ghp_user.id,)))
+                # ghp_user = get_object_or_404(GHPUser, email=ghp_user_email)
+                
+                print("Created ghp_user: ", instance)
+                login(request, instance)
+                
+                return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(instance.id,)))
         else:
             print("Register form is not valid")
             print(form.errors)
+            render(request, 'measure/register.html', {'form': form})
     else:
         #form = UserCreationForm()
         form = CreateGHPUserForm()
@@ -172,3 +180,5 @@ def register_page(request):
 #     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
 #     return render(request, 'measure/ghp_user.html', {'ghp_user' : ghp_user})
 
+def base_view(request):
+    return render(request, 'measure/base.html', {})

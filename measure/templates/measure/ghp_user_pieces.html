@@ -1,82 +1,82 @@
-
 <style>
-table {
-    border: 1px solid black;
-    font: 16px "Open Sans", Helvetica, Arial, sans-serif;
-    border-spacing: 0;
-    border-collapse: collapse;
-  }
-  
-  th,
-td {
-  border: 1px solid black;
-  padding: 4px 6px;
-  text-align: center;
-  vertical-align: center;
+    table {
+        border: 1px solid black;
+        font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+        border-spacing: 0;
+        border-collapse: collapse;
+    }
 
-}
+    th,
+    td {
+        border: 1px solid black;
+        padding: 4px 6px;
+        text-align: center;
+        vertical-align: center;
 
-thead > tr {
-    background-color: rgb(228, 240, 245);
-  }
-  
-  thead > tr:nth-of-type(2) {
-    border-bottom: 2px solid black;
-  }
-  
+    }
 
-tbody > tr:nth-of-type(odd) {
-    background-color: rgb(245, 245, 245);
-}    
+    thead>tr {
+        background-color: rgb(228, 240, 245);
+    }
+
+    thead>tr:nth-of-type(2) {
+        border-bottom: 2px solid black;
+    }
+
+
+    tbody>tr:nth-of-type(odd) {
+        background-color: rgb(245, 245, 245);
+    }
 </style>
+{% include "measure/base.html" %}
 
 {% load static %}
- <link rel="stylesheet" href="{% static 'measure/style.css' %}">
+<link rel="stylesheet" href="{% static 'measure/style.css' %}">
 
 {% if ghp_user %}
-    <table class="center">
-        <thead>
-            <tr>
-                <th colspan="13">{{ghp_user.first_name}} {{ghp_user.last_name}} Firing Log</th>
-            </tr>
-            <tr>
-                <th>Piece #</th>
-                <th>Date</th>
-                <th>Dimensions</th>
-                <th>Size</th>
-                <th>Glaze Temp</th>
-                <th>Price</th>
-                <th>Course Number</th>
-                <th>Bisque Fired</th>
-                <th>Glaze Fired</th>
-                <th>Piece Description</th>
-                <th>Glaze Description</th>
-                <th>Note Description</th>
-                <th>Image</th>
-            </tr>
-        </thead>
-        {% for p in ghp_user_piece_list %}
-            <tbody>
-                <tr>
-                    <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}" >{{ p.ghp_user_piece_id }}</a></td>
-                    <td>{{ p.date|date:"M d Y" }}</td>
-                    <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
-                    <td>{{ p.size }} in<sup>3</sup></td>
-                    <td>{{ p.glaze_temp }}</td>
-                    <td>${{ p.price }}</td>
-                    <td>{{ p.course_number }}</td>
-                    <td>{{ p.bisque_fired }}</td>
-                    <td>{{ p.glaze_fired }}</td>
-                    <td>{{ p.piece_description }}</td>
-                    <td>{{ p.glaze_description }}</td>
-                    <td>{{ p.note }}</td>
-                    <td>{{ p.image }}</td>
-                </tr>
-            </tbody>
-        {% endfor %}
-    </table>
-    
-{% else %}
-    <p>No user selected.</p>
-{% endif %}
+<table class="center">
+    <thead>
+        <tr>
+            <th colspan="13">{{ghp_user.first_name}} {{ghp_user.last_name}} Firing Log</th>
+        </tr>
+        <tr>
+            <th>Piece #</th>
+            <th>Date</th>
+            <th>Dimensions</th>
+            <th>Size</th>
+            <th>Glaze Temp</th>
+            <th>Price</th>
+            <th>Course Number</th>
+            <th>Bisque Fired</th>
+            <th>Glaze Fired</th>
+            <th>Piece Description</th>
+            <th>Glaze Description</th>
+            <th>Note Description</th>
+            <th>Image</th>
+        </tr>
+    </thead>
+    {% for p in ghp_user_piece_list %}
+    <tbody>
+        <tr>
+            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.ghp_user_piece_id }}</a>
+            </td>
+            <td>{{ p.date|date:"M d Y" }}</td>
+            <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
+            <td>{{ p.size }} in<sup>3</sup></td>
+            <td>{{ p.glaze_temp }}</td>
+            <td>${{ p.price }}</td>
+            <td>{{ p.course_number }}</td>
+            <td>{{ p.bisque_fired }}</td>
+            <td>{{ p.glaze_fired }}</td>
+            <td>{{ p.piece_description }}</td>
+            <td>{{ p.glaze_description }}</td>
+            <td>{{ p.note }}</td>
+            <td>{{ p.image }}</td>
+        </tr>
+    </tbody>
+    {% endfor %}
+</table>
 
+{% else %}
+<p>No user selected.</p>
+{% endif %}
