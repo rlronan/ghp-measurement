@@ -5,7 +5,7 @@ import csv
 import math
 from django.utils import timezone
 from .models import GHPUser, Account, Piece, Ledger
-from .constants import GLAZE_TEMPS
+from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, USER_FIRING_SCALE, STAFF_FIRING_SCALE, USER_GLAZING_SCALE, STAFF_GLAZING_SCALE, MINIMUM_PRICE
 
 # Create your tests here.
 def generate_ghp_user(num_customers=100, p_student=0.9, p_staff=0.1, p_admin=0.03):
@@ -30,7 +30,7 @@ def generate_ghp_user(num_customers=100, p_student=0.9, p_staff=0.1, p_admin=0.0
     admin = np.zeros(num_customers) + np.random.choice([0,1], size=num_customers, p=[1-p_admin, p_admin])
     consent = np.zeros(num_customers) + np.random.choice([0,1], size=num_customers)
     consent = consent.astype('bool')
-    consent_date = np.where(consent, timezone.now(), None)
+    consent_date = np.where(consent, timezone.now() - datetime.timedelta(days=np.random.randint(0, 365)), None)
     
     #if np.sum(teachers) == 0:
     #    teachers[0] = 1
@@ -67,6 +67,21 @@ def generate_ghp_user(num_customers=100, p_student=0.9, p_staff=0.1, p_admin=0.0
             continue
 
 
+def generate_balances():
+
+    ghp_users = GHPUser.objects.all().order_by('?')
+    for ghp_user in ghp_users:
+        Ledger.objects.create(
+            date = timezone.now(),
+            ghp_user=ghp_user,
+            ghp_user_transaction_number=1,
+            amount= np.random.randint(0, 300),
+            transaction_type='Add Credit',
+            note='User Balance',
+            piece=None
+        )
+
+
 def generate_piece(num_pieces=1000):
     """ Generate a pieces for andom users."""
 
@@ -88,13 +103,37 @@ def generate_piece(num_pieces=1000):
         GLAZE_TEMP_INTERNAL = list(i[0] for i in GLAZE_TEMPS)
         glaze_temp = np.random.choice(GLAZE_TEMP_INTERNAL)
 
+        BISQUE_TEMP_INTERNAL = list(i[0] for i in BISQUE_TEMPS)
+        bisque_temp = np.random.choice(GLAZE_TEMP_INTERNAL, p-[0.95, 0.05])
+
         # get price scaling factor based on whether the user is current_staff or current_admin or not
         if ghp_user.current_staff or ghp_user.current_admin:
-            price = size * decimal.Decimal(0.01)
+            if bisque_temp != "None":
+                firing_price = size * decimal.Decimal(0.01)
+            else:
+                firing_price = size * decimal.Decimal(0.00)
+            price = firing_price
+
+            if glaze_temp != "None":
+                glaze_price = size * decimal.Decimal(0.01)
+            else:
+                glaze_price = size * decimal.Decimal(0.00)
+            price += glaze_price
         else:
-            price = size * decimal.Decimal(0.03)
-        if glaze_temp != "None":
-            price *= 2
+            if bisque_temp != "None":
+                firing_price = size * decimal.Decimal(0.01)
+            else:
+                firing_price = size * decimal.Decimal(0.00)
+            price = firing_price
+            if glaze_temp != "None":
+                glaze_price = size * decimal.Decimal(0.01)
+            else:
+                glaze_price = size * decimal.Decimal(0.00)
+            price += glaze_price
+
+        
+
+
 
         course_number = np.random.choice(['W', 'G', 'H']) + str(np.random.randint(1, 20))
 
@@ -128,6 +167,9 @@ def generate_piece(num_pieces=1000):
             height = height,
             size = size,
             glaze_temp = glaze_temp,
+            bisque_temp = bisque_temp,
+            firing_price = firing_price,
+            glaze_price = glaze_price,
             price = price,
             course_number=course_number,
             bisque_fired = bisque_fired,
@@ -144,6 +186,7 @@ def generate_all():
     NOTE THIS FUNCTION MODIFIES THE DATABASE. DO NOT RUN THIS FUNCTION ON A PRODUCTION DATABASE.
     """
     generate_ghp_user()
+    generate_balances()
     # generate_course()
     # generate_location()
     # generate_term()

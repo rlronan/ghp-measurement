@@ -53,6 +53,7 @@
             {% if hidden.errors %}
                 <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
             {% endif %}
+            {{ hidden }}
         {% endfor %}
         <table class="center">
             <tr>
@@ -133,11 +134,11 @@
                 }
 
                 // round the values UP to nearest 0.5 inch 
-                length = Math.ceil(length * 2) / 2;
-                width = Math.ceil(width * 2) / 2;
-                height = Math.ceil(height * 2) / 2;
+                length = Math.max(0.5, Math.ceil(length * 2) / 2);
+                width = Math.max(0.5, Math.ceil(width * 2) / 2);
+                height = Math.max(0.5, Math.ceil(height * 2) / 2);
 
-                // round the values to 2 decimal places
+                // round the values to 1 decimal places
                 length = length.toFixed(1);
                 width = width.toFixed(1);
                 height = height.toFixed(1);

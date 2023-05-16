@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator, EmailValidator, MinLengthValidator
 from .models import Piece, GHPUser, User
+from django.utils import timezone
 from .constants import *
 import decimal
 # class PieceForm(forms.ModelForm):
@@ -82,6 +83,9 @@ class PieceForm(forms.ModelForm):
 
 
     def clean(self):
+
+        print("Cleaning Piece form")
+
         # Get the cleaned data
         cleaned_data = super().clean()
         
@@ -125,7 +129,7 @@ class PieceForm(forms.ModelForm):
         # Set the cleaned data for price
         cleaned_data['firing_price'] = firing_price
 
-        # Get the glaze temperature
+        # Get the glaze temperatures
         glaze_temp = cleaned_data.get('glaze_temp')
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
@@ -175,21 +179,21 @@ class ModifyPieceForm(forms.ModelForm):
     firing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
     glazing_price_per_cubic_inch = forms.DecimalField(label="glazing_price_per_cubic_inch" , max_digits=5, decimal_places=3, initial=0.00)
     glazing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
+    # piece_id = forms.IntegerField(label="piece_id", initial=0) 
+    # piece_id.widget.attrs.update({'class': 'form-control'})
     class Meta:
         model = Piece
-        fields = ['ghp_user', 'ghp_user_piece_id', 'length', 'width', 'height', 
+        fields = ['ghp_user', 'ghp_user_piece_id',  'length', 'width', 'height', 
                   'glaze_temp', 'size', 'price', 'firing_price', 'glazing_price', 'course_number', 
                   'piece_description', 'glaze_description', 'note', 'image']
         #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
         self.piece = kwargs.pop('piece', None)
-        print("self.ghp_user: " + str(self.ghp_user))
-        print("self.piece: " + str(self.piece))
         super().__init__(*args, **kwargs)
         self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['ghp_user_piece_id'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
-        # Set initial values for ghp_user and ghp_user_piece_id
+
         self.fields['ghp_user'].initial = self.ghp_user
         self.fields['ghp_user_piece_id'].initial = self.piece.ghp_user_piece_id
 
@@ -210,17 +214,15 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.price)
         self.fields['price'].widget.attrs['readonly'] = 'readonly'
 
-        self.fields['firing_price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.firing_price)
-        self.fields['firing_price'].widget.attrs['readonly'] = 'readonly'
-
-        self.fields['glazing_price'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.glazing_price)
-        self.fields['glazing_price'].widget.attrs['readonly'] = 'readonly'
+        self.fields['firing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['glazing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
 
 
         # Set widget for size field to ReadOnlyInput
 
         self.fields['course_number'].widget.attrs['placeholder'] = 'e.g. W7'
         self.fields['course_number'].initial = self.piece.course_number
+        self.fields['course_number'].widget.attrs['readonly'] = 'readonly'
 
         self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
         self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
@@ -243,8 +245,9 @@ class ModifyPieceForm(forms.ModelForm):
 
     def clean(self):
         # Get the cleaned data
+        print("Cleaning modify piece form")
         cleaned_data = super().clean()
-        
+
         # Get the length, width, and height
         length = cleaned_data.get('length')
         width = cleaned_data.get('width')

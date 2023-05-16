@@ -4,14 +4,20 @@
 # The first value is the value that is stored in the database
 # The second value is the value that is displayed to the user
 GLAZE_TEMPS  = [
-        ("10",   "Δ 10"),
-        ("6",    "Δ 6"),
-        ("2",    "Δ 2"),
-        ("014",  "Δ 014"),
-        ("04",   "Δ 04"),
+        ("10",   "Δ 10 (Cone 10)"),
+        ("6",    "Δ 6 (Cone 6)"),
+        ("2",    "Δ 2 (Cone 2)"),
+        ("014",  "Δ 014 (Cone 014)"),
+        ("06G",   "Δ 06 (Cone 06)"),
+        ("04",   "Δ 04 (Cone 04)"),
         ("None", "None"),
 ]
 
+BISQUE_TEMPS = [
+        ("06B",   "Δ 06 BISQUE (Cone 06 Bisque)"),
+        ("None", "None"),
+
+]
 
 # Price Scaling
 USER_FIRING_SCALE = 0.03

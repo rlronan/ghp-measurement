@@ -2,8 +2,8 @@ from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from django.contrib import admin
 
-urlpatterns = [
-]
+# urlpatterns = [
+# ]
 from . import views
 
 app_name = 'measure'
@@ -13,8 +13,8 @@ urlpatterns = [
     path('', views.index_view, name='index'),
     path('base/', views.base_view, name='base'),
     path('register/', views.register_page, name='register'),
-    path('login/', auth_views.LoginView.as_view(), name='login', kwargs={'next_page': 'base'}),
-    path('logout/', auth_views.LogoutView.as_view(), name='logout', kwargs={'next_page': 'login'}),
+    path('login/', auth_views.LoginView.as_view(next_page='measure:base'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     # path('accounts/login', views.login, name='login'),
     # path('measure/accounts/login', views.login, name='login'),
     

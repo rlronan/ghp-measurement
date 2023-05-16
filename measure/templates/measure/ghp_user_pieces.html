@@ -63,7 +63,7 @@
             <td>{{ p.date|date:"M d Y" }}</td>
             <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
             <td>{{ p.size }} in<sup>3</sup></td>
-            <td>{{ p.glaze_temp }}</td>
+            <td>{{ p.get_glaze_temp_display }}</td>
             <td>${{ p.price }}</td>
             <td>{{ p.course_number }}</td>
             <td>{{ p.bisque_fired }}</td>

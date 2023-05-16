@@ -2,6 +2,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
+from django.utils import timezone
 from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm
 from .models import GHPUser, Account, Piece, Ledger
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
@@ -36,18 +37,18 @@ class GHPUserView(generic.DetailView):
 
     def get_queryset(self):
         """Return the list of all pieces associated with a ghp_user."""
-        return Piece.objects.filter(ghp_user_id=self.ghp_user_id).order_by('date').first()
+        return Piece.objects.filter(ghp_user_id=self.ghp_user_id).order_by('-date').all()
 
 def ghp_user_piece_view(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
-    ghp_user_piece_list = Piece.objects.filter(ghp_user_id=ghp_user_id).order_by('ghp_user_piece_id').all()
+    ghp_user_piece_list = Piece.objects.filter(ghp_user_id=ghp_user_id).order_by('-ghp_user_piece_id').all()
     return render(request, 'measure/ghp_user_pieces.html', {'ghp_user': ghp_user, 'ghp_user_piece_list': ghp_user_piece_list})
 
 
 def ghp_user_account_view(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     ghp_user_account = ghp_user.account #Account.objects.filter(ghp_user=ghp_user).first() # should only be one
-    ghp_user_transactions = Ledger.objects.filter(ghp_user=ghp_user).order_by('ghp_user_transaction_number').all()
+    ghp_user_transactions = Ledger.objects.filter(ghp_user=ghp_user).order_by('-ghp_user_transaction_number').all()
 
     return render(request, 'measure/ghp_user_account.html', {
         'ghp_user': ghp_user,
@@ -64,8 +65,9 @@ def PieceView(request, ghp_user_id):
     if request.method == 'POST':
         form = PieceForm(request.POST, ghp_user=ghp_user)
         if form.is_valid():
-            print("Measuring pice form is valid")
+            print("Measuring piece form is valid")
             instance = form.save(commit=False)
+            
             instance.save()
             # process the data in form.cleaned_data as required
             return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
@@ -81,17 +83,19 @@ def PieceView(request, ghp_user_id):
 
 
 def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
+    #print("In modify piece view")
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
     print("Found user: " + str(ghp_user))
-    print("Found piece: " + str(piece))
+    print("Found piece: {} with pk: {}".format(str(piece), piece.pk))
     if request.method == 'POST':
         form = ModifyPieceForm(request.POST, ghp_user=ghp_user, piece=piece)
         if form.is_valid():
-            print("Modify piece form is valid")
+            form.instance.pk = piece.id
+            form.instance.date = piece.date
             instance = form.save(commit=False)
-            instance.save()
             # process the data in form.cleaned_data as required
+            instance.save()
             return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
         else:
             print("Modify piece form is not valid")
@@ -140,7 +144,8 @@ def register_page(request):
 
     return render(request, 'measure/register.html', {'form': form})
 
-
+def base_view(request):
+    return render(request, 'measure/base.html', {})
 
 # #@
 # def login(request):
@@ -180,5 +185,3 @@ def register_page(request):
 #     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
 #     return render(request, 'measure/ghp_user.html', {'ghp_user' : ghp_user})
 
-def base_view(request):
-    return render(request, 'measure/base.html', {})
