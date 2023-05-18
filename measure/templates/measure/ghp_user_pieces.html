@@ -63,14 +63,14 @@
             <td>{{ p.date|date:"M d Y" }}</td>
             <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
             <td>{{ p.size }} in<sup>3</sup></td>
-            <td>{{ p.get_glaze_temp_display }}</td>
+            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.get_glaze_temp_display }}</a></td>
             <td>${{ p.price }}</td>
             <td>{{ p.course_number }}</td>
             <td>{{ p.bisque_fired }}</td>
             <td>{{ p.glaze_fired }}</td>
-            <td>{{ p.piece_description }}</td>
-            <td>{{ p.glaze_description }}</td>
-            <td>{{ p.note }}</td>
+            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.piece_description }}</a></td>
+            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.glaze_description }}</a></td>
+            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.note }}</a></td>
             <td>{{ p.image }}</td>
         </tr>
     </tbody>

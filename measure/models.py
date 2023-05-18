@@ -57,95 +57,6 @@ class GHPUser(User):
             print("UPDATING GHPUser: " + self.first_name + " " + self.last_name )
         else:
             print("SAVING GHPUser: " + self.first_name + " " + self.last_name )
-#         # Check if the user exists, if not, create one
-#         if self.user is None:
-#             print("Creating user for GHPUser: " + self.first_name + " " + self.last_name)
-#             try:
-#                 # don't think I can give a ghpuser attribute here. The user is created before the GHPUser object
-#                 user = User.objects.create_user(username=self.email, email=self.email,
-#                                                 password='password', 
-#                                                 first_name=self.first_name,
-#                                                 last_name=self.last_name)
-#                 print("User created for GHPUser")
-# # 
-#             except IntegrityError as e:
-#                 print(e)
-#                 print("User may already exist with that email address")
-#                 user = User.objects.get(email=self.email)
-#                 print("User found: " + str(user))
-            
-#                 # If the User is a superuser, or staff, then we probably 
-#                 # don't want to attach this GHPUser to it
-#                 if user.is_superuser or user.is_staff:
-#                     print("User is a superuser or staff, not attaching GHPUser to it")
-#                     user = None
-# # TODO: This does not feel safe. 
-#                 else:
-#                     print("User is not a superuser or staff, attaching GHPUser to it")
-#                     # Update the GHPUser object with the new user
-#                     self.user = user
-#                     print("User attached to GHPUser")
-
-
-#             # Update the GHPUser object with the new user
-#             self.user = user
-
-
-
-
-
-
-
-
-        # # Create a user for the GHPUser if they don't have one
-        # # Check if a user exists for the GHPUser, if not create one
-        # # print(User.objects.all())
-        # # print(User.objects.filter(ghpuser=self), User.objects.filter(ghpuser=self).exists())
-
-        # # check if self.user is None, if so, then create a user. If not, then update the user
-        # if self.user is None:
-        #     User_exists = False
-        # else:
-        #     User_exists = True
-
-
-        # # running a bug here where User.objects.filter(ghpuser=self) returns the admin User object
-        # # who has no associated GHPUser object, so it's always true that User.objects.filter(ghpuser=self).exists().
-        # # Not sure why the admin user is being returned, but I'm going to try to fix it by checking
-        # # if the user has a ghpuser attribute, which should only be true for the GHPUser objects
-        # if User.objects.filter(ghpuser=self).exists():
-
-        #     # need to check if any of the users returned have a ghpuser attribute
-        #     # if not, then the admin user is being returned
-        #     for user in User.objects.filter(ghpuser=self):
-        #         if not hasattr(user, 'ghpuser'):
-        #             print("Admin user returned, ignoring")
-        #         else:
-        #             User_exists = True
-        #             # User exists for the GHPUser, update the User
-        #             print("User found for GHPUser, updating user")
-        #             print("User: " + str(self.user))
-        #             # Update the user with the new GHPUser info
-        #             self.user.first_name = self.first_name
-        #             self.user.last_name = self.last_name
-        #             self.user.email = self.email
-        #             self.user.save()
-        #             print("User updated")
-        #             break
-
-
-        # if not User_exists:
-        #     print("Assigning user to GHPUser")
-        #     user = User.objects.create_user(username=self.email, email=self.email, 
-        #                             password='password', ghpuser=self, 
-        #                             first_name=self.first_name, 
-        #                             last_name=self.last_name)
-
-        #     # Update the GHPUser object with the new user
-        #     self.user = user
-        #     print("User assigned to GHPUser")
-        #     User_exists = True
-
         super().save(*args, **kwargs)  # Call the "real" save() method.
         
         # Create an account for the user if they don't have one
@@ -313,28 +224,10 @@ class Piece(models.Model):
         
         # price, glazing_price, and firing_price are calculated in the clean() method
         # so we need to call clean() before saving
-        print("In saving piece method")
         self = self.clean()
 
         # check if we are updating or creating a new piece
         PIECE_UPDATING = False
-
-        print("self._state.adding", self._state.adding)
-        print("self.pk: ", self.pk, "self.id: ", self.id)
-        # print("Self: ", self)
-        # if self.id is None:
-        #     try:
-        #         self.id = self.piece_id
-        #     except:
-        #         pass
-        # print("self.id",    self.id)
-        # print("previous piece by id: ", Piece.objects.filter(pk=self.id))
-        # print("previous piece by filtering: ", Piece.objects.filter(ghp_user=self.ghp_user, ghp_user_piece_id=self.ghp_user_piece_id))
-        # if len( Piece.objects.filter(ghp_user=self.ghp_user, ghp_user_piece_id=self.ghp_user_piece_id)) == 1:
-        #     previous_piece = Piece.objects.filter(ghp_user=self.ghp_user, ghp_user_piece_id=self.ghp_user_piece_id)[0]
-        #     self.pk = previous_piece.pk
-        #     self.date = previous_piece.date
-        #     self._state.adding = False
 
         if self.id:
             self._state.adding = False
@@ -462,7 +355,9 @@ class Piece(models.Model):
                         piece=self
                         )
             else:
-                raise ValueError('You must select a firing temperature for the bisque or glaze firing, or both.\n If you do not want to fire or glaze this piece, do not submit it.\n')
+                raise ValueError('You must select a firing temperature for the '\
+                'bisque or glaze firing, or both.\n If you do ' \
+                'not want to fire or glaze this piece, do not submit it.\n')
 
 
             # update the last measure date for the user to be the date of this piece
@@ -549,6 +444,13 @@ class Ledger(models.Model):
         if not self._state.adding:
             LEDGER_UPDATING = True
 
+        if self.date is None:
+            self.date = timezone.now()
+
+        if self.ghp_user_transaction_number is None:
+            self.ghp_user_transaction_number = Ledger.objects.filter(ghp_user=self.ghp_user).count() + 1
+
+        
         super().save(*args, **kwargs)  # Call the "real" save() method.
         
         # Modify user's Account balance by amount, and update Account.last_update
@@ -561,6 +463,7 @@ class Ledger(models.Model):
                 print('No ghp_user for this transaction')
                 raise ValueError('No ghp_user for this transaction')
         else:
+            print("LEDGER UPDATING")
             # we are only modifying the note on an existing ledger entry
             pass
 
