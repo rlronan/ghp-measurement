@@ -590,7 +590,7 @@ class PieceAdmin(admin.ModelAdmin):
         (
             None,
             {
-                "fields": ['name', 'email', 'length', 'width', 'height', 'size', 'price', 'bisque_temp', 'glaze_temp', 'date', 'image'],
+                "fields": ['name', 'email', 'length', 'width', 'height', 'size', 'price', 'bisque_temp', 'glaze_temp', 'date', 'image', 'refund_link'],
             },
         ),
         # (
@@ -618,7 +618,7 @@ class PieceAdmin(admin.ModelAdmin):
 
     readonly_fields = ['ghp_user_piece_id', 'date', 'ghp_user', 'name', 
                        'email', 'length', 'width', 'height', 'size', 
-                       'price','bisque_temp', ]
+                       'price','bisque_temp', 'refund_link']
 
     list_filter = ['glaze_temp', 'bisque_temp', 'date', CurrentUserFilterFromOther,
                    PriceFilter, LengthORWidthFilter, LengthANDWidthFilter, HeightFilter,
@@ -634,6 +634,22 @@ class PieceAdmin(admin.ModelAdmin):
             del actions['delete_selected']
         return actions
 
+    @admin.display(description="Refund Piece")
+    def refund_link(self, obj):
+        """ This is a custom link to the refund piece page,, 
+        and passes the piece.ghp_user, piece.ghp_user_piece_id as parameters"""
+        print("obj: ", obj)
+        print("obj.ghp_user.id: ", obj.ghp_user.id)
+        print("obj.ghp_user_piece_id: ", obj.ghp_user_piece_id)
+        url = (
+            reverse("measure:refund_piece", args=[obj.ghp_user.id, obj.ghp_user_piece_id])
+            # + "?"
+            # + urlencode({"ghp_user__id": f"{obj.ghp_user.id}"})
+            # + urlencode({"ghp_user_piece_id": f"{obj.ghp_user_piece_id}"})
+
+        )
+        print("URL", url)
+        return format_html('<a href="{}">Refund Piece</a>', url)
 
 
 

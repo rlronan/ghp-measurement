@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator, EmailValidator, MinLengthValidator
-from .models import Piece, GHPUser, User
+from django.core.exceptions import ValidationError
+from .models import Piece, GHPUser, User, Account, Ledger
 from django.utils import timezone
 from .constants import *
 import decimal
@@ -415,5 +416,163 @@ class CreateGHPUserForm(UserCreationForm):
         return cleaned_data
     
 
+class RefundPieceForm(forms.ModelForm):
+
+    firing_fee_refund = forms.DecimalField(max_digits=10, decimal_places=2)
+    firing_fee_refund.widget.attrs['readonly'] = 'readonly'
+
+    firing_fee_check = forms.BooleanField(required=False, initial=True)
+
+    glazing_fee_refund = forms.DecimalField(max_digits=10, decimal_places=2)
+    glazing_fee_refund.widget.attrs['readonly'] = 'readonly'
+    glazing_fee_check = forms.BooleanField(required=False, initial=True)
+
+    class Meta:
+        model = Ledger
+        fields = ['ghp_user', 'firing_fee_refund', 'glazing_fee_refund', 'firing_fee_check', 'glazing_fee_check',
+
+                  'amount', 'transaction_type', 'note', ]
+    def __init__(self, *args, **kwargs):
+        self.ghp_user = kwargs.pop('ghp_user', None)
+        piece = kwargs.pop('piece', None)
+        ledgers = kwargs.pop('ledgers', None)
+        print("ledgers: ", ledgers)
+        print("piece: ", piece)
+        print("ghp_user: ", self.ghp_user)
+        super().__init__(*args, **kwargs)
+        
+        self.fields['ghp_user'].widget.attrs['readonly'] = 'readonly'
+        self.fields['ghp_user'].initial = self.ghp_user
+
+        # self.fields['ghp_user'] = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['amount'] = forms.DecimalField(max_digits=10, decimal_places=2)
+        # Go through the ledgers and get the firing and glazing fees paid
+        num_ledgers = len(ledgers)
+        print("num_ledgers: ", num_ledgers)
+        if num_ledgers == 0:
+            # nothing to refund, this should never happen because
+            # you should not be able to measure a piece without paying for it, 
+            # but just in case, set everything to 0
+            self.fields['firing_fee_refund'].initial = 0
+            self.fields['glazing_fee_refund'].initial = 0
+            self.fields['amount'].initial = 0
+        elif num_ledgers == 1:
+            # Only one ledger; usually this will be a firing fee + Glazing fee,
+            # but it could just a firing or jjust a glazing fee if the piece 
+            # was fired outside of the studio
+            ledger = ledgers[0]
+            glazing_fee = False
+            firing_fee = False
+            if ledger.transaction_type.lower().find('glaz') != -1:
+                glazing_fee = True
+            if ledger.transaction_type.lower().find('fir') != -1:
+                firing_fee = True
+            
+            if glazing_fee and firing_fee:
+                # get the firing fee and glazing fee from the piece in this case
+                # since we don't know the amount of the firing fee or glazing fee
+                # although atm (5/22/23) they should be equal
+                self.fields['firing_fee_refund'].initial = piece.firing_price
+                self.fields['glazing_fee_refund'].initial = piece.glazing_price
+                self.fields['amount'].initial = max(piece.firing_price + piece.glazing_price, 1.0)
+                if not(self.fields['amount'].initial == piece.price):
+                    print("ERROR: The amount of the refund is not equal to the price of the piece")
+                    print("piece.price: ", piece.price)
+                    print("self.fields['amount'].initial: ", self.fields['amount'].initial)
+                    print("piece.firing_price: ", piece.firing_price)
+                    print("piece.glazing_price: ", piece.glazing_price)
+                    print("ledger.amount: ", -1*ledger.amount)
+            elif firing_fee:
+                self.fields['firing_fee_refund'].initial = -1*ledger.amount
+                self.fields['glazing_fee_refund'].initial = 0
+                self.fields['amount'].initial = -1*ledger.amount
+                assert(-1*ledger.amount >= 1.0)
+
+            elif glazing_fee:
+                self.fields['firing_fee_refund'].initial = 0
+                self.fields['glazing_fee_refund'].initial = -1*ledger.amount
+                self.fields['amount'].initial = ledger.amount
+                assert(-1*ledger.amount >= 1.0)
+            else:
+                print("ERROR: There is one ledger which does not apear to be a glazing or firing fee")
+
+        elif num_ledgers == 2:
+            # Should be one firing fee and one glazing fee;
+            # Each ledger should cost at least $1, so the total should be at least $2.0
+            ledger1 = ledgers[0]
+            ledger2 = ledgers[1]
+            if ledger1.transaction_type.lower().find('fir') != -1:
+                # ledger1 is a glazing fee
+                self.fields['firing_fee_refund'].initial = -1*ledger2.amount
+                self.fields['glazing_fee_refund'].initial = -1*ledger1.amount
+                self.fields['amount'].initial = -1*ledger1.amount + -1*ledger2.amount
+                assert(-1*ledger1.amount >= 1.0)
+                assert(-1*ledger2.amount >= 1.0)
+                assert(self.fields['amount'].initial >= 2.0)
+            elif ledger2.transaction_type.lower().find('fir') != -1:
+                # ledger2 is a glazing fee
+                self.fields['firing_fee_refund'].initial = -1*ledger1.amount
+                self.fields['glazing_fee_refund'].initial = -1*ledger2.amount
+                self.fields['amount'].initial = -1*ledger1.amount + -1*ledger2.amount
+                assert(-1*ledger1.amount >= 1.0)
+                assert(-1*ledger2.amount >= 1.0)
+
+            else:
+                print("ERROR: There are two ledgers, but neither is a firing fee")
+                self.fields['firing_fee_refund'].initial = 0
+                self.fields['glazing_fee_refund'].initial = 0
+                self.fields['amount'].initial = piece.price
+                assert(self.fields['amount'].initial >= 2.0)
+
+        else:
+            print("ERROR: There are more than two ledgers for this piece")
+            self.fields['firing_fee_refund'].initial = 0
+            self.fields['glazing_fee_refund'].initial = 0
+            self.fields['amount'].initial = piece.price
+            assert(self.fields['amount'].initial >= 2.0)
 
 
+            
+
+
+        self.fields['amount'].widget.attrs['readonly'] = 'readonly'
+
+        self.fields['transaction_type'].initial = 'Refund for piece'
+
+
+        self.fields['note'].initial = 'Refund for piece: ' + piece.__str__()
+        
+        # self.fields['piece'].initial = piece
+        # self.fields['piece'].widget.attrs['readonly'] = 'readonly'
+        # self.fields['piece'].widget.attrs['hidden'] = True
+
+    
+    def clean(self):
+        # Get the cleaned data
+        cleaned_data = super().clean()
+
+        # Get the glazing fee check
+        glazing_fee_check = cleaned_data.get('glazing_fee_check')
+        glazing_fee_refund = cleaned_data.get('glazing_fee_refund')
+        # Get the firing fee check
+        firing_fee_check = cleaned_data.get('firing_fee_check')
+        firing_fee_refund = cleaned_data.get('firing_fee_refund')
+
+        # Get the amount
+        amount = cleaned_data.get('amount')
+
+        # double check that the amount is correct
+        # JQuery should have handled this
+        if glazing_fee_check and firing_fee_check:
+            assert(amount == glazing_fee_refund + firing_fee_refund)
+        elif glazing_fee_check:
+            assert(amount == glazing_fee_refund)
+        elif firing_fee_check:
+            assert(amount == firing_fee_refund)
+        else:
+            print("ERROR: No glazing or firing fee was selected")
+            raise ValidationError("You must refund at least one fee")
+        # Return the cleaned data
+        return cleaned_data
+    
+    

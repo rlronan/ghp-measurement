@@ -104,7 +104,7 @@ def generate_piece(num_pieces=1000):
         glaze_temp = np.random.choice(GLAZE_TEMP_INTERNAL)
 
         BISQUE_TEMP_INTERNAL = list(i[0] for i in BISQUE_TEMPS)
-        bisque_temp = np.random.choice(GLAZE_TEMP_INTERNAL, p-[0.95, 0.05])
+        bisque_temp = np.random.choice(GLAZE_TEMP_INTERNAL, p=[0.95, 0.05])
 
         # get price scaling factor based on whether the user is current_staff or current_admin or not
         if ghp_user.current_staff or ghp_user.current_admin:

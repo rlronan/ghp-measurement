@@ -26,6 +26,7 @@ urlpatterns = [
     #path('<int:pk>/email/', views.email, name='email'),
     path('<int:ghp_user_id>/piece/', views.PieceView, name='piece'),
     path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/', views.ModifyPieceView, name='modify_piece'),
+    path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/refund/', views.refund_view, name='refund_piece'),
 
     path("accounts/", include("django.contrib.auth.urls")),
 

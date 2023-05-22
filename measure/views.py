@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
-from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm
+from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm, RefundPieceForm
 from .models import GHPUser, Account, Piece, Ledger
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -83,7 +83,6 @@ def PieceView(request, ghp_user_id):
 
 
 def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
-    #print("In modify piece view")
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
     print("Found user: " + str(ghp_user))
@@ -146,6 +145,47 @@ def register_page(request):
 
 def base_view(request):
     return render(request, 'measure/base.html', {})
+
+
+def refund_view(request, ghp_user_id, ghp_user_piece_id):
+    # get user, piece, and associated ledger entr(ies)
+    ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
+     
+    ledgers = Ledger.objects.filter(ghp_user=ghp_user).filter(piece=piece).all()
+
+    print("Found user: " + str(ghp_user))
+    print("Found piece: {} with pk: {}".format(str(piece), piece.pk))
+    print("Found ledgers: " + str(ledgers))
+    
+    
+    if request.method == 'POST':
+        form = RefundPieceForm(request.POST, ghp_user=ghp_user, piece=piece, ledgers=ledgers)
+        if form.is_valid():
+            # form.instance.pk = piece.id
+            # form.instance.date = piece.date
+
+            instance = form.save(commit=False)
+            # process the data in form.cleaned_data as required
+            # Refund the specified amount from the specified ledger
+            
+            # Create a new ledger entry with the refund amount
+
+            # Update the piece's total amount
+
+            instance.save()
+            return HttpResponseRedirect(reverse('admin:GHPUserAdmin', args=(ghp_user_id,)))
+        else:
+            print("Refund piece form is not valid")
+
+            print(form.errors)
+            return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece, 'ledgers': ledgers})
+
+    else:
+        # GET request
+        form = RefundPieceForm(ghp_user=ghp_user, piece=piece, ledgers=ledgers)
+    return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece, 'ledgers': ledgers})
+
 
 # #@
 # def login(request):
