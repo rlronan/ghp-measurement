@@ -415,37 +415,57 @@ class CreateGHPUserForm(UserCreationForm):
         # Return the cleaned data
         return cleaned_data
     
-
+# TODO: Really should create a better way to manage transaction_types!
 class RefundPieceForm(forms.ModelForm):
 
     firing_fee_refund = forms.DecimalField(max_digits=10, decimal_places=2)
     firing_fee_refund.widget.attrs['readonly'] = 'readonly'
-
     firing_fee_check = forms.BooleanField(required=False, initial=True)
+
+    firing_fee_refunded = forms.BooleanField(required=False, initial=False)
 
     glazing_fee_refund = forms.DecimalField(max_digits=10, decimal_places=2)
     glazing_fee_refund.widget.attrs['readonly'] = 'readonly'
     glazing_fee_check = forms.BooleanField(required=False, initial=True)
 
+    glazing_fee_refunded = forms.BooleanField(required=False, initial=False)
+
+
     class Meta:
         model = Ledger
-        fields = ['ghp_user', 'firing_fee_refund', 'glazing_fee_refund', 'firing_fee_check', 'glazing_fee_check',
-
+        fields = ['ghp_user', 'firing_fee_refund', 'firing_fee_refunded',  
+                  'glazing_fee_refund', 'glazing_fee_refunded','firing_fee_check', 
+                  'glazing_fee_check',
                   'amount', 'transaction_type', 'note', ]
     def __init__(self, *args, **kwargs):
-        self.ghp_user = kwargs.pop('ghp_user', None)
+        self.ghp_refund_user = kwargs.pop('ghp_user', None)
         piece = kwargs.pop('piece', None)
         ledgers = kwargs.pop('ledgers', None)
         print("ledgers: ", ledgers)
         print("piece: ", piece)
-        print("ghp_user: ", self.ghp_user)
+        print("ghp_user: ", self.ghp_refund_user)
         super().__init__(*args, **kwargs)
-        
-        self.fields['ghp_user'].widget.attrs['readonly'] = 'readonly'
-        self.fields['ghp_user'].initial = self.ghp_user
 
-        # self.fields['ghp_user'] = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['ghp_user'].initial = self.ghp_refund_user
+
         self.fields['amount'] = forms.DecimalField(max_digits=10, decimal_places=2)
+        self.fields['amount'].widget.attrs['readonly'] = 'readonly'
+
+        self.fields['transaction_type'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        # self.fields['transaction_type'].initial = 'Refund for piece'
+
+
+        self.fields['note'].initial = 'Refund for piece: ' + piece.__str__()
+
+        glazing_fee = False
+        firing_fee = False
+        self.fields['firing_fee_refunded'].initial = False
+        self.fields['glazing_fee_refunded'].initial = False
+
+        self.fields['firing_fee_refund'].initial = 0
+        self.fields['glazing_fee_refund'].initial = 0
+
         # Go through the ledgers and get the firing and glazing fees paid
         num_ledgers = len(ledgers)
         print("num_ledgers: ", num_ledgers)
@@ -456,99 +476,84 @@ class RefundPieceForm(forms.ModelForm):
             self.fields['firing_fee_refund'].initial = 0
             self.fields['glazing_fee_refund'].initial = 0
             self.fields['amount'].initial = 0
-        elif num_ledgers == 1:
-            # Only one ledger; usually this will be a firing fee + Glazing fee,
-            # but it could just a firing or jjust a glazing fee if the piece 
-            # was fired outside of the studio
-            ledger = ledgers[0]
-            glazing_fee = False
-            firing_fee = False
-            if ledger.transaction_type.lower().find('glaz') != -1:
-                glazing_fee = True
-            if ledger.transaction_type.lower().find('fir') != -1:
-                firing_fee = True
-            
-            if glazing_fee and firing_fee:
-                # get the firing fee and glazing fee from the piece in this case
-                # since we don't know the amount of the firing fee or glazing fee
-                # although atm (5/22/23) they should be equal
-                self.fields['firing_fee_refund'].initial = piece.firing_price
-                self.fields['glazing_fee_refund'].initial = piece.glazing_price
-                self.fields['amount'].initial = max(piece.firing_price + piece.glazing_price, 1.0)
-                if not(self.fields['amount'].initial == piece.price):
-                    print("ERROR: The amount of the refund is not equal to the price of the piece")
-                    print("piece.price: ", piece.price)
-                    print("self.fields['amount'].initial: ", self.fields['amount'].initial)
-                    print("piece.firing_price: ", piece.firing_price)
-                    print("piece.glazing_price: ", piece.glazing_price)
-                    print("ledger.amount: ", -1*ledger.amount)
-            elif firing_fee:
-                self.fields['firing_fee_refund'].initial = -1*ledger.amount
-                self.fields['glazing_fee_refund'].initial = 0
-                self.fields['amount'].initial = -1*ledger.amount
-                assert(-1*ledger.amount >= 1.0)
-
-            elif glazing_fee:
-                self.fields['firing_fee_refund'].initial = 0
-                self.fields['glazing_fee_refund'].initial = -1*ledger.amount
-                self.fields['amount'].initial = ledger.amount
-                assert(-1*ledger.amount >= 1.0)
-            else:
-                print("ERROR: There is one ledger which does not apear to be a glazing or firing fee")
-
-        elif num_ledgers == 2:
-            # Should be one firing fee and one glazing fee;
-            # Each ledger should cost at least $1, so the total should be at least $2.0
-            ledger1 = ledgers[0]
-            ledger2 = ledgers[1]
-            if ledger1.transaction_type.lower().find('fir') != -1:
-                # ledger1 is a glazing fee
-                self.fields['firing_fee_refund'].initial = -1*ledger2.amount
-                self.fields['glazing_fee_refund'].initial = -1*ledger1.amount
-                self.fields['amount'].initial = -1*ledger1.amount + -1*ledger2.amount
-                assert(-1*ledger1.amount >= 1.0)
-                assert(-1*ledger2.amount >= 1.0)
-                assert(self.fields['amount'].initial >= 2.0)
-            elif ledger2.transaction_type.lower().find('fir') != -1:
-                # ledger2 is a glazing fee
-                self.fields['firing_fee_refund'].initial = -1*ledger1.amount
-                self.fields['glazing_fee_refund'].initial = -1*ledger2.amount
-                self.fields['amount'].initial = -1*ledger1.amount + -1*ledger2.amount
-                assert(-1*ledger1.amount >= 1.0)
-                assert(-1*ledger2.amount >= 1.0)
-
-            else:
-                print("ERROR: There are two ledgers, but neither is a firing fee")
-                self.fields['firing_fee_refund'].initial = 0
-                self.fields['glazing_fee_refund'].initial = 0
-                self.fields['amount'].initial = piece.price
-                assert(self.fields['amount'].initial >= 2.0)
 
         else:
-            print("ERROR: There are more than two ledgers for this piece")
-            self.fields['firing_fee_refund'].initial = 0
-            self.fields['glazing_fee_refund'].initial = 0
-            self.fields['amount'].initial = piece.price
-            assert(self.fields['amount'].initial >= 2.0)
+            for ledger in ledgers:
+                print("ledger: ", ledger)
+                if ledger.transaction_type.lower() == 'auto_bisque_fee':
+                    print("found a bisque fee of amount: ", ledger.amount)
+                    firing_fee = True
+                    self.fields['firing_fee_refund'].initial += -1*ledger.amount
+                    print("firing_fee_refund: ", self.fields['firing_fee_refund'].initial)
+                
+                elif ledger.transaction_type.lower() == 'auto_glaze_fee':
+                    print("found a glaze fee of amount: ", ledger.amount)
+                    glazing_fee = True
+                    self.fields['glazing_fee_refund'].initial += -1*ledger.amount
+                
+                elif ledger.transaction_type.lower() == 'auto_refund_bisque_fee':
+                    print("found a bisque fee refund of amount: ", ledger.amount)
+                    self.fields['firing_fee_refunded'].initial = True
+                    self.fields['firing_fee_refund'].initial += -1*ledger.amount
+                
+                elif ledger.transaction_type.lower() == 'auto_refund_glaze_fee':
+                    print("found a glaze fee refund of amount: ", ledger.amount)
+                    self.fields['glazing_fee_refunded'].initial = True
+                    self.fields['glazing_fee_refund'].initial += -1*ledger.amount
+                
+                elif glazing_fee and firing_fee:
+                    raise ValidationError("ERROR: The ledger is both a glazing fee and a firing fee")
+                    # this should not be possible anymore with 1 ledger. 
+                
+                else:
+                    print("ERROR: There is at least one ledger which does not apear to be a glazing or firing fee")
+                print("firing_fee_refunded: ", self.fields['firing_fee_refunded'].initial)
 
-
-            
-
-
+        if self.fields['firing_fee_refunded'].initial:
+            assert firing_fee == True, 'ERROR: The firing fee was refunded, but there is no firing fee ledger'
+        
+            if self.fields['firing_fee_refund'].initial != 0:
+                # This should never happen, but handle numerical errors in case
+                assert self.fields['firing_fee_refund'].initial <= 0.1, \
+                       "Error: firing fee was previously refunded, but the firing fee and refund amount do not match"
+                self.fields['firing_fee_refund'].initial = 0
+        
+        if self.fields['glazing_fee_refunded'].initial:
+            assert glazing_fee == True, 'ERROR: The glazing fee was refunded, but there is no glazing fee ledger'
+        
+            if self.fields['glazing_fee_refund'].initial != 0:
+                # This should never happen, but handle numerical errors in case
+                assert self.fields['glazing_fee_refund'].initial <= 0.1, \
+                       "Error: glazing fee was previously refunded, but the glazing fee and refund amount do not match"
+                self.fields['glazing_fee_refund'].initial = 0
+        
+        if firing_fee and not self.fields['firing_fee_refunded'].initial:
+            assert self.fields['firing_fee_refund'].initial >= 0.5, \
+                   'Error: There is a firing fee which was not refunded, \
+                    but the refund amount is not at least $0.50'
+        
+        
+        if glazing_fee and not self.fields['glazing_fee_refunded'].initial:
+            assert self.fields['glazing_fee_refund'].initial >= 0.5, \
+                   'Error: There is a glazing fee which was not refunded, \
+                    but the refund amount is not at least $0.50'
+        
+        
+        self.fields['amount'].initial = self.fields['firing_fee_refund'].initial + self.fields['glazing_fee_refund'].initial
         self.fields['amount'].widget.attrs['readonly'] = 'readonly'
 
-        self.fields['transaction_type'].initial = 'Refund for piece'
+
+        if self.fields['firing_fee_check'] and firing_fee >= 0.5:
+            self.fields['transaction_type'].initial = 'auto_refund_bisque_fee'
+        elif self.fields['glazing_fee_check'] and glazing_fee >= 0.5:
+            self.fields['transaction_type'].initial = 'auto_refund_glaze_fee'
+        else:
+            self.fields['transaction_type'].initial = 'auto_refund_bisque_fee'
 
 
-        self.fields['note'].initial = 'Refund for piece: ' + piece.__str__()
-        
-        # self.fields['piece'].initial = piece
-        # self.fields['piece'].widget.attrs['readonly'] = 'readonly'
-        # self.fields['piece'].widget.attrs['hidden'] = True
-
-    
     def clean(self):
         # Get the cleaned data
+        print("in clean():")
         cleaned_data = super().clean()
 
         # Get the glazing fee check
@@ -561,18 +566,42 @@ class RefundPieceForm(forms.ModelForm):
         # Get the amount
         amount = cleaned_data.get('amount')
 
-        # double check that the amount is correct
-        # JQuery should have handled this
-        if glazing_fee_check and firing_fee_check:
-            assert(amount == glazing_fee_refund + firing_fee_refund)
-        elif glazing_fee_check:
-            assert(amount == glazing_fee_refund)
+        if firing_fee_check and glazing_fee_check:
+            # want to refund both fees
+            if ((firing_fee_refund > 0) and (glazing_fee_refund > 0)):
+                # we need to create two ledgers actually, one for each refund type
+                # so split off the glazing fee refund into a separate ledger
+                # and then use this ledger to create the firing fee refund
+                glazing_fee_ledger = Ledger(
+                    ghp_user = cleaned_data.get('ghp_user'),
+                    amount = glazing_fee_refund,
+                    transaction_type = 'auto_refund_glaze_fee',
+                    note = cleaned_data.get('note'),
+                    piece = cleaned_data.get('piece')
+                )
+                glazing_fee_ledger.save()
+
+                # This ledger is the firing fee ledger, so just set the amount to 
+                # the firing fee refund, and the transaction_type to auto_refund_bisque_fee,
+                # and keep the note and piece the same
+                cleaned_data['amount'] = firing_fee_refund
+                cleaned_data['transaction_type'] = 'auto_refund_bisque_fee'
+                #cleaned_data['note'] = cleaned_data.get('note') 
         elif firing_fee_check:
-            assert(amount == firing_fee_refund)
+            # want to refund firing fee only
+            cleaned_data['transaction_type'] = 'auto_refund_bisque_fee'
+            cleaned_data['amount'] = firing_fee_refund
+        elif glazing_fee_check:
+            # want to refund glazing fee only
+            cleaned_data['transaction_type'] = 'auto_refund_glaze_fee'
+            cleaned_data['amount'] = glazing_fee_refund
         else:
             print("ERROR: No glazing or firing fee was selected")
-            raise ValidationError("You must refund at least one fee")
+            raise ValidationError("You must refund at least one fee. To Cance, go back to the previous page.")
         # Return the cleaned data
+        print("Transaction type: ", cleaned_data.get('transaction_type'))
+
+
         return cleaned_data
     
     

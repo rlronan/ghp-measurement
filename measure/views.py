@@ -149,18 +149,19 @@ def base_view(request):
 
 def refund_view(request, ghp_user_id, ghp_user_piece_id):
     # get user, piece, and associated ledger entr(ies)
-    ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
-    piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
+    ghp_refund_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    piece = Piece.objects.filter(ghp_user=ghp_refund_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
      
-    ledgers = Ledger.objects.filter(ghp_user=ghp_user).filter(piece=piece).all()
+#TODO: update this filter so that it does not take the ledgers generated for the refunds!!
+    ledgers = Ledger.objects.filter(ghp_user=ghp_refund_user).filter(piece=piece).all()
 
-    print("Found user: " + str(ghp_user))
+    print("Found user: " + str(ghp_refund_user))
     print("Found piece: {} with pk: {}".format(str(piece), piece.pk))
     print("Found ledgers: " + str(ledgers))
     
     
     if request.method == 'POST':
-        form = RefundPieceForm(request.POST, ghp_user=ghp_user, piece=piece, ledgers=ledgers)
+        form = RefundPieceForm(request.POST, ghp_user=ghp_refund_user, piece=piece, ledgers=ledgers)
         if form.is_valid():
             # form.instance.pk = piece.id
             # form.instance.date = piece.date
@@ -174,17 +175,17 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
             # Update the piece's total amount
 
             instance.save()
-            return HttpResponseRedirect(reverse('admin:GHPUserAdmin', args=(ghp_user_id,)))
+            return HttpResponseRedirect(reverse('admin:measure_ghpuser_change', args=(ghp_user_id,)))
         else:
             print("Refund piece form is not valid")
 
             print(form.errors)
-            return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece, 'ledgers': ledgers})
+            return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
 
     else:
         # GET request
-        form = RefundPieceForm(ghp_user=ghp_user, piece=piece, ledgers=ledgers)
-    return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece, 'ledgers': ledgers})
+        form = RefundPieceForm(ghp_user=ghp_refund_user, piece=piece, ledgers=ledgers)
+    return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
 
 
 # #@

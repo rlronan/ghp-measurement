@@ -1,0 +1,187 @@
+{% include "measure/base.html" %}
+
+{% load static %}
+
+{% load number_mult %}
+
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Refund Piece Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{% static 'measure/style.css' %}">
+
+    <style>
+        table.center td.centertext {
+            text-align: center;
+        }
+
+        th,
+        td {
+            padding: 0px 0px;
+            text-align: center;
+            vertical-align: center;
+
+        }
+
+        table {
+            /* border: 1px solid black; */
+            font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+            border-spacing: 0;
+            border-collapse: collapse;
+            /* width: 150px; */
+
+        }
+
+        th,
+        td {
+            /* border: 1px solid black; */
+            padding: 0px 0px;
+            text-align: center;
+            vertical-align: center;
+
+        }
+
+        p {
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Refund a piece for user: {{ghp_user.first_name}} {{ghp_user.last_name}}</h1>
+
+    {% if error_message %}
+    <p><strong>{{ error_message }}</strong></p>
+    {% endif %}
+
+    {% if ledgers %}
+    {% for ledger in ledgers %}
+    {% if ledger.piece == piece %}
+    <p><strong>{{ ledger.note }}</strong>&nbsp &nbsp &nbsp &nbsp &nbsp Date: {{ledger.date}}&nbsp &nbsp &nbsp &nbsp
+        &nbsp Amount: ${{ledger.amount|mult:-1 }}</p>
+    <p>Firing Temp: {{piece.bisque_temp}}&nbsp &nbsp &nbsp &nbsp &nbsp Glaze Temp: {{piece.glaze_temp}} &nbsp &nbsp
+        &nbsp &nbsp &nbsp Firing Price: {{piece.firing_price}}&nbsp &nbsp &nbsp &nbsp &nbsp Glazing Price:
+        {{piece.glazing_price}}&nbsp &nbsp &nbsp &nbsp &nbsp Total Price: {{piece.price}} </p>
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    <p>No ledgers are available. No payments were found for this piece</p>
+    {% endif %}
+
+    <form class="RefundForm" method="POST">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        {{ form.field_errors }}
+        
+        {% for hidden in form.hidden_fields %}
+            {% if hidden.errors %}
+                <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
+            {% endif %}
+            {{ hidden }}
+        {% endfor %}
+
+        
+        
+
+        <p>Refund Firing Fee: {{form.firing_fee_check}} {{form.firing_fee_refund}}</p>
+        <p>Refund Glazing Fee: {{form.glazing_fee_check}} {{form.glazing_fee_refund}}</p>
+        <p>Refund Note: {{form.note}} {{form.note.errors}}</p>
+        <p>Refund Amount: {{form.amount}} {{form.amount.errors}}</p>
+
+        <input type="submit" value="Refund Piece">
+    </form>
+    <script>
+        // this script doesn't work for some reason. When both checkboxes are checked the amount is not set to the sum of the two refunds
+        // instead it is set to null
+        const firing_fee_checkbox = document.getElementById('id_firing_fee_check');
+        const glazing_fee_checkbox = document.getElementById('id_glazing_fee_check');
+        const firing_fee_refund = document.getElementById('id_firing_fee_refund');
+        const glazing_fee_refund = document.getElementById('id_glazing_fee_refund');
+
+        var firing_fee_value = firing_fee_refund.value//parseFloat($(firing_fee_refund.value));
+        var glazing_fee_value = glazing_fee_refund.value //parseFloat($(glazing_fee_refund.value));
+
+        firing_fee_value = parseFloat(firing_fee_value);
+        glazing_fee_value = parseFloat(glazing_fee_value);
+        // alert(firing_fee_value);
+        // alert(typeof (firing_fee_value));
+
+        // alert(glazing_fee_value);
+        // alert(typeof (glazing_fee_value));
+
+        var amount = document.getElementById('id_amount')
+        // parsefloat from amount.value
+        var amount_value = parseFloat($(amount.value));
+
+        // alert(amount.value);
+        // alert(typeof (amount.value));
+        // alert(typeof (amount))
+        // alert(typeof (amount_value));
+        // Listen for changes in the firing fee checkbox
+        firing_fee_checkbox.addEventListener('change', (event) => {
+
+            if (firing_fee_checkbox.checked) {
+                // alert('checked');
+                // set amount to firing fee
+                amount_value = firing_fee_value;
+
+                if (glazing_fee_checkbox.checked) {
+                    // increase amount by glazing_fee_refund
+                    amount_value = firing_fee_value + glazing_fee_value;
+                }
+
+            } else {
+                //alert('not checked');
+                // set amount to glazing fee if glazing fee is checked
+                if (glazing_fee_checkbox.checked) {
+                    amount_value = glazing_fee_value;
+                } else {
+                    amount_value = 0;
+                }
+
+            }
+            amount.value = amount_value;
+        })
+
+        // Listen for changes in the glazing fee checkbox
+        glazing_fee_checkbox.addEventListener('change', (event) => {
+
+            if (glazing_fee_checkbox.checked) {
+                // alert('checked');
+                // set amount to glazing fee
+                amount_value = glazing_fee_value;
+
+                if (firing_fee_checkbox.checked) {
+                    // increase amount by firing_fee_refund
+                    amount_value = firing_fee_value + glazing_fee_value;
+                }
+
+            } else {
+                //alert('not checked');
+                // set amount to firing fee if firing fee is checked
+                if (firing_fee_checkbox.checked) {
+                    amount_value = firing_fee_value;
+                } else {
+                    amount_value = 0;
+                }
+
+            }
+            amount.value = amount_value;
+        })
+    </script>
+
+    <script>
+        // prevent the enter key from submitting the form unless the user is on the submit button
+        $(document).on("keydown", ":input:not(textarea):not(:submit)", function (event) {
+            if (event.key == "Enter") {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+
+</html>

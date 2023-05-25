@@ -5,7 +5,7 @@ import csv
 import math
 from django.utils import timezone
 from .models import GHPUser, Account, Piece, Ledger
-from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, USER_FIRING_SCALE, STAFF_FIRING_SCALE, USER_GLAZING_SCALE, STAFF_GLAZING_SCALE, MINIMUM_PRICE
+from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, USER_FIRING_SCALE, STAFF_FIRING_SCALE, USER_GLAZING_SCALE, STAFF_GLAZING_SCALE, MINIMUM_PRICE, TRANSACTION_TYPES
 
 # Create your tests here.
 def generate_ghp_user(num_customers=100, p_student=0.9, p_staff=0.1, p_admin=0.03):
@@ -76,8 +76,8 @@ def generate_balances():
             ghp_user=ghp_user,
             ghp_user_transaction_number=1,
             amount= np.random.randint(0, 300),
-            transaction_type='Add Credit',
-            note='User Balance',
+            transaction_type='manual_gh_add_misc_credit',
+            note='Setting user balances to random values for testing purposes.',
             piece=None
         )
 
@@ -89,9 +89,9 @@ def generate_piece(num_pieces=1000):
         ghp_user = GHPUser.objects.all().order_by('?')[i % GHPUser.objects.count()]
         ghp_user_piece_id = 0 # placeholder
         date = timezone.now() - datetime.timedelta(days=np.random.randint(0, 365*10))
-        length = decimal.Decimal(np.random.uniform(0.5, 10.0))
-        width = decimal.Decimal(np.random.uniform(0.5, 10.0))
-        height = decimal.Decimal(np.random.uniform(3.0, 20.0))
+        length = decimal.Decimal(np.random.uniform(0.5, 21.0))
+        width = decimal.Decimal(np.random.uniform(0.5, 21.0))
+        height = decimal.Decimal(np.random.uniform(3.0, 22.0))
 
         # round length width and height up to the nearest 0.5
         length = decimal.Decimal(math.ceil(length * 2) / 2).quantize(decimal.Decimal('0.1'))
@@ -104,8 +104,9 @@ def generate_piece(num_pieces=1000):
         glaze_temp = np.random.choice(GLAZE_TEMP_INTERNAL)
 
         BISQUE_TEMP_INTERNAL = list(i[0] for i in BISQUE_TEMPS)
-        bisque_temp = np.random.choice(GLAZE_TEMP_INTERNAL, p=[0.95, 0.05])
+        bisque_temp = np.random.choice(BISQUE_TEMP_INTERNAL, p=[0.95, 0.05])
 
+        glaze_temp = np.where(bisque_temp == "None", GLAZE_TEMP_INTERNAL[0], glaze_temp) # if bisque_temp is None, glaze_temp must not be None
         # get price scaling factor based on whether the user is current_staff or current_admin or not
         if ghp_user.current_staff or ghp_user.current_admin:
             if bisque_temp != "None":
@@ -132,9 +133,6 @@ def generate_piece(num_pieces=1000):
             price += glaze_price
 
         
-
-
-
         course_number = np.random.choice(['W', 'G', 'H']) + str(np.random.randint(1, 20))
 
         bisque_fired = np.random.choice([True, False], p=[0.3, 0.7])
@@ -169,7 +167,7 @@ def generate_piece(num_pieces=1000):
             glaze_temp = glaze_temp,
             bisque_temp = bisque_temp,
             firing_price = firing_price,
-            glaze_price = glaze_price,
+            glazing_price = glaze_price,
             price = price,
             course_number=course_number,
             bisque_fired = bisque_fired,

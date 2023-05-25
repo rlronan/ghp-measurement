@@ -5,8 +5,11 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 import numpy as np
 import decimal
-from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, USER_FIRING_SCALE, STAFF_FIRING_SCALE, USER_GLAZING_SCALE, STAFF_GLAZING_SCALE, MINIMUM_PRICE
+from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, USER_FIRING_SCALE, STAFF_FIRING_SCALE, \
+    USER_GLAZING_SCALE, STAFF_GLAZING_SCALE, MINIMUM_PRICE, TRANSACTION_TYPES
 from django.db import IntegrityError
+from django.core.exceptions import ValidationError
+
 # Create your models here.
 
 class Account(models.Model):
@@ -139,11 +142,10 @@ class Piece(models.Model):
             models.CheckConstraint(check=models.Q(width__gte=0.5), name='width_gte_0.5', violation_error_message="Width must be at least 0.5 inches"),
             models.CheckConstraint(check=models.Q(height__gte=3.0), name='height_gte_3.0', violation_error_message="Height must be at least 3 inches"),
 
-            models.CheckConstraint(check=models.Q(length__lte=21.0)  | models.Q(width__lte=21.0), name='length_or_width_lte_21.0', violation_error_message="Length or width must be less than or equal to 21 inches"),
-            #models.CheckConstraint(check=models.Q(height__lte=22.0), name='height_lte_22.0', violation_error_message="Height must be less than or equal to 22 inches"),
+            models.CheckConstraint(check=models.Q(length__lte=21.0)  & models.Q(width__lte=21.0), name='length_and_width_lte_21.0', violation_error_message="Length amd width must be less than or equal to 21 inches"),
+            models.CheckConstraint(check=models.Q(height__lte=22.0), name='height_lte_22.0', violation_error_message="Height must be less than or equal to 22 inches"),
 
         ]
-    
     
     def clean(self):
 
@@ -215,10 +217,6 @@ class Piece(models.Model):
         # Return the cleaned data
         # return cleaned_data
 
-
-
-
-
     def save(self, *args, **kwargs):
 
         
@@ -260,8 +258,54 @@ class Piece(models.Model):
                 print("type(np.abs(size_test - self.size)): " + str(type(np.abs(size_test - self.size))))
                 self.size = size_test
 
+        # Manage firing, glazing and total price, before we save the piece
 
-        # Save the piece
+        # If we are updating, we should not create a ledger entry or change the 
+        # glazing_price unless the glaze_temp has changed:
+        if PIECE_UPDATING and (
+            (previous_piece.glaze_temp == 'None') and (self.glaze_temp != 'None')
+            ):
+            # Make sure the glaze price is at least MINIMUM_PRICE, 
+            # and update the price accordingly
+            if self.glazing_price < decimal.Decimal(MINIMUM_PRICE):
+                self.glazing_price = decimal.Decimal(MINIMUM_PRICE)
+                self.price = self.glazing_price + self.firing_price
+
+        # If we are creating a new piece
+        if not PIECE_UPDATING:
+            # if we are firing and glazing
+            if self.glaze_temp != 'None' and self.bisque_temp != 'None':
+                # The total price should be at least MINIMUM_PRICE. 
+                # if it is less, set the glazing_price and firing_price each to 
+                # 1/2 of the MINIMUM_PRICE, and set the total price to MINIMUM_PRICE
+                if self.firing_price + self.glazing_price < 1.0:
+                    self.firing_price = decimal.Decimal(0.5)
+                    self.glazing_price = decimal.Decimal(0.5)
+                    self.price = self.firing_price + self.glazing_price
+
+            # if we are only firing
+            elif self.glaze_temp == 'None' and self.bisque_temp != 'None':
+                # The total price should be at least MINIMUM_PRICE. 
+                # if it is less, set the firing_price to MINIMUM_PRICE, 
+                # and set the total price to MINIMUM_PRICE
+                if self.firing_price < 1.0:
+                    self.firing_price = decimal.Decimal(1.0)
+                    self.price = self.firing_price
+            # if we are only glazing
+            elif self.glaze_temp != 'None' and self.bisque_temp == 'None':
+                # The total price should be at least MINIMUM_PRICE. 
+                # if it is less, set the glazing_price to MINIMUM_PRICE, 
+                # and set the total price to MINIMUM_PRICE
+                if self.glazing_price < 1.0:
+                    self.glazing_price = decimal.Decimal(1.0)
+                    self.price = self.glazing_price
+            # if we are not firing or glazing
+            elif self.glaze_temp == 'None' and self.bisque_temp == 'None':
+                # This is not allowed, so raise an error
+                raise ValidationError("You must pay to either fire or glaze the piece, or both.")
+
+
+        # Prices have been updated, save the piece for real
         print("saving the piece")
         super().save(*args, **kwargs)  # Call the "real" save() method.
  
@@ -284,73 +328,79 @@ class Piece(models.Model):
             # Handle case 1: The piece is being fired and glazed
             if self.glaze_temp != 'None' and self.bisque_temp != 'None':
                 # Create the ledger enter for the bisque+glaze firing fee
-                print("Creating ledger entry for bisque+glaze firing fee")
+                print("Creating ledger entries for bisque and glaze firing fees")
+                
                 # Check that the price is the firing + glazing price or that the 
-                # price is 1.0 because the firing + glazing price is less than 1.0
+                # ~~price is 1.0 because the firing + glazing price is less than 1.0~~
                 assert(
                     (self.price == self.firing_price + self.glazing_price)
-                      or ( (self.price == 1.0) and 
-                          (self.firing_price + self.glazing_price < 1.0) 
-                          )
+                    #   or ( (self.price == 1.0) and 
+                    #       (self.firing_price + self.glazing_price < 1.0) 
+                    #       )
                 )
 
                 Ledger.objects.create(
                         date = self.date,
                         ghp_user=self.ghp_user,
                         ghp_user_transaction_number=ghp_user_transaction_number,
-                        amount= -1 * self.price, # amount is negative because this is a fee
-                        transaction_type='Bisque + Glaze Firing Fee',
-                        note='Bisque + Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
+                        amount= -1 * self.firing_price, # amount is negative because this is a fee
+                        transaction_type='auto_bisque_fee',
+                        note='Bisque Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                         piece=self
                         )
                 
+                Ledger.objects.create(
+                        date = self.date,
+                        ghp_user=self.ghp_user,
+                        ghp_user_transaction_number=ghp_user_transaction_number + 1,
+                        amount= -1 * self.glazing_price, # amount is negative because this is a fee
+                        transaction_type='auto_glaze_fee',
+                        note='Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
+                        piece=self
+                        )
             # Handle case 2: The piece is being fired, but not glazed
-            # Only charge the firing price, not the full price
+            # Only charge the firing price
             elif self.glaze_temp == 'None' and self.bisque_temp != 'None':
                 # Create the ledger enter for the bisque firing fee
                 print("Creating ledger entry for bisque firing fee")
 
                 # Check that the firing price is the same as the price or the 
-                # price is 1.0 because the firing price is less than 1.0
                 assert( 
                     (self.firing_price == self.price)
-                    or ( 
-                        (self.price == 1.0) 
-                        and (self.firing_price < 1.0) 
-                        )
+                    # or ( 
+                    #     (self.price == 1.0) 
+                    #     and (self.firing_price < 1.0) 
+                    #     )
                 )
-
 
                 Ledger.objects.create(
                         date = self.date,
                         ghp_user=self.ghp_user,
                         ghp_user_transaction_number=ghp_user_transaction_number,
-                        amount= -1 * self.price, # amount is negative because this is a fee
-                        transaction_type='Bisque Firing Fee',
+                        amount= -1 * self.firing_price, # amount is negative because this is a fee
+                        transaction_type='auto_bisque_fee',
                         note='Bisque Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                         piece=self
                         )
+            # Handle case 3: The piece is not being fired, but is being glazed
             elif self.glaze_temp != 'None' and self.bisque_temp == 'None':
                 # Create the ledger enter for the glaze firing fee
-
                 print("Creating ledger entry for Glaze firing fee")
 
-                # Check that the glazing price is the same as the price or the
-                # price is 1.0 because the glazing price is less than 1.0
+                # Check that the glazing price is the same as the price 
                 assert(
-                    (self.glazing_price == self.price)
-                    or (
-                        (self.price == 1.0)
-                        and (self.glazing_price < 1.0)
-                        )
+                    (self.glazing_price == self.price), "Glazing price is not the same as the price: " + str(self.glazing_price) + " != " + str(self.price) + " for piece " + str(self.ghp_user_piece_id) + " for user " + str(self.ghp_user)
+                    # or (
+                    #     (self.price == 1.0)
+                    #     and (self.glazing_price < 1.0)
+                    #     )
                 )
-
                 Ledger.objects.create(
                         date = self.date,
                         ghp_user=self.ghp_user,
                         ghp_user_transaction_number=ghp_user_transaction_number,
-                        amount= -1 * self.price, # amount is negative because this is a fee
-                        transaction_type='Glaze Firing Fee',
+                        amount= -1 * self.glazing_price, # amount is negative because this is a fee
+                        transaction_type='auto_glaze_fee',
                         note='Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                         piece=self
                         )
@@ -363,19 +413,17 @@ class Piece(models.Model):
             # update the last measure date for the user to be the date of this piece
             self.ghp_user.last_measure_date = self.date
 
-
         if PIECE_UPDATING:
             # we are updating a piece
             # The user may be only updating the piece notes, description, booleans
             # for whether the piece has been fired or glazed, etc., or they may be
             # trying to pay for glazing for the piece. We need to check for both cases.
-
-            print("Potentially creating ledger entry for old piece")
+            print("Updating a piece")
 
             # Check if the glaze_temp has changed from 'None' to something else
             if (previous_piece.glaze_temp == 'None') and (self.glaze_temp != 'None'):
                 # The user is trying to pay for glazing for this piece
-                print("Creating ledger entry for Glaze firing fee")
+                print("Creating ledger entry for a new Glaze firing fee")
 
                 # first get a new transaction number
                 ghp_user_transaction_number = Ledger.objects.filter(ghp_user=self.ghp_user).count() + 1
@@ -392,7 +440,7 @@ class Piece(models.Model):
                         ghp_user=self.ghp_user,
                         ghp_user_transaction_number=ghp_user_transaction_number,
                         amount= -1 * self.glazing_price, # amount is negative because this is a fee
-                        transaction_type='Glaze Firing Fee',
+                        transaction_type='auto_glaze_fee',
                         note='Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                         piece=self
                 )
@@ -425,7 +473,10 @@ class Ledger(models.Model):
     ghp_user = models.ForeignKey(GHPUser, models.SET_NULL, null=True)
     ghp_user_transaction_number = models.IntegerField(default= 1 )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    transaction_type = models.CharField(max_length=100, blank=True)
+    
+    
+    transaction_type = models.CharField(max_length=100, choices=TRANSACTION_TYPES)
+
     note = models.CharField(max_length=1000, blank=True)
     piece = models.ForeignKey(Piece, models.SET_NULL, null=True, blank=True)
 
@@ -434,7 +485,7 @@ class Ledger(models.Model):
         db_table = 'ledger'
 
     def __str__(self):
-        return self.ghp_user.first_name[:1] + '. ' + self.ghp_user.last_name + ' trans. #' + str(self.ghp_user_transaction_number) + ' ' \
+        return self.ghp_user.first_name[:1] + '. ' + self.ghp_user.last_name + ' tr. #' + str(self.ghp_user_transaction_number) + ' ' \
                 + self.date.strftime(r'%m/%d/%y') + ' ' + self.date.strftime(r'%H:%M:%S') + ' $' + str(self.amount) + ' ' \
                 + self.transaction_type + ' (' + self.note + ')'
 
@@ -466,4 +517,13 @@ class Ledger(models.Model):
             print("LEDGER UPDATING")
             # we are only modifying the note on an existing ledger entry
             pass
+
+        # if ghp_user last measure date is < this ledger entry date, update it
+        if self.ghp_user is not None:
+            if self.ghp_user.last_measure_date is None:
+                self.ghp_user.last_measure_date = self.date.date()
+                self.ghp_user.save()
+            elif self.ghp_user.last_measure_date < self.date.date():
+                self.ghp_user.last_measure_date = self.date.date()
+                self.ghp_user.save()
 
