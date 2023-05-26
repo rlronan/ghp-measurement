@@ -397,23 +397,23 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
 # class ExportCsvMixin:
     # from: 
     # https://books.agiliq.com/projects/django-admin-cookbook/en/latest/export.html
-    @admin.action(description="Export selected objects as csv")
-    def export_as_csv(self, request, queryset):
+@admin.action(description="Export selected objects as csv")
+def export_as_csv(self, request, queryset):
 
-        meta = self.model._meta
-        field_names = [field.name for field in meta.fields]
+    meta = self.model._meta
+    field_names = [field.name for field in meta.fields]
 
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-        writer = csv.writer(response)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+    writer = csv.writer(response)
 
-        writer.writerow(field_names)
-        for obj in queryset:
-            row = writer.writerow([getattr(obj, field) for field in field_names])
+    writer.writerow(field_names)
+    for obj in queryset:
+        row = writer.writerow([getattr(obj, field) for field in field_names])
 
-        return response
+    return response
 
-    export_as_csv.short_description = "Export Selected"
+export_as_csv.short_description = "Export Selected"
 
 
 
@@ -493,6 +493,26 @@ class GHPUserAdmin(admin.ModelAdmin):
             messages.SUCCESS,
         )
     
+    @admin.action(description="Export selected objects as csv")
+    def export_as_csv(self, request, queryset):
+
+        meta = self.model._meta
+        field_names = [field.name for field in meta.fields]
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+        writer = csv.writer(response)
+
+        writer.writerow(field_names)
+        for obj in queryset:
+            row = writer.writerow([getattr(obj, field) for field in field_names])
+
+        return response
+
+    export_as_csv.short_description = "Export Selected"
+
+
+
     def get_actions(self, request):
         actions = super().get_actions(request)
         if 'delete_selected' in actions:
@@ -562,19 +582,33 @@ class AccountAdmin(admin.ModelAdmin):
         """ This is a custom column that links to the add credit page, 
         and passes the account.ghp_user as a parameter"""
         url = (
-            reverse("admin:measure_ledger_add")
-            + "?"
-            + urlencode({"ghp_user__id": f"{obj.ghp_user.id}"})
+            reverse("measure:add_credit", args=[obj.ghp_user.id])
         )
         return format_html('<a href="{}">Add Credit</a>', url)
-
-
 
     def get_actions(self, request):
         actions = super().get_actions(request)
         if 'delete_selected' in actions:
             del actions['delete_selected']
         return actions
+ 
+    @admin.action(description="Export selected objects as csv")
+    def export_as_csv(self, request, queryset):
+
+        meta = self.model._meta
+        field_names = [field.name for field in meta.fields]
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+        writer = csv.writer(response)
+
+        writer.writerow(field_names)
+        for obj in queryset:
+            row = writer.writerow([getattr(obj, field) for field in field_names])
+
+        return response
+
+    export_as_csv.short_description = "Export Selected"
 
     # def add_view(self, request: HttpRequest, form_url: str = ..., extra_context: None = ...) -> HttpResponse:
     #     return super().add_view(request, form_url, extra_context)
@@ -628,6 +662,8 @@ class PieceAdmin(admin.ModelAdmin):
     
     ordering = ['-date', 'ghp_user__last_name', 'ghp_user__first_name']
 
+    actions = ['export_as_csv']
+
     def get_actions(self, request):
         actions = super().get_actions(request)
         if 'delete_selected' in actions:
@@ -651,6 +687,23 @@ class PieceAdmin(admin.ModelAdmin):
         print("URL", url)
         return format_html('<a href="{}">Refund Piece</a>', url)
 
+    @admin.action(description="Export selected objects as csv")
+    def export_as_csv(self, request, queryset):
+
+        meta = self.model._meta
+        field_names = [field.name for field in meta.fields]
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+        writer = csv.writer(response)
+
+        writer.writerow(field_names)
+        for obj in queryset:
+            row = writer.writerow([getattr(obj, field) for field in field_names])
+
+        return response
+
+    export_as_csv.short_description = "Export Selected"
 
 
 
@@ -679,6 +732,7 @@ class LedgerAdmin(admin.ModelAdmin):
         ),
     ]
 
+    actions = ['export_as_csv']
 
     # changes all fields to be read only when editing an existing object
     def get_readonly_fields(self, request, obj=None):
@@ -711,6 +765,23 @@ class LedgerAdmin(admin.ModelAdmin):
     # def get_changeform_initial_data(self, request):
     #     print("request:", request)
     #     return {"ghp_user": request.id}
+    @admin.action(description="Export selected objects as csv")
+    def export_as_csv(self, request, queryset):
+
+        meta = self.model._meta
+        field_names = [field.name for field in meta.fields]
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+        writer = csv.writer(response)
+
+        writer.writerow(field_names)
+        for obj in queryset:
+            row = writer.writerow([getattr(obj, field) for field in field_names])
+
+        return response
+
+    export_as_csv.short_description = "Export Selected"
 
 
 from django.contrib import admin

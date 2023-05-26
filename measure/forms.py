@@ -435,7 +435,7 @@ class RefundPieceForm(forms.ModelForm):
         model = Ledger
         fields = ['ghp_user', 'firing_fee_refund', 'firing_fee_refunded',  
                   'glazing_fee_refund', 'glazing_fee_refunded','firing_fee_check', 
-                  'glazing_fee_check',
+                  'glazing_fee_check', 'piece',
                   'amount', 'transaction_type', 'note', ]
     def __init__(self, *args, **kwargs):
         self.ghp_refund_user = kwargs.pop('ghp_user', None)
@@ -451,7 +451,11 @@ class RefundPieceForm(forms.ModelForm):
 
         self.fields['amount'] = forms.DecimalField(max_digits=10, decimal_places=2)
         self.fields['amount'].widget.attrs['readonly'] = 'readonly'
-
+        
+        self.fields['piece'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        self.fields['piece'].initial = piece
+        
+        
         self.fields['transaction_type'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         # self.fields['transaction_type'].initial = 'Refund for piece'
 
@@ -604,4 +608,43 @@ class RefundPieceForm(forms.ModelForm):
 
         return cleaned_data
     
-    
+
+class AddCreditForm(forms.ModelForm):
+
+    account_balance = forms.DecimalField(max_digits=10, decimal_places=2, required=False)
+    account_balance.widget.attrs['readonly'] = 'readonly'
+
+    class Meta:
+        model = Ledger
+        fields = ['ghp_user', 'amount', 'transaction_type', 'note', 'account_balance']
+
+    def __init__(self, *args, **kwargs):
+        ghp_user = kwargs.pop('ghp_user')
+        ghp_user_account = kwargs.pop('ghp_user_account')
+        super().__init__(*args, **kwargs)
+        
+        self.fields['ghp_user'].initial = ghp_user
+        self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+
+        self.fields['amount'].initial = 0
+
+        self.fields['transaction_type'].initial = 'manual_gh_add_misc_credit'
+        self.fields['transaction_type'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+
+        self.fields['note'].initial = 'Manual credit added by GHP staff'
+        self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        
+        self.fields['account_balance'].initial = ghp_user_account.balance
+
+    def clean(self):
+        # Get the cleaned data
+        cleaned_data = super().clean()
+        # if the amount is < 0, then change the transaction to to 'manual_gh_add_misc_charge'
+        if cleaned_data['amount'] == 0:
+            raise ValidationError("You must enter a value other than 0")
+        elif cleaned_data.get('amount') < 0:
+            cleaned_data['transaction_type'] = 'manual_gh_add_misc_charge'
+        elif cleaned_data.get('amount') > 0:
+            cleaned_data['transaction_type'] = 'manual_gh_add_misc_credit'
+
+        return cleaned_data

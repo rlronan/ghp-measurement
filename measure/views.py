@@ -3,9 +3,10 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
-from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm, RefundPieceForm
+from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm, RefundPieceForm, AddCreditForm
 from .models import GHPUser, Account, Piece, Ledger
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, \
+    PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 import csv
@@ -13,9 +14,6 @@ import numpy as np
 import datetime
 # Create your views here.
 
-# def index_view(request):
-#     ghp_user_list = GHPUser.objects.order_by('last_name').all()
-#     return render(request, 'measure/index.html', {'ghp_user_list': ghp_user_list})
 
 def index_view(request):
     ghp_user_admins = GHPUser.objects.filter(current_admin=True).order_by('last_name').all()
@@ -152,7 +150,6 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
     ghp_refund_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     piece = Piece.objects.filter(ghp_user=ghp_refund_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
      
-#TODO: update this filter so that it does not take the ledgers generated for the refunds!!
     ledgers = Ledger.objects.filter(ghp_user=ghp_refund_user).filter(piece=piece).all()
 
     print("Found user: " + str(ghp_refund_user))
@@ -163,19 +160,11 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
     if request.method == 'POST':
         form = RefundPieceForm(request.POST, ghp_user=ghp_refund_user, piece=piece, ledgers=ledgers)
         if form.is_valid():
-            # form.instance.pk = piece.id
-            # form.instance.date = piece.date
 
             instance = form.save(commit=False)
             # process the data in form.cleaned_data as required
-            # Refund the specified amount from the specified ledger
-            
-            # Create a new ledger entry with the refund amount
-
-            # Update the piece's total amount
-
             instance.save()
-            return HttpResponseRedirect(reverse('admin:measure_ghpuser_change', args=(ghp_user_id,)))
+            return HttpResponseRedirect(reverse('admin:measure_account_change', args=(ghp_user_id,)))
         else:
             print("Refund piece form is not valid")
 
@@ -188,41 +177,26 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
     return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
 
 
-# #@
-# def login(request):
+def add_credit_view(request, ghp_user_id):
+    # get the user, and the user's account
+    ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    ghp_user_account = get_object_or_404(Account, ghp_user=ghp_user)
+    print("Found user: " + str(ghp_user))
+    print("Found account: " + str(ghp_user_account))
+    if request.method == 'POST':
+        form = AddCreditForm(request.POST, ghp_user=ghp_user, ghp_user_account=ghp_user_account)
+        if form.is_valid():
 
+            instance = form.save(commit=False)
 
-#     if request.method == 'POST':
-#         form = LoginForm(request.POST)
-#         if form.is_valid():
-#             username = request.POST["email"]
-#             password = request.POST["password"]
-#             user = authenticate(request, username=username, password=password)
-#             if user is not None:
-#                 login(request, user)
-#                 print("User is authenticated")
-#                 return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(user.ghp_user.id,)))
-#                 # Redirect to a success page.
-#                 #...
-#             else:
-#                 # Return an 'invalid login' error message.
-#                 #...
-#                 print("Invalid login")
-#                 form.add_error('email', "Invalid login")
-#     else:
-#         form = LoginForm()
-#     return render(request, 'measure/login.html', {'form': form})
-
-
-
-# def index(request):
-#     ghp_user_list = GHPUser.objects.order_by('last_name').all()
-#     context = {'ghp_user_list' : ghp_user_list}
-#     return render(request, 'measure/index.html', context)
-
-
-
-# def ghp_user(request, ghp_user_id):
-#     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
-#     return render(request, 'measure/ghp_user.html', {'ghp_user' : ghp_user})
-
+            # process the data in form.cleaned_data as required
+            instance.save()
+            return HttpResponseRedirect(reverse('admin:measure_account_change', args=(ghp_user_id,)))
+        else:
+            print("Add credit form is not valid")
+            print(form.errors)
+            return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})
+    else:
+        # GET request
+        form = AddCreditForm(ghp_user=ghp_user, ghp_user_account=ghp_user_account)
+    return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})

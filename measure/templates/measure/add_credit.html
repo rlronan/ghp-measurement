@@ -1,0 +1,82 @@
+{% include "measure/base.html" %}
+
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Credit Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{% static 'measure/style.css' %}">
+
+    <style>
+        table.center td.centertext {
+            text-align: center;
+        }
+
+        th,
+        td {
+            padding: 0px 0px;
+            text-align: center;
+            vertical-align: center;
+
+        }
+
+        table {
+            /* border: 1px solid black; */
+            font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+            border-spacing: 0;
+            border-collapse: collapse;
+            /* width: 150px; */
+
+        }
+
+        th,
+        td {
+            /* border: 1px solid black; */
+            padding: 0px 0px;
+            text-align: center;
+            vertical-align: center;
+
+        }
+
+        p {
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Give User {{ghp_user.first_name}} {{ghp_user.last_name}} Credit Or Add A Charge</h1>
+
+    {% if error_message %}
+    <p><strong>{{ error_message }}</strong></p>
+    {% endif %}
+
+
+    <form class="CreditForm" method="POST">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        {{ form.field_errors }}
+        
+        {% for hidden in form.hidden_fields %}
+            {% if hidden.errors %}
+                <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
+            {% endif %}
+            {{ hidden }}
+        {% endfor %}
+
+        <p><strong>Account Balance: {{ form.account_balance }}</strong></p>
+        
+        <p><strong>WARNING: Positive amounts will give the user money to spend on firing. Negative amounts will charge the user a fee!</strong></p>
+        <p>Amount: {{form.amount}} {{form.amount.errors}}</p>
+
+        <p>Credit/Charge Note: {{form.note}} {{form.note.errors}}</p>
+
+        <input type="submit" value="Add Credit or Charge">
+    </form>
+</body>
+
+</html>

@@ -501,6 +501,9 @@ class Ledger(models.Model):
         if self.ghp_user_transaction_number is None:
             self.ghp_user_transaction_number = Ledger.objects.filter(ghp_user=self.ghp_user).count() + 1
 
+        if (self.amount is None) or (self.amount == 0):
+            print("Amount is None or 0, canceling the ledger save")
+            return
         
         super().save(*args, **kwargs)  # Call the "real" save() method.
         
