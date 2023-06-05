@@ -247,7 +247,7 @@ class Piece(models.Model):
             size_test = self.length * self.width * self.height
             size_test = size_test.quantize(decimal.Decimal('0.01'), rounding=decimal.ROUND_UP)
             try:
-                assert(np.abs(size_test - self.size) < 0.01)
+                assert np.abs(size_test - self.size) < 0.01
             except AssertionError:
                 print("Size is not correct, recalculating")
                 print("size_test: " + str(size_test))
@@ -332,12 +332,12 @@ class Piece(models.Model):
                 
                 # Check that the price is the firing + glazing price or that the 
                 # ~~price is 1.0 because the firing + glazing price is less than 1.0~~
-                assert(
+                assert \
                     (self.price == self.firing_price + self.glazing_price)
                     #   or ( (self.price == 1.0) and 
                     #       (self.firing_price + self.glazing_price < 1.0) 
                     #       )
-                )
+                
 
                 Ledger.objects.create(
                         date = self.date,
@@ -365,13 +365,13 @@ class Piece(models.Model):
                 print("Creating ledger entry for bisque firing fee")
 
                 # Check that the firing price is the same as the price or the 
-                assert( 
+                assert \
                     (self.firing_price == self.price)
                     # or ( 
                     #     (self.price == 1.0) 
                     #     and (self.firing_price < 1.0) 
                     #     )
-                )
+                
 
                 Ledger.objects.create(
                         date = self.date,
@@ -388,13 +388,13 @@ class Piece(models.Model):
                 print("Creating ledger entry for Glaze firing fee")
 
                 # Check that the glazing price is the same as the price 
-                assert(
+                assert \
                     (self.glazing_price == self.price), "Glazing price is not the same as the price: " + str(self.glazing_price) + " != " + str(self.price) + " for piece " + str(self.ghp_user_piece_id) + " for user " + str(self.ghp_user)
                     # or (
                     #     (self.price == 1.0)
                     #     and (self.glazing_price < 1.0)
                     #     )
-                )
+                
                 Ledger.objects.create(
                         date = self.date,
                         ghp_user=self.ghp_user,

@@ -15,6 +15,22 @@ urlpatterns = [
     path('register/', views.register_page, name='register'),
     path('login/', auth_views.LoginView.as_view(next_page='measure:base'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    path('login/password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
+        path(
+        "login/password_reset/done/",
+        auth_views.PasswordResetDoneView.as_view(),
+        name="password_reset_done",
+    ),
+    path(
+        "reset/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(),
+        name="password_reset_confirm",
+    ),
+    path(
+        "reset/done/",
+        auth_views.PasswordResetCompleteView.as_view(),
+        name="password_reset_complete",
+    ),
     # path('accounts/login', views.login, name='login'),
     # path('measure/accounts/login', views.login, name='login'),
     
@@ -29,7 +45,7 @@ urlpatterns = [
     path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/refund/', views.refund_view, name='refund_piece'),
     path('<int:ghp_user_id>/account/credit/', views.add_credit_view, name='add_credit'),
 
-    path("accounts/", include("django.contrib.auth.urls")),
+    # path("accounts/", include("django.contrib.auth.urls")),
 
     path(
         "admin/password_reset/",

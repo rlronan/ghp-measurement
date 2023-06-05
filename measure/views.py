@@ -8,6 +8,8 @@ from .models import GHPUser, Account, Piece, Ledger
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, \
     PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 import csv
 import numpy as np
@@ -15,6 +17,14 @@ import datetime
 # Create your views here.
 
 
+
+# def email_check(user):
+#     return user.email.endswith("@example.com")
+
+
+# @user_passes_test(email_check)
+
+@login_required(login_url='measure:login')
 def index_view(request):
     ghp_user_admins = GHPUser.objects.filter(current_admin=True).order_by('last_name').all()
     ghp_user_staff = GHPUser.objects.filter(current_staff=True).order_by('last_name').all()
@@ -28,6 +38,7 @@ def index_view(request):
         'ghp_user_staff': ghp_user_staff,
         'ghp_user_students': ghp_user_students,})
 
+@login_required(login_url='measure:login')
 class GHPUserView(generic.DetailView):
     model = GHPUser
     template_name = 'measure/ghp_user.html'
@@ -37,14 +48,27 @@ class GHPUserView(generic.DetailView):
         """Return the list of all pieces associated with a ghp_user."""
         return Piece.objects.filter(ghp_user_id=self.ghp_user_id).order_by('-date').all()
 
+@login_required(login_url='measure:login')
 def ghp_user_piece_view(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    print("Checking if user has permission to view piece overview page")
+    if not request.user.get_username() == ghp_user.get_username():
+        # if the user is not the correct user, redirect to the login page
+        print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
+        return redirect(reverse("measure:login"))#/?next=%s" % request.path))
+
     ghp_user_piece_list = Piece.objects.filter(ghp_user_id=ghp_user_id).order_by('-ghp_user_piece_id').all()
     return render(request, 'measure/ghp_user_pieces.html', {'ghp_user': ghp_user, 'ghp_user_piece_list': ghp_user_piece_list})
 
-
+@login_required(login_url='measure:login')
 def ghp_user_account_view(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    print("Checking if user has permission to view account page")
+    if not request.user.get_username() == ghp_user.get_username():
+        # if the user is not the correct user, redirect to the login page
+        print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
+        return redirect(reverse("measure:login/?next=%s" % request.path))
+
     ghp_user_account = ghp_user.account #Account.objects.filter(ghp_user=ghp_user).first() # should only be one
     ghp_user_transactions = Ledger.objects.filter(ghp_user=ghp_user).order_by('-ghp_user_transaction_number').all()
 
@@ -56,9 +80,14 @@ def ghp_user_account_view(request, ghp_user_id):
     })
 
 
-#class PieceView(generic.FormView):
+@login_required(login_url='measure:login')
 def PieceView(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    print("Checking if user has permission to view piece page")
+    if not request.user.get_username() == ghp_user.get_username():
+        # if the user is not the correct user, redirect to the login page
+        print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
+        return redirect(reverse("measure:login/?next=%s" % request.path))
 
     if request.method == 'POST':
         form = PieceForm(request.POST, ghp_user=ghp_user)
@@ -79,9 +108,15 @@ def PieceView(request, ghp_user_id):
     return render(request, 'measure/piece.html', {'form': form})
 
 
-
+@login_required(login_url='measure:login')
 def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    print("Checking if user has permission to view modify piece page")
+    if not request.user.get_username() == ghp_user.get_username():
+        # if the user is not the correct user, redirect to the login page
+        print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
+        return redirect(reverse("measure:login_view/?next=%s" % request.path))
+
     piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
     print("Found user: " + str(ghp_user))
     print("Found piece: {} with pk: {}".format(str(piece), piece.pk))
@@ -141,10 +176,11 @@ def register_page(request):
 
     return render(request, 'measure/register.html', {'form': form})
 
+
 def base_view(request):
     return render(request, 'measure/base.html', {})
 
-
+@login_required
 def refund_view(request, ghp_user_id, ghp_user_piece_id):
     # get user, piece, and associated ledger entr(ies)
     ghp_refund_user = get_object_or_404(GHPUser, pk=ghp_user_id)
@@ -176,7 +212,7 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
         form = RefundPieceForm(ghp_user=ghp_refund_user, piece=piece, ledgers=ledgers)
     return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
 
-
+@login_required
 def add_credit_view(request, ghp_user_id):
     # get the user, and the user's account
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
