@@ -8,8 +8,7 @@ from .models import GHPUser, Account, Piece, Ledger
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, \
     PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
-from django.contrib.auth.decorators import user_passes_test
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
 from django.contrib.auth.models import User
 import csv
 import numpy as np
@@ -180,7 +179,9 @@ def register_page(request):
 def base_view(request):
     return render(request, 'measure/base.html', {})
 
-@login_required
+@login_required(login_url='measure:login')
+@permission_required(['measure.view_account', 'measure.view_ledger',
+                      'measure.view_piece', 'measure.add_ledger'], raise_exception=True)
 def refund_view(request, ghp_user_id, ghp_user_piece_id):
     # get user, piece, and associated ledger entr(ies)
     ghp_refund_user = get_object_or_404(GHPUser, pk=ghp_user_id)
@@ -212,7 +213,7 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
         form = RefundPieceForm(ghp_user=ghp_refund_user, piece=piece, ledgers=ledgers)
     return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
 
-@login_required
+@login_required(login_url='measure:login')
 def add_credit_view(request, ghp_user_id):
     # get the user, and the user's account
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)

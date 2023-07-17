@@ -14,9 +14,9 @@ urlpatterns = [
     path('base/', views.base_view, name='base'),
     path('register/', views.register_page, name='register'),
     path('login/', auth_views.LoginView.as_view(next_page='measure:base'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='measure:login'), name='logout'),
     path('login/password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
-        path(
+    path(
         "login/password_reset/done/",
         auth_views.PasswordResetDoneView.as_view(),
         name="password_reset_done",

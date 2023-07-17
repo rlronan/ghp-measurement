@@ -471,7 +471,7 @@ class Ledger(models.Model):
     transaction_id = models.AutoField(primary_key=True)
     date = models.DateTimeField()
     ghp_user = models.ForeignKey(GHPUser, models.SET_NULL, null=True)
-    ghp_user_transaction_number = models.IntegerField(default= 1 )
+    ghp_user_transaction_number = models.IntegerField(default= None )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     
     
