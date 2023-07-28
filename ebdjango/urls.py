@@ -20,6 +20,6 @@ from django.contrib import admin
 
 urlpatterns = [
    re_path(r'^admin/', admin.site.urls),
-   #path('', include('helloworld.urls')), 
-   path('measure/', include('measure.urls')),
+   path('', include('measure.urls')), 
+#    path('measure/', include('measure.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

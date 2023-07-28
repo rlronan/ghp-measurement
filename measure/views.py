@@ -17,8 +17,17 @@ import datetime
 
 
 
-# def email_check(user):
-#     return user.email.endswith("@example.com")
+def user_owns_object_check(user, ghp_user):
+    return user.get_username() == ghp_user.get_username()
+
+def user_is_staff_check(user):
+    return user.is_staff
+
+def user_can_refund_check(user):
+    return user.groups.filter(name='can_refund').exists()
+
+def user_can_add_credit_check(user):
+    return user.groups.filter(name='can_add_credit').exists()
 
 
 # @user_passes_test(email_check)
@@ -51,7 +60,9 @@ class GHPUserView(generic.DetailView):
 def ghp_user_piece_view(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     print("Checking if user has permission to view piece overview page")
-    if not request.user.get_username() == ghp_user.get_username():
+    if not (user_owns_object_check(request.user, ghp_user) 
+            or user_is_staff_check(request.user)):
+#    if not request.user.get_username() == ghp_user.get_username():
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         return redirect(reverse("measure:login"))#/?next=%s" % request.path))
@@ -63,7 +74,9 @@ def ghp_user_piece_view(request, ghp_user_id):
 def ghp_user_account_view(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     print("Checking if user has permission to view account page")
-    if not request.user.get_username() == ghp_user.get_username():
+    if not (user_owns_object_check(request.user, ghp_user) 
+            or user_is_staff_check(request.user)):
+    #if not request.user.get_username() == ghp_user.get_username():
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         return redirect(reverse("measure:login/?next=%s" % request.path))
@@ -83,7 +96,8 @@ def ghp_user_account_view(request, ghp_user_id):
 def PieceView(request, ghp_user_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     print("Checking if user has permission to view piece page")
-    if not request.user.get_username() == ghp_user.get_username():
+    if not (user_owns_object_check(request.user, ghp_user) 
+            or user_is_staff_check(request.user)):
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         return redirect(reverse("measure:login/?next=%s" % request.path))
@@ -111,7 +125,8 @@ def PieceView(request, ghp_user_id):
 def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     print("Checking if user has permission to view modify piece page")
-    if not request.user.get_username() == ghp_user.get_username():
+    if not (user_owns_object_check(request.user, ghp_user) 
+            or user_is_staff_check(request.user)):
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         return redirect(reverse("measure:login_view/?next=%s" % request.path))
@@ -189,7 +204,7 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
      
     ledgers = Ledger.objects.filter(ghp_user=ghp_refund_user).filter(piece=piece).all()
 
-    print("Found user: " + str(ghp_refund_user))
+    print("Found ghp user: " + str(ghp_refund_user))
     print("Found piece: {} with pk: {}".format(str(piece), piece.pk))
     print("Found ledgers: " + str(ledgers))
     
@@ -218,7 +233,7 @@ def add_credit_view(request, ghp_user_id):
     # get the user, and the user's account
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     ghp_user_account = get_object_or_404(Account, ghp_user=ghp_user)
-    print("Found user: " + str(ghp_user))
+    print("Found ghp user: " + str(ghp_user))
     print("Found account: " + str(ghp_user_account))
     if request.method == 'POST':
         form = AddCreditForm(request.POST, ghp_user=ghp_user, ghp_user_account=ghp_user_account)

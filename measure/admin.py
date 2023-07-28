@@ -400,7 +400,10 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
 @admin.action(description="Export selected objects as csv")
 def export_as_csv(self, request, queryset):
 
+
+
     meta = self.model._meta
+    
     field_names = [field.name for field in meta.fields]
 
     response = HttpResponse(content_type='text/csv')
@@ -495,7 +498,8 @@ class GHPUserAdmin(admin.ModelAdmin):
     
     @admin.action(description="Export selected objects as csv")
     def export_as_csv(self, request, queryset):
-
+        print("Model: ", self.model)
+        print("Queryset: ", queryset)
         meta = self.model._meta
         field_names = [field.name for field in meta.fields]
 

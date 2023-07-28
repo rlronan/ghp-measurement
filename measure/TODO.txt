@@ -1,0 +1,17 @@
+1. Fix URL redirects from admin logout to go to main site login (Do i want this?).
+2. Fix export to csv to include all list_display fields, not all model fields (e.g. don't want to export the password field).
+3. Add permission requirements for the refund and credit actions on the main site and admin.
+4. Add a way to properly add a new user from the admin site.
+5. Add more documentation for the admin site, and for users on the main site.
+6. Add permision requirements for the index page on the main site. Currently anyone can see it.
+7. Add test cases for the main site and admin site.
+8. Add logging for the main site and admin site.
+9. Add restriction to user firing new piece if their balance is too negative.
+10. Add warnings to the user firing new piece if their balance is low, or negative.
+11. DONE: Add local internet hosting for the site using ngrok. 
+12. Add shopify integration based on the user's email adddress. This should allow the user to add money to their balance, and for the site to update the balance.
+13. Add/fix AWS hosting for the site.
+14. Add a way to export certain aspects of the logging (e.g. all logs for a certain user, or all logs for a certain date range, all logs of a refund action, etc.).
+15. Update settings to be production ready.
+16. Add image upload and viewing for main site.
+17. DONE: Redirect base url to measure. 
