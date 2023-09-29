@@ -6,6 +6,9 @@ from .models import Piece, GHPUser, User, Account, Ledger
 from django.utils import timezone
 from .constants import *
 import decimal
+
+import gettext
+_ = gettext.gettext
 # class PieceForm(forms.ModelForm):
 #     class Meta:
 #         model = Piece
@@ -19,14 +22,23 @@ class PieceForm(forms.ModelForm):
     firing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
     glazing_price_per_cubic_inch = forms.DecimalField(label="glazing_price_per_cubic_inch" , max_digits=5, decimal_places=3, initial=0.00)
     glazing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
+            # set the user balance to the current user balance
+    # user_balance = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.00)
+    # user_balance.widget.attrs.update({'readonly': 'readonly'})
+    
     class Meta:
         model = Piece
-        fields = ['ghp_user', 'ghp_user_piece_id', 'length', 'width', 'height', 
-                  'glaze_temp', 'size', 'price', 'firing_price', 'glazing_price', 'course_number', 
-                  'piece_description', 'glaze_description', 'note', 'image']
+        fields = ['ghp_user', 'ghp_user_piece_id', 
+                  'length', 'width', 'height', 
+                  'glaze_temp', 'size', 'price', 
+                  'firing_price', 'glazing_price', 
+                  'course_number', 'note', 
+                  'image'] #'piece_description', 'glaze_description', 
         #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
+        self.user_balance = kwargs.pop('user_balance', None)
+        print("user balance: ", self.user_balance)
         super().__init__(*args, **kwargs)
         self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['ghp_user_piece_id'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
@@ -57,18 +69,19 @@ class PieceForm(forms.ModelForm):
 
 
         # Set widget for size field to ReadOnlyInput
-        self.fields['size'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
+        #self.fields['size'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
+        self.fields['size'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['price'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
 
         self.fields['firing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['glazing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
 
         self.fields['course_number'].widget.attrs['placeholder'] = 'e.g. W7'
-        self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
-        self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
+        # self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        # self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
 
-        self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
-        self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
+        # self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        # self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
 
         self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
         self.fields['note'].widget.attrs['placeholder'] = 'e.g. This piece is for my mom\'s birthday'
@@ -78,9 +91,10 @@ class PieceForm(forms.ModelForm):
 
         self.fields['firing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['glazing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
-
-        # Set initial values for ghp_user and ghp_user_piece_id
-
+        #self.user_balance = self.ghp_user_acount.balance
+        # set the user balance to the current user balance
+#        self.fields['user_balance'].initial=self.ghp_user.get_balance()
+        # self.fields['user_balance'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
 
 
     def clean(self):
@@ -168,7 +182,14 @@ class PieceForm(forms.ModelForm):
         if cleaned_data['price'] < MINIMUM_PRICE:
             cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
+        print(self.user_balance, cleaned_data['price'], self.user_balance - cleaned_data['price'])
+        if self.user_balance - cleaned_data['price'] < -25:
+            raise ValidationError(
+                _("You cannot measure a piece that will bring your account balance below -$25.00. Please add money to your account before measuring."),
+                code="balance_too_low")
+
         # Return the cleaned data
+        
         return cleaned_data
 
 
@@ -235,7 +256,7 @@ class ModifyPieceForm(forms.ModelForm):
 
 
         self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
-        self.fields['note'].widget.attrs['placeholder'] = 'e.g. This piece is for my mom\'s birthday'
+        self.fields['note'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Glazed with Chun Blue splattered over Shino White on the outside, Chun Blue on the inside.'
         self.fields['note'].initial = self.piece.note
 
         self.fields['firing_price_per_cubic_inch'].initial = self.ghp_user.get_price_scale()[0]
@@ -248,7 +269,7 @@ class ModifyPieceForm(forms.ModelForm):
         # Get the cleaned data
         print("Cleaning modify piece form")
         cleaned_data = super().clean()
-
+        
         # Get the length, width, and height
         length = cleaned_data.get('length')
         width = cleaned_data.get('width')
@@ -327,6 +348,10 @@ class ModifyPieceForm(forms.ModelForm):
         if cleaned_data['price'] < MINIMUM_PRICE:
             cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
+
+        # self.add_error('user_balance_too_low', 'You cannot measure a piece that will bring your account balance below -$25.00. Please pay your balance before measuring this piece.')
+
+        
         # Return the cleaned data
         return cleaned_data
     

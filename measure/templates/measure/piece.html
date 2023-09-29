@@ -1,6 +1,7 @@
 {% include "measure/base.html" %}
 
 {% load static %}
+{% load number_mult %}
 
 <style>
     table.center td.centertext {
@@ -56,41 +57,68 @@
             {{ hidden }}
         {% endfor %}
         <!-- {{ form.as_div }} -->
+        <h1>Measure A New Piece</h1>
+        {% if form.user_balance >= 25 %}
+        <h2>Firing Account Balance: ${{form.user_balance}}</h2>
+        {% elif form.user_balance >= 0 %}
+        <h2>Firing Account Balance: ${{form.user_balance}}<h2>
+        </h3> (Your account balance is getting low. Please consider adding funds)</h3>
+        {% elif form.user_balance >= -25 %}
+        <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
+        </h3>(Warning: Your account balance is negative. You will not be able to fire anything that brings it too negative)</h3>
+        {% else %}
+        <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
+        </h3>(WARNING: YOU CANNOT MEASURE OR FIRE ADDITIONAL PIECES UNTIL YOU ADD FUNDS TO YOUR ACCOUNT BALANCE)</h3>
+
+        <!-- <th colspan="6">Balance: -${{user_balance|mult:-1}}</th> -->
+        {% endif %}
+        
         <table class="center">
-            <tr>
-                <th colspan="6">Measure A New Piece</th>
-            </tr>
+                <!-- <tr>
+                    <th colspan="6">Measure A New Piece</th>
+                </tr>
+                <tr>
+                    <th>Length {{form.length.erros}} </th>
+                    <th>Width {{form.width.erros}}</th>
+                    <th>Height {{form.height.erros}}</th>
+                    <th>Glaze Temp {{form.glaze_temp.erros}}</th>
+                    <th>Size {{form.size.erros}}</th>
+                    <th>Price {{form.price.erros}}</th>
+                </tr>
+                <tr>
+                    <td>{{ form.length}} </td>
+                    <td>{{ form.width}}</td>
+                    <td>{{ form.height}}</td>
+                    <td class="centertext">{{ form.glaze_temp }}</td>
+                    <td>{{ form.size }}</td>
+                    <td>{{ form.price }}</td>
+                </tr>
+            </table> -->
             <tr>
                 <th>Length {{form.length.erros}} </th>
-                <th>Width {{form.width.erros}}</th>
-                <th>Height {{form.height.erros}}</th>
-                <th>Glaze Temp {{form.glaze_temp.erros}}</th>
-                <th>Size {{form.size.erros}}</th>
-                <th>Price {{form.price.erros}}</th>
+                <td>{{ form.length}} </td>
             </tr>
             <tr>
-                <td>{{ form.length}} </td>
+                <th>Width {{form.width.erros}}</th>
                 <td>{{ form.width}}</td>
+            </tr>
+                <th>Height {{form.height.erros}}</th>
                 <td>{{ form.height}}</td>
+            </tr>
+            <tr>
+                <th>Glaze Temp {{form.glaze_temp.erros}}</th>
                 <td class="centertext">{{ form.glaze_temp }}</td>
-                <td>{{ form.size }}</td>
+            </tr>
+            <tr>
+                <th>Price {{form.price.erros}}</th>
                 <td>{{ form.price }}</td>
             </tr>
+            
         </table>
         <table class="center">
             <tr>
                 <th>Course Number {{form.course_number.erros}}</th>
                 <td>{{ form.course_number }}</td>
-            </tr>
-
-            <tr>
-                <th>Piece Description (Optional) {{form.piece_description.erros}}</th>
-                <td>{{ form.piece_description }}</td>
-            </tr>
-
-            <tr>
-                <th>Glaze Description (Optional) {{form.glaze_description.erros}}</th>
-                <td>{{ form.glaze_description }}</td>
             </tr>
 
             <tr>

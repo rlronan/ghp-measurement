@@ -27,6 +27,10 @@ def user_can_refund_check(user):
     return user.groups.filter(name='can_refund').exists()
 
 def user_can_add_credit_check(user):
+    print("Checking if user is in group can_add_credit")
+    print("User: {}".format(user))
+    print("User groups: {}".format(user.groups.all()))
+    print("User groups filter: {}".format(user.groups.filter(name='can_add_credit').exists()))
     return user.groups.filter(name='can_add_credit').exists()
 
 
@@ -34,6 +38,11 @@ def user_can_add_credit_check(user):
 
 @login_required(login_url='measure:login')
 def index_view(request):
+    print("Checking if user has permission to account index page")
+    if not user_is_staff_check(request.user):
+        print("Requesting user: {}, does not have access to the account index page".format(request.user.get_username()))
+        return redirect(reverse("measure:login"))#/?next=%s" % request.path))
+
     ghp_user_admins = GHPUser.objects.filter(current_admin=True).order_by('last_name').all()
     ghp_user_staff = GHPUser.objects.filter(current_staff=True).order_by('last_name').all()
     ghp_user_students = GHPUser.objects.filter(current_student=True).order_by('last_name').all()
@@ -101,9 +110,10 @@ def PieceView(request, ghp_user_id):
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         return redirect(reverse("measure:login/?next=%s" % request.path))
-
+    
+    user_balance = ghp_user.account.balance #Account.objects.filter(ghp_user=ghp_user).first() # should only be one
     if request.method == 'POST':
-        form = PieceForm(request.POST, ghp_user=ghp_user)
+        form = PieceForm(request.POST, ghp_user=ghp_user, user_balance=user_balance)
         if form.is_valid():
             print("Measuring piece form is valid")
             instance = form.save(commit=False)
@@ -117,7 +127,7 @@ def PieceView(request, ghp_user_id):
             return render(request, 'measure/piece.html', {'form': form})
 
     else:
-        form = PieceForm(ghp_user=ghp_user)
+        form = PieceForm(ghp_user=ghp_user, user_balance=user_balance)
     return render(request, 'measure/piece.html', {'form': form})
 
 
@@ -229,6 +239,8 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
     return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
 
 @login_required(login_url='measure:login')
+@permission_required(['measure.view_account', 'measure.view_ledger',
+                      'measure.view_piece', 'measure.add_ledger'], raise_exception=True)
 def add_credit_view(request, ghp_user_id):
     # get the user, and the user's account
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)

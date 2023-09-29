@@ -84,7 +84,12 @@ class GHPUser(User):
             # later we can add a default scale for non-students if ghp ever wants
             return (USER_FIRING_SCALE, USER_GLAZING_SCALE)
 
-
+    def get_balance(self):
+        if not Account.objects.filter(ghp_user=self).exists():
+            print("WARNING: User does not have an account, but they should! Creating one")
+            Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
+            print("Account created for GHPUser")
+        return Account.objects.get(ghp_user=self).balance
 
     def __str__(self):
         s = self.first_name + ' ' + self.last_name
