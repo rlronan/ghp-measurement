@@ -2,6 +2,8 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator, EmailValidator, MinLengthValidator
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from .models import Piece, GHPUser, User, Account, Ledger
 from django.utils import timezone
 from .constants import *
@@ -91,6 +93,9 @@ class PieceForm(forms.ModelForm):
 
         self.fields['firing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['glazing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+
+        self.fields['image'] = forms.ImageField(required=False)
+        ###self.fields['image'].widget.attrs['accept'] = 'image/*'
         #self.user_balance = self.ghp_user_acount.balance
         # set the user balance to the current user balance
 #        self.fields['user_balance'].initial=self.ghp_user.get_balance()
@@ -212,6 +217,7 @@ class ModifyPieceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
         self.piece = kwargs.pop('piece', None)
+        ##self.piece_image = kwargs.pop('piece_image', None)
         super().__init__(*args, **kwargs)
         self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['ghp_user_piece_id'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
@@ -264,11 +270,21 @@ class ModifyPieceForm(forms.ModelForm):
 
         self.fields['firing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['glazing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+        if self.piece.image:
+            print("found self image: ", self.piece.image)
+            self.fields['image'] = forms.ImageField(required=False, initial=self.piece.image)
+        else:
+            self.fields['image'] = forms.ImageField(required=False)
 
     def clean(self):
         # Get the cleaned data
         print("Cleaning modify piece form")
         cleaned_data = super().clean()
+        
+        original_image = self.piece.image
+        print("original image: ", original_image)
+        new_image = cleaned_data.get('image')
+        print("new image: ", new_image)
         
         # Get the length, width, and height
         length = cleaned_data.get('length')

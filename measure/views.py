@@ -113,7 +113,7 @@ def PieceView(request, ghp_user_id):
     
     user_balance = ghp_user.account.balance #Account.objects.filter(ghp_user=ghp_user).first() # should only be one
     if request.method == 'POST':
-        form = PieceForm(request.POST, ghp_user=ghp_user, user_balance=user_balance)
+        form = PieceForm(request.POST, request.FILES, ghp_user=ghp_user, user_balance=user_balance)
         if form.is_valid():
             print("Measuring piece form is valid")
             instance = form.save(commit=False)
@@ -142,10 +142,11 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
         return redirect(reverse("measure:login_view/?next=%s" % request.path))
 
     piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
+    piece_image = piece.image
     print("Found user: " + str(ghp_user))
     print("Found piece: {} with pk: {}".format(str(piece), piece.pk))
     if request.method == 'POST':
-        form = ModifyPieceForm(request.POST, ghp_user=ghp_user, piece=piece)
+        form = ModifyPieceForm(request.POST, request.FILES, ghp_user=ghp_user, piece=piece)# piece_image=piece_image)
         if form.is_valid():
             form.instance.pk = piece.id
             form.instance.date = piece.date

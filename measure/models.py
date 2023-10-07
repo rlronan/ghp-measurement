@@ -227,7 +227,7 @@ class Piece(models.Model):
         
         # price, glazing_price, and firing_price are calculated in the clean() method
         # so we need to call clean() before saving
-        self = self.clean()
+        #self = self.clean()
 
         # check if we are updating or creating a new piece
         PIECE_UPDATING = False
@@ -240,11 +240,12 @@ class Piece(models.Model):
             print("Updating piece")
             # Get the previous piece object
             previous_piece = Piece.objects.get(pk=self.id)
-        
+            print("Previous piece image: ", previous_piece.image)
         # if we are not updating, we should get the current date, and increment the ghp_user_piece_id
         # if we are updating, the size should not, and cannot change
         if not PIECE_UPDATING:
             print("Creating a new piece")
+            print("Current image: ", self.image)
             self.ghp_user_piece_id = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
             self.date = timezone.now()
 

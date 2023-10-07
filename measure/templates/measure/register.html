@@ -14,9 +14,8 @@
 
 <body>
   <form method="post">
-    <p> Create A User Account</p>
-
     {% csrf_token %}
+    <p> Create A User Account</p>
     {% if form.non_field_errors %}
     <div class="alert alert-danger" role="alert">
       {% for error in form.non_field_errors %}

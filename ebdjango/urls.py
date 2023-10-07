@@ -22,4 +22,8 @@ urlpatterns = [
    re_path(r'^admin/', admin.site.urls),
    path('', include('measure.urls')), 
 #    path('measure/', include('measure.urls')),
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+] 
+
+if settings.DEBUG:  # new
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) # only for development
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

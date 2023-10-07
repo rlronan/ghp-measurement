@@ -45,7 +45,7 @@
 
 <body>
 
-    <form class="MeasureForm" method="POST">
+    <form enctype="multipart/form-data" class="MeasureForm" method="POST">
         {% csrf_token %}
         {{ form.non_field_errors }}
         {{ form.field_errors }}
@@ -83,23 +83,19 @@
             </tr>
 
             <tr>
-                <th>Piece Description (Optional) {{form.piece_description.errors}}</th>
-                <td>{{ form.piece_description }}</td>
-            </tr>
-
-            <tr>
-                <th>Glaze Description (Optional) {{form.glaze_description.errors}}</th>
-                <td>{{ form.glaze_description }}</td>
-            </tr>
-
-            <tr>
                 <th>Note (Optional) {{form.note.errors}}</th>
                 <td>{{ form.note }}</td>
             </tr>
 
             <tr>
                 <th>Image {{form.image.errors}}</th>
-                <td>{{ form.image }}</td>
+                {% if form.piece.image %}
+                    <img src ="{{ form.piece.image.url }}" width="100" height="100">
+                {% endif %}
+                <td>
+                {{ form.image }}
+                </td>
+
             </tr>
 
         </table>

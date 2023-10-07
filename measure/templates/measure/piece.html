@@ -46,7 +46,7 @@
 </head>
 
 <body>
-    <form class="MeasureForm" method="POST">
+    <form enctype="multipart/form-data" class="MeasureForm" method="POST">
         {% csrf_token %}
         {{ form.non_field_errors }}
         {{ form.field_errors }}
@@ -129,11 +129,9 @@
             <tr>
                 <th>Image {{form.image.erros}}</th>
                 <td>{{ form.image }}</td>
+                <!-- <td><img src ="{{ form.image.url }}"></td> -->
             </tr>
-
         </table>
-        <!-- {{ form.bisque_fired }}
-            {{ form.glaze_fired }} -->
         <button type="submit">Submit</button>
     </form>
 
