@@ -1,5 +1,7 @@
 {% include "measure/base.html" %}
 
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 {% block content %}
 
@@ -25,7 +27,7 @@
     {% csrf_token %}
     <table>
         <tr>
-            <td>{{ form.username.label_tag }}</td>
+             <td>Email Address</td> <!--{{ form.username.label_tag }} -->
             <td>{{ form.username }}</td>
         </tr>
         <tr>

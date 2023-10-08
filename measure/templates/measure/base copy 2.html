@@ -2,10 +2,10 @@
 
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<head>
 
     <style>
             html,body
@@ -120,9 +120,6 @@
                     .dropdown:hover .dropdown-content {
                     display: block;
                     }
-                    
-                    /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
-                    .show {display:block;} 
 
     </style>
 
@@ -137,10 +134,10 @@
         <div class="menu">
           {% if user.is_authenticated %}
           <div class="dropdown">
-            <button onclick="ShowDropdown()" class="dropbtn">Menu 
-                <i class="fa fa-caret-down"></i>
-              </button>
-              <div id="menuDropdown" class="dropdown-content">
+            <button class="dropbtn">Menu 
+              <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="dropdown-content">
                 <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
                 <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account</a>
                 <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
@@ -149,10 +146,10 @@
           </div> 
           {% else %}
           <div class="dropdown">
-            <button onclick="ShowDropdown()" class="dropbtn">Menu 
+            <button class="dropbtn">Menu 
               <i class="fa fa-caret-down"></i>
             </button>
-            <div id="menuDropdown" class="dropdown-content">
+            <div class="dropdown-content">
                 <a href="{% url 'measure:login' %}">Log In</a>
                 <a href="{% url 'measure:register' %}">Register</a>
             </div>
@@ -174,27 +171,4 @@
         {% endblock %}
     </div>
 </body>
-<script>
-    /* When the user clicks on the button,
-    toggle between hiding and showing the dropdown content */
-    function ShowDropdown() {
-        document.getElementById("menuDropdown").classList.toggle("show");
-    }
-
-    // Close the dropdown menu if the user clicks outside of it
-    window.onclick = function(event) {
-    if (!event.target.matches('.dropbtn')) {
-        var dropdowns = document.getElementsByClassName("dropdown-content");
-        var i;
-        for (i = 0; i < dropdowns.length; i++) {
-        var openDropdown = dropdowns[i];
-        if (openDropdown.classList.contains('show')) {
-            openDropdown.classList.remove('show');
-        }
-        }
-    }
-    } 
-
-</script>
-
 </html>

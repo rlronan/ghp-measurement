@@ -33,14 +33,14 @@ MINIMUM_PRICE = 1.00
 
 TRANSACTION_TYPES = [
     
-        ('auto_bisque_fee', 'AUTO:Bisque Firing Fee'), 
-        ('auto_glaze_fee', 'AUTO:Glaze Firing Fee'), 
-        ('auto_refund_bisque_fee', 'AUTO:Refund Bisque Firing Fee'),
-        ('auto_refund_glaze_fee', 'AUTO:Refund Glaze Firing Fee'),
-        ('auto_user_add_firing_credit', 'AUTO:User Add Firing Credit'),
-        ('auto_gh_add_firing_credit', 'AUTO:GH Add Firing Credit'),
-        ('auto_gh_add_misc_credit', 'AUTO:GH Add Misc Credit'),
-        ('auto_gh_add_misc_charge', 'AUTO:GH Add Misc Charge'),
-        ('manual_gh_add_misc_credit', 'MANUAL:GH Add Misc Credit'),
-        ('manual_gh_add_misc_charge', 'MANUAL:GH Add Misc Charge'),
+        ('auto_bisque_fee', 'AUTO: Bisque Firing Fee'), 
+        ('auto_glaze_fee', 'AUTO: Glaze Firing Fee'), 
+        ('auto_refund_bisque_fee', 'AUTO: Refund Bisque Firing Fee'),
+        ('auto_refund_glaze_fee', 'AUTO: Refund Glaze Firing Fee'),
+        ('auto_user_add_firing_credit', 'AUTO: User Add Firing Credit'),
+        ('auto_gh_add_firing_credit', 'AUTO: GH Add Firing Credit'),
+        ('auto_gh_add_misc_credit', 'AUTO: GH Add Misc Credit'),
+        ('auto_gh_add_misc_charge', 'AUTO: GH Add Misc Charge'),
+        ('manual_gh_add_misc_credit', 'MANUAL: GH Add Misc Credit'),
+        ('manual_gh_add_misc_charge', 'MANUAL: GH Add Misc Charge'),
 ]

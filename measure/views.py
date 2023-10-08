@@ -271,21 +271,11 @@ def add_credit_view(request, ghp_user_id):
         form = AddCreditForm(ghp_user=ghp_user, ghp_user_account=ghp_user_account)
     return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})
 
-
-
-# def stripe_view(request, ghp_user_id):
-#     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
-#     ghp_user_account = get_object_or_404(Account, ghp_user=ghp_user)
-#     print("Found ghp user: " + str(ghp_user))
-#     print("Found account: " + str(ghp_user_account))
-#     print("Checking if user has permission to view modify piece page")
-#     if not (user_owns_object_check(request.user, ghp_user)):
-#         # if the user is not the correct user, redirect to the login page
-#         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
-#         return redirect(reverse("measure:login_view/?next=%s" % request.path))
+#@login_required(login_url='measure:login')
 class HomePageView(TemplateView):
     template_name = 'measure/home.html'
 # new
+@login_required(login_url='measure:login')
 @csrf_exempt
 def stripe_config(request):
     if request.method == 'GET':
@@ -293,7 +283,7 @@ def stripe_config(request):
         return JsonResponse(stripe_config, safe=False)
     
 
-
+@login_required(login_url='measure:login')
 @csrf_exempt
 def create_checkout_session(request):
     if request.method == 'GET':
@@ -327,15 +317,16 @@ def create_checkout_session(request):
             return JsonResponse({'sessionId': checkout_session['id']})
         except Exception as e:
             return JsonResponse({'error': str(e)})
-        
+
+#@login_required(login_url='measure:login')
 class StripeSuccessView(TemplateView):
     template_name = 'measure/stripe_success.html'
 
-
+#@login_required(login_url='measure:login')
 class StripeCancelledView(TemplateView):
     template_name = 'measure/stripe_cancelled.html'
 
-
+@login_required(login_url='measure:login')
 @csrf_exempt
 def stripe_webhook(request):
     stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -359,15 +350,17 @@ def stripe_webhook(request):
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         print("Payment was successful.")
-        # TODO: run some custom code here
         # This method will be called when user successfully purchases something.
         handle_checkout_session(session)
+        return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(session.get("client_reference_id"),)))
 
     return HttpResponse(status=200)
 
+@login_required(login_url='measure:login')
 def handle_checkout_session(session):
     print("Handling checkout session")
     # client_reference_id = user's id
+    print("session: {}".format(session))
     client_reference_id = session.get("client_reference_id")
     payment_intent = session.get("payment_intent")
     print("Client reference id: {}".format(client_reference_id))
@@ -380,8 +373,28 @@ def handle_checkout_session(session):
     try:
         user = User.objects.get(id=client_reference_id)
         print(user.username, "just purchased something.")
-
+        ghp_user = GHPUser.objects.get(username=user.username)
+        ghp_user_transaction_number = Ledger.objects.filter(ghp_user=ghp_user).count() + 1
+        print("GHP user: {}".format(ghp_user))
+        print("GHP user transaction number: {}".format(ghp_user_transaction_number))
+        amount = float(session.get("amount_subtotal")) / 100.0 # cents to dollars
+        print("Amount: {}".format(amount))
+        try:
+            Ledger.objects.create(
+                date = timezone.now(),
+                ghp_user=ghp_user,
+                ghp_user_transaction_number=ghp_user_transaction_number,
+                amount= amount, # amount is negative because this is a fee
+                transaction_type='auto_user_add_firing_credit',
+                note='Stripe Payment of ${}'.format(amount),
+                piece=None
+                )
+            print("Created ledger entry")
+        except:
+            print("Error creating ledger entry")
+            pass
         # TODO: make changes to our models.
 
     except User.DoesNotExist:
+        print("Webhook error: User does not exist")
         pass

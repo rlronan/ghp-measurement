@@ -71,7 +71,6 @@ class PieceForm(forms.ModelForm):
 
 
         # Set widget for size field to ReadOnlyInput
-        #self.fields['size'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
         self.fields['size'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['price'].widget = forms.TextInput(attrs={'readonly': 'readonly'})
 
@@ -234,8 +233,9 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['width'].widget.attrs['readonly'] = 'readonly'
         self.fields['height'].widget.attrs['readonly'] = 'readonly'
         # Set initial value for size
-        self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=self.piece.size)
-        self.fields['size'].widget.attrs['readonly'] = 'readonly'
+        # self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=self.piece.size)
+        # self.fields['size'].widget.attrs['readonly'] = 'readonly'
+        self.fields['size'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
 
 
         # Initial value for price is zero, because the user may not opt to glaze the piece.

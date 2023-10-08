@@ -2,9 +2,10 @@
 
 <!DOCTYPE html>
 <html lang="en">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <head>
-    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <style>
@@ -33,7 +34,7 @@
             .icon img {
                 height: 100%;
                 max-height: 100px;
-                margin-right: 2px;
+                margin-right: 20px;
                 }
 
             .menu {
@@ -76,7 +77,7 @@
                     align-self: end;
                 }
                 .dropdown {
-                    float: left;
+                    float: right;
                     overflow: hidden;
                     }
 
@@ -120,9 +121,6 @@
                     .dropdown:hover .dropdown-content {
                     display: block;
                     }
-                    
-                    /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
-                    .show {display:block;} 
 
     </style>
 
@@ -132,69 +130,30 @@
 
 <body>
     <div class="banner">
+        <div class="icon">
+          <img src="{% static 'measure/banner.jpg' %}" alt="Icon">
+          <h>GHP User Site</h>
+        </div>
         <!-- <div> -->
+            {% if user.is_authenticated %}
+            <h class="mini">Hello, {{ user.username }}</h>
+            {% endif %}
         <!-- </div> -->
         <div class="menu">
           {% if user.is_authenticated %}
-          <div class="dropdown">
-            <button onclick="ShowDropdown()" class="dropbtn">Menu 
-                <i class="fa fa-caret-down"></i>
-              </button>
-              <div id="menuDropdown" class="dropdown-content">
-                <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
-                <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account</a>
-                <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
-                <a href="{% url 'measure:logout' %}">Log Out</a>
-            </div>
-          </div> 
+            <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
+            <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account</a>
+            <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
+            <a href="{% url 'measure:logout' %}">Log Out</a>
           {% else %}
-          <div class="dropdown">
-            <button onclick="ShowDropdown()" class="dropbtn">Menu 
-              <i class="fa fa-caret-down"></i>
-            </button>
-            <div id="menuDropdown" class="dropdown-content">
-                <a href="{% url 'measure:login' %}">Log In</a>
-                <a href="{% url 'measure:register' %}">Register</a>
-            </div>
-          </div> 
+            <a href="{% url 'measure:login' %}">Log In</a>
+            <a href="{% url 'measure:register' %}">Register</a>
           {% endif %}
         </div>
-        {% if user.is_authenticated %}
-        <h class="mini">Hello, {{ user.username }}</h>
-        {% endif %}
-
-        <div class="icon">
-            <img src="{% static 'measure/banner.jpg' %}" alt="Icon">
-            <!-- <h>GHP User Site</h> -->
-          </div>
-  
     </div>
     <div class="content">
         {% block content %}
         {% endblock %}
     </div>
 </body>
-<script>
-    /* When the user clicks on the button,
-    toggle between hiding and showing the dropdown content */
-    function ShowDropdown() {
-        document.getElementById("menuDropdown").classList.toggle("show");
-    }
-
-    // Close the dropdown menu if the user clicks outside of it
-    window.onclick = function(event) {
-    if (!event.target.matches('.dropbtn')) {
-        var dropdowns = document.getElementsByClassName("dropdown-content");
-        var i;
-        for (i = 0; i < dropdowns.length; i++) {
-        var openDropdown = dropdowns[i];
-        if (openDropdown.classList.contains('show')) {
-            openDropdown.classList.remove('show');
-        }
-        }
-    }
-    } 
-
-</script>
-
 </html>

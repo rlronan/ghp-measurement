@@ -1,33 +1,41 @@
-<style>
-    table {
-        border: 1px solid black;
-        font: 16px "Open Sans", Helvetica, Arial, sans-serif;
-        border-spacing: 0;
-        border-collapse: collapse;
-    }
+<html lang="en-US">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>User Account</title>
 
-    th,
-    td {
-        border: 1px solid black;
-        padding: 4px 6px;
-        text-align: center;
-        vertical-align: center;
-
-    }
-
-    thead>tr {
-        background-color: rgb(228, 240, 245);
-    }
-
-    thead>tr:nth-of-type(2) {
-        border-bottom: 2px solid black;
-    }
-
-
-    tbody>tr:nth-of-type(odd) {
-        background-color: rgb(245, 245, 245);
-    }
-</style>
+        <style>
+            table {
+                border: 1px solid black;
+                font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+                border-spacing: 0;
+                border-collapse: collapse;
+            }
+        
+            th,
+            td {
+                border: 1px solid black;
+                padding: 4px 6px;
+                text-align: center;
+                vertical-align: center;
+        
+            }
+        
+            thead>tr {
+                background-color: rgb(228, 240, 245);
+            }
+        
+            thead>tr:nth-of-type(2) {
+                border-bottom: 2px solid black;
+            }
+        
+        
+            tbody>tr:nth-of-type(odd) {
+                background-color: rgb(245, 245, 245);
+            }
+        </style>
+        
+    </head>
 
 {% include "measure/base.html" %}
 
@@ -37,29 +45,29 @@
 
 {% load number_mult %}
 
-
+<body>
 {% if ghp_user %}
 <table class="center">
     <thead>
         <tr>
-            <th colspan="6">{{ghp_user.first_name}} {{ghp_user.last_name}} Account</th>
+            <th colspan="5">{{ghp_user.first_name}} {{ghp_user.last_name}} Account</th>
         </tr>
         <tr>
 
             {% if ghp_user_account.balance >= 0 %}
-            <th colspan="6">Balance: ${{ghp_user_account.balance}} Last Update: {{ghp_user_account.last_update}}</th>
+            <th colspan="5">Balance: ${{ghp_user_account.balance}} Last Update: {{ghp_user_account.last_update}}</th>
             {% else %}
-            <th colspan="6">Balance: -${{ghp_user_account.balance|mult:-1}} Last Update:
+            <th colspan="5">Balance: -${{ghp_user_account.balance|mult:-1}} Last Update:
                 {{ghp_user_account.last_update}}</th>
             {% endif %}
         </tr>
         <tr>
-            <th>Transaction #</th>
+            <th>Trans. #</th>
             <th>Date</th>
             <th>Amount (+ is credit, - is debit) </th>
-            <th>Transaction Type</th>
+            <th>Trans. Type</th>
             <th>Note</th>
-            <th>Firing Log (if any)</th>
+            <!-- <th>Firing Log (if any)</th> -->
         </tr>
     </thead>
     {% for t in ghp_user_transactions %}
@@ -72,17 +80,19 @@
             {% else %}
             <td>-${{ t.amount|mult:-1 }}</td>
             {% endif %}
-            <td>{{ t.transaction_type }} </td>
+            <td>{{ t.get_transaction_type_display }} </td>
             <td>{{ t.note }}</td>
-            {% if t.piece is not None %}
+            <!-- {% if t.piece is not None %}
             <td><a href="{% url 'measure:ghp_user_piece_view' ghp_user.id %}"> Firing Log </a></td>
             {% else %}
             <td></td>
             {% endif %}
-        </tr>
+        </tr> -->
     </tbody>
     {% endfor %}
 </table>
 {% else %}
 <p>No user selected.</p>
 {% endif %}
+</body>
+</html> 

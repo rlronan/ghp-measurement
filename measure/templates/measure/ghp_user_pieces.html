@@ -1,3 +1,8 @@
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
 <style>
     table {
         border: 1px solid black;
@@ -37,21 +42,21 @@
 <table class="center">
     <thead>
         <tr>
-            <th colspan="13">{{ghp_user.first_name}} {{ghp_user.last_name}} Firing Log</th>
+            <th colspan="6">{{ghp_user.first_name}} {{ghp_user.last_name}} Firing Log</th>
         </tr>
         <tr>
             <th>Piece #</th>
             <th>Date</th>
-            <th>Dimensions</th>
             <th>Size</th>
+            <!-- <th>Size</th> -->
             <th>Glaze Temp</th>
-            <th>Price</th>
-            <th>Course Number</th>
+            <!-- <th>Price</th> -->
+            <!-- <th>Course Number</th>
             <th>Bisque Fired</th>
             <th>Glaze Fired</th>
             <th>Piece Description</th>
-            <th>Glaze Description</th>
-            <th>Note Description</th>
+            <th>Glaze Description</th> -->
+            <th>Note</th>
             <th>Image</th>
         </tr>
     </thead>
@@ -62,14 +67,14 @@
             </td>
             <td>{{ p.date|date:"M d Y" }}</td>
             <td>{{ p.length }} x {{p.width}} x {{p.height}}</td>
-            <td>{{ p.size }} in<sup>3</sup></td>
+            <!-- <td>{{ p.size }} in<sup>3</sup></td> -->
             <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.get_glaze_temp_display }}</a></td>
-            <td>${{ p.price }}</td>
+            <!-- <td>${{ p.price }}</td>
             <td>{{ p.course_number }}</td>
             <td>{{ p.bisque_fired }}</td>
-            <td>{{ p.glaze_fired }}</td>
-            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.piece_description }}</a></td>
-            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.glaze_description }}</a></td>
+            <td>{{ p.glaze_fired }}</td> -->
+            <!-- <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.piece_description }}</a></td>
+            <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.glaze_description }}</a></td> -->
             <td><a href="{% url 'measure:modify_piece' ghp_user.id p.ghp_user_piece_id %}">{{ p.note }}</a></td>
             <td>
                 {% if p.image %}

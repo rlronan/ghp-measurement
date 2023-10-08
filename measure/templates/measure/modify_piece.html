@@ -3,9 +3,13 @@
 {% load static %}
 
 <!DOCTYPE html>
+
 <html>
 
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <title>Modify Measuring Form</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="{% static 'measure/style.css' %}">
@@ -56,6 +60,65 @@
             {{ hidden }}
         {% endfor %}
         <table class="center">
+            <!-- <tr>
+                <th colspan="6">Measure A New Piece</th>
+            </tr>
+            <tr>
+                <th>Length {{form.length.erros}} </th>
+                <th>Width {{form.width.erros}}</th>
+                <th>Height {{form.height.erros}}</th>
+                <th>Glaze Temp {{form.glaze_temp.erros}}</th>
+                <th>Size {{form.size.erros}}</th>
+                <th>Price {{form.price.erros}}</th>
+            </tr>
+            <tr>
+                <td>{{ form.length}} </td>
+                <td>{{ form.width}}</td>
+                <td>{{ form.height}}</td>
+                <td class="centertext">{{ form.glaze_temp }}</td>
+                <td>{{ form.size }}</td>
+                <td>{{ form.price }}</td>
+            </tr>
+        </table> -->
+        <tr>
+            <th>Length {{form.length.erros}} </th>
+            <td>{{ form.length}} </td>
+        </tr>
+        <tr>
+            <th>Width {{form.width.erros}}</th>
+            <td>{{ form.width}}</td>
+        </tr>
+            <th>Height {{form.height.erros}}</th>
+            <td>{{ form.height}}</td>
+        </tr>
+        <tr>
+            <th>Glaze Temp {{form.glaze_temp.erros}}</th>
+            <td class="centertext">{{ form.glaze_temp }}</td>
+        </tr>
+        <tr>
+            <th>Price {{form.price.erros}}</th>
+            <td>{{ form.price }}</td>
+        </tr>
+        
+    </table>
+    <table class="center">
+        <tr>
+            <th>Course Number {{form.course_number.erros}}</th>
+            <td>{{ form.course_number }}</td>
+        </tr>
+
+        <tr>
+            <th>Note (Optional) {{form.note.erros}}</th>
+            <td>{{ form.note }}</td>
+        </tr>
+
+        <tr>
+            <th>Image {{form.image.erros}}</th>
+            <td>{{ form.image }}</td>
+            <!-- <td><img src ="{{ form.image.url }}"></td> -->
+        </tr>
+    </table>
+        <!-- <table class="center">
             <tr>
                 <th colspan="6">Modify A Piece</th>
             </tr>
@@ -98,7 +161,7 @@
 
             </tr>
 
-        </table>
+        </table> -->
         <!-- {{ form.bisque_fired }}
             {{ form.glaze_fired }} -->
         <button type="submit">Submit</button>
