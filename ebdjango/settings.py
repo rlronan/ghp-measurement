@@ -29,6 +29,10 @@ ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
 
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_51Nycv3E1Tl2FOfocx19Lu1uBahAQtLn4xrXzFDkdJuD8Ec95xzBy0UW5ekqIIk90Qe1bhb755oRy97gPnEXk7W1R00dOnwo5c1')
+
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_ENDPOINT_SECRET = os.environ.get('STRIPE_ENDPOINT_SECRET', '')
 
 # Application definition
 
@@ -126,6 +130,8 @@ USE_TZ = True
 
 
 STATIC_URL = '/static/'
+# for django >= 3.1
+##STATICFILES_DIRS = [os.path.join(BASE_DIR, 'measure/static')]  # new
 #STATIC_ROOT = 'static'
 
 MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')

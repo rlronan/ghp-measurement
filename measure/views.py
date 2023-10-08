@@ -13,6 +13,11 @@ from django.contrib.auth.models import User
 import csv
 import numpy as np
 import datetime
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.base import TemplateView
+from django.http.response import JsonResponse, HttpResponse
+import stripe
 # Create your views here.
 
 
@@ -265,3 +270,118 @@ def add_credit_view(request, ghp_user_id):
         # GET request
         form = AddCreditForm(ghp_user=ghp_user, ghp_user_account=ghp_user_account)
     return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})
+
+
+
+# def stripe_view(request, ghp_user_id):
+#     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+#     ghp_user_account = get_object_or_404(Account, ghp_user=ghp_user)
+#     print("Found ghp user: " + str(ghp_user))
+#     print("Found account: " + str(ghp_user_account))
+#     print("Checking if user has permission to view modify piece page")
+#     if not (user_owns_object_check(request.user, ghp_user)):
+#         # if the user is not the correct user, redirect to the login page
+#         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
+#         return redirect(reverse("measure:login_view/?next=%s" % request.path))
+class HomePageView(TemplateView):
+    template_name = 'measure/home.html'
+# new
+@csrf_exempt
+def stripe_config(request):
+    if request.method == 'GET':
+        stripe_config = {'publicKey': settings.STRIPE_PUBLISHABLE_KEY}
+        return JsonResponse(stripe_config, safe=False)
+    
+
+
+@csrf_exempt
+def create_checkout_session(request):
+    if request.method == 'GET':
+        #TODO: need to change the following line to the correct domain
+        domain_url = 'http://localhost:8000/'
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        try:
+            # Create new Checkout Session for the order
+            # Other optional params include:
+            # [billing_address_collection] - to display billing address details on the page
+            # [customer] - if you have an existing Stripe Customer ID
+            # [payment_intent_data] - capture the payment later
+            # [customer_email] - prefill the email input in the form
+            # For full details see https://stripe.com/docs/api/checkout/sessions/create
+
+            # ?session_id={CHECKOUT_SESSION_ID} means the redirect will have the session ID set as a query param
+            checkout_session = stripe.checkout.Session.create(
+                client_reference_id=request.user.id if request.user.is_authenticated else None,
+                success_url=domain_url + 'success?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=domain_url + 'cancelled/',
+                #payment_method_types=['card'],
+                mode='payment',
+                            line_items=[
+                {
+                    # Provide the exact Price ID (for example, pr_1234) of the product you want to sell
+                    'price': 'price_1NykHQE1Tl2FOfocAeJNrJKN',
+                    'quantity': 1,
+                },
+            ],
+            )
+            return JsonResponse({'sessionId': checkout_session['id']})
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+        
+class StripeSuccessView(TemplateView):
+    template_name = 'measure/stripe_success.html'
+
+
+class StripeCancelledView(TemplateView):
+    template_name = 'measure/stripe_cancelled.html'
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    endpoint_secret = settings.STRIPE_ENDPOINT_SECRET
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
+    print("Received webhook")
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        # Invalid payload
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return HttpResponse(status=400)
+
+    # Handle the checkout.session.completed event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        print("Payment was successful.")
+        # TODO: run some custom code here
+        # This method will be called when user successfully purchases something.
+        handle_checkout_session(session)
+
+    return HttpResponse(status=200)
+
+def handle_checkout_session(session):
+    print("Handling checkout session")
+    # client_reference_id = user's id
+    client_reference_id = session.get("client_reference_id")
+    payment_intent = session.get("payment_intent")
+    print("Client reference id: {}".format(client_reference_id))
+    print("Payment intent: {}".format(payment_intent))
+    if client_reference_id is None:
+        # Customer wasn't logged in when purchasing
+        return
+
+    # Customer was logged in we can now fetch the Django user and make changes to our models
+    try:
+        user = User.objects.get(id=client_reference_id)
+        print(user.username, "just purchased something.")
+
+        # TODO: make changes to our models.
+
+    except User.DoesNotExist:
+        pass

@@ -44,8 +44,14 @@ urlpatterns = [
     path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/', views.ModifyPieceView, name='modify_piece'),
     path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/refund/', views.refund_view, name='refund_piece'),
     path('<int:ghp_user_id>/account/credit/', views.add_credit_view, name='add_credit'),
+    path('home/', views.HomePageView.as_view(), name='home'),
+    path('stripe_config/', views.stripe_config, name='stripe_config'),
+    path('create-checkout-session/', views.create_checkout_session), # new
+    path('success/', views.StripeSuccessView.as_view()), # new
+    path('cancelled/', views.StripeCancelledView.as_view()), # new
+    path('webhook/', views.stripe_webhook), # new
 
-    # path("accounts/", include("django.contrib.auth.urls")),
+
 
     path(
         "admin/password_reset/",
