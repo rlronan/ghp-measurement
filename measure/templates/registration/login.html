@@ -1,8 +1,45 @@
 {% include "measure/base.html" %}
+{% load static %}
 
+<html>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{% static 'measure/style.css' %}">
+<style>
+    table.center td.centertext {
+        text-align: center;
+    }
 
+    th,
+    td {
+        padding: 0px 0px;
+        text-align: center;
+        vertical-align: center;
+
+    }
+
+    table {
+        /* border: 1px solid black; */
+        font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+        border-spacing: 0;
+        border-collapse: collapse;
+        /* width: 150px; */
+
+    }
+
+    th,
+    td {
+        /* border: 1px solid black; */
+        padding: 4px 6px;
+        text-align: center;
+        vertical-align: center;
+
+    }
+</style>
+
+</head>
+<body>
 {% block content %}
 
 {% if form.errors %}
@@ -25,7 +62,7 @@
 
 <form method="post" action="{% url 'measure:login' %}">
     {% csrf_token %}
-    <table>
+    <table class="center">
         <tr>
              <td>Email Address</td> <!--{{ form.username.label_tag }} -->
             <td>{{ form.username }}</td>
@@ -44,3 +81,5 @@
 <p><a href="{% url 'measure:password_reset' %}">Lost password?</a></p>
 
 {% endblock %}
+</body>
+</html>

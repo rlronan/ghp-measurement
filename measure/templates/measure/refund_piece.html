@@ -41,7 +41,7 @@
         th,
         td {
             /* border: 1px solid black; */
-            padding: 0px 0px;
+            padding: 4px 6px;
             text-align: center;
             vertical-align: center;
 
@@ -54,7 +54,7 @@
 </head>
 
 <body>
-    <h1>Refund a piece for user: {{ghp_user.first_name}} {{ghp_user.last_name}}</h1>
+    <h1>Refund a piece for {{ghp_user.first_name}} {{ghp_user.last_name}}</h1>
 
     {% if error_message %}
     <p><strong>{{ error_message }}</strong></p>
@@ -62,14 +62,18 @@
 
     {% if ledgers %}
     {% for ledger in ledgers %}
-    {% if ledger.piece == piece %}
-    <p><strong>{{ ledger.note }}</strong>&nbsp &nbsp &nbsp &nbsp &nbsp Date: {{ledger.date}}&nbsp &nbsp &nbsp &nbsp
-        &nbsp Amount: ${{ledger.amount|mult:-1 }}</p>
-    <p>Firing Temp: {{piece.bisque_temp}}&nbsp &nbsp &nbsp &nbsp &nbsp Glaze Temp: {{piece.glaze_temp}} &nbsp &nbsp
-        &nbsp &nbsp &nbsp Firing Price: {{piece.firing_price}}&nbsp &nbsp &nbsp &nbsp &nbsp Glazing Price:
-        {{piece.glazing_price}}&nbsp &nbsp &nbsp &nbsp &nbsp Total Price: {{piece.price}} </p>
-    {% endif %}
+        {% if ledger.piece == piece %}
+        <p><strong>{{ ledger.note }}</strong><br>
+            Date: {{ledger.date}}<br>
+            Amount: ${{ledger.amount|mult:-1 }}</p>
+        {% endif %}
     {% endfor %}
+    <p>Firing Temp: {{piece.bisque_temp}}<br>
+        Glaze Temp: {{piece.glaze_temp}}<br>
+        Firing Price: {{piece.firing_price}}<br>
+        Glazing Price: {{piece.glazing_price}}<br>
+        Total Price: {{piece.price}} 
+    </p>
     {% else %}
     <p>No ledgers are available. No payments were found for this piece</p>
     {% endif %}
@@ -89,12 +93,24 @@
 
         
         
-
-        <p>Refund Firing Fee: {{form.firing_fee_check}} {{form.firing_fee_refund}}</p>
-        <p>Refund Glazing Fee: {{form.glazing_fee_check}} {{form.glazing_fee_refund}}</p>
-        <p>Refund Note: {{form.note}} {{form.note.errors}}</p>
-        <p>Refund Amount: {{form.amount}} {{form.amount.errors}}</p>
-
+        <table class="center">
+            <tr>
+                <th>Refund Firing Fee {{form.firing_feecheck.erros}} {{form.firing_refund.erros}} </th>
+                <td>{{form.firing_fee_check}} {{form.firing_fee_refund}} </td>
+            </tr>
+            <tr>
+                <th>Refund Glazing Fee {{form.glazing_fee_check.erros}} {{form.glazing_fee_refund.erros}}</th>
+                <td>{{form.glazing_fee_check}} {{form.glazing_fee_refund}}</td>
+            </tr>
+            <tr>
+                <th>Refund Note {{form.note.erros}}</th>
+                <td>{{form.note}} {{form.note.errors}}</td>
+            </tr>
+            <tr>
+                <th>Refund Amount {{form.amount.erros}}</th>
+                <td>{{form.amount}} {{form.amount.errors}}</td>
+            </tr>
+        </table>
         <input type="submit" value="Refund Piece">
     </form>
     <script>

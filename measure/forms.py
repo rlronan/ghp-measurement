@@ -24,10 +24,6 @@ class PieceForm(forms.ModelForm):
     firing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
     glazing_price_per_cubic_inch = forms.DecimalField(label="glazing_price_per_cubic_inch" , max_digits=5, decimal_places=3, initial=0.00)
     glazing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
-            # set the user balance to the current user balance
-    # user_balance = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.00)
-    # user_balance.widget.attrs.update({'readonly': 'readonly'})
-    
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 
@@ -78,14 +74,14 @@ class PieceForm(forms.ModelForm):
         self.fields['glazing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
 
         self.fields['course_number'].widget.attrs['placeholder'] = 'e.g. W7'
-        # self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        # self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
         # self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
 
-        # self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        # self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
         # self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
 
-        self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
-        self.fields['note'].widget.attrs['placeholder'] = 'e.g. This piece is for my mom\'s birthday'
+        self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
+        self.fields['note'].widget.attrs['placeholder'] = 'Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
 
         self.fields['firing_price_per_cubic_inch'].initial = self.ghp_user.get_price_scale()[0]
         self.fields['glazing_price_per_cubic_inch'].initial = self.ghp_user.get_price_scale()[1]
@@ -252,16 +248,16 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['course_number'].initial = self.piece.course_number
         self.fields['course_number'].widget.attrs['readonly'] = 'readonly'
 
-        self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
         self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
         self.fields['piece_description'].initial = self.piece.piece_description
 
-        self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
         self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
         self.fields['glaze_description'].initial = self.piece.glaze_description
 
 
-        self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 40})
+        self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
         self.fields['note'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Glazed with Chun Blue splattered over Shino White on the outside, Chun Blue on the inside.'
         self.fields['note'].initial = self.piece.note
 
@@ -502,6 +498,7 @@ class RefundPieceForm(forms.ModelForm):
 
 
         self.fields['note'].initial = 'Refund for piece: ' + piece.__str__()
+        self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 20})
 
         glazing_fee = False
         firing_fee = False

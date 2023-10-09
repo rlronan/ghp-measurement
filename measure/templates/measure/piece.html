@@ -3,37 +3,6 @@
 {% load static %}
 {% load number_mult %}
 
-<style>
-    table.center td.centertext {
-        text-align: center;
-    }
-
-    th,
-    td {
-        padding: 0px 0px;
-        text-align: center;
-        vertical-align: center;
-
-    }
-
-    table {
-        /* border: 1px solid black; */
-        font: 16px "Open Sans", Helvetica, Arial, sans-serif;
-        border-spacing: 0;
-        border-collapse: collapse;
-        /* width: 150px; */
-
-    }
-
-    th,
-    td {
-        /* border: 1px solid black; */
-        padding: 4px 6px;
-        text-align: center;
-        vertical-align: center;
-
-    }
-</style>
 
 
 <html>
@@ -45,7 +14,38 @@
     <title>Measuring Form</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="{% static 'measure/style.css' %}">
-
+    <style>
+        table.center td.centertext {
+            text-align: center;
+        }
+    
+        th,
+        td {
+            padding: 0px 0px;
+            text-align: center;
+            vertical-align: center;
+    
+        }
+    
+        table {
+            /* border: 1px solid black; */
+            font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+            border-spacing: 0;
+            border-collapse: collapse;
+            /* width: 150px; */
+    
+        }
+    
+        th,
+        td {
+            /* border: 1px solid black; */
+            padding: 4px 6px;
+            text-align: center;
+            vertical-align: center;
+    
+        }
+    </style>
+    
 </head>
 
 <body>
@@ -117,8 +117,8 @@
                 <td>{{ form.price }}</td>
             </tr>
             
-        </table>
-        <table class="center">
+        <!-- </table>
+        <table class="center"> -->
             <tr>
                 <th>Course Number {{form.course_number.erros}}</th>
                 <td>{{ form.course_number }}</td>
