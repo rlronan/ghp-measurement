@@ -398,3 +398,69 @@ def handle_checkout_session(session):
     except User.DoesNotExist:
         print("Webhook error: User does not exist")
         pass
+
+
+
+
+import tablib
+from import_export import resources
+
+def ImportGHPUserView(request):
+    print("in view")
+    if request.method == 'POST':
+        print("Request method is post")
+        model_resource = resources.modelresource_factory(model=GHPUser)() # to take the model as a reference
+        new_users = request.FILES['csv_events'] # to get the file
+        # this part is to add the a column with the user id
+        dataset = tablib.Dataset(
+            headers=['first_name', 'last_name', 'email', 'balance']
+        ).load(new_users.read().decode('utf-8'), format='csv')
+        
+        
+        emails = dataset['email']
+        balances = dataset['balance']
+
+        dataset = dataset.subset(
+            cols=[0,1,2]
+        )
+
+        # dataset.append_col(
+        #     col=tuple(f'{user_id}' for _ in range(dataset.height)),
+        #     header='user_id'
+        # )
+
+
+        result = model_resource.import_data(dataset, dry_run=True)  # Test the data import
+
+        if not result.has_errors():
+            model_resource.import_data(dataset, dry_run=False)  # Actually import now
+    print("redirecting")
+    return redirect(reverse('measure:import_ghp_user'))
+
+
+def ImportGHPUserViewBase(request):
+    print("in import base")
+    #if request.method == 'POST':
+        #print("Request method is post")
+    return render(request, 'measure/import_ghp_user.html')
+#    HttpResponseRedirect(reverse('measure:import_ghp_user'))
+    # print("redirecting")
+    # return redirect(reverse('measure:import_ghp_user'))
+
+
+    #     form = AddCreditForm(request.POST, ghp_user=ghp_user, ghp_user_account=ghp_user_account)
+    #     if form.is_valid():
+
+    #         instance = form.save(commit=False)
+
+    #         # process the data in form.cleaned_data as required
+    #         instance.save()
+    #         return HttpResponseRedirect(reverse('admin:measure_account_change', args=(ghp_user_id,)))
+    #     else:
+    #         print("Add credit form is not valid")
+    #         print(form.errors)
+    #         return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})
+    # else:
+    #     # GET request
+    #     form = AddCreditForm(ghp_user=ghp_user, ghp_user_account=ghp_user_account)
+    # return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})

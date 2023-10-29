@@ -15,7 +15,8 @@ from django.contrib import messages
 from django.utils.translation import ngettext
 import csv
 from django.http import HttpResponse
-
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 # Register your models here.
 
 
@@ -394,34 +395,37 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
                 Q(ghp_user__current_student=False) & Q(ghp_user__current_staff=False) & Q(ghp_user__current_admin=False))
 
 
-# class ExportCsvMixin:
-    # from: 
-    # https://books.agiliq.com/projects/django-admin-cookbook/en/latest/export.html
-@admin.action(description="Export selected objects as csv")
-def export_as_csv(self, request, queryset):
+# # class ExportCsvMixin:
+#     # from: 
+#     # https://books.agiliq.com/projects/django-admin-cookbook/en/latest/export.html
+# @admin.action(description="Export selected objects as csv")
+# def export_as_csv(self, request, queryset):
 
 
 
-    meta = self.model._meta
+#     meta = self.model._meta
     
-    field_names = [field.name for field in meta.fields]
+#     field_names = [field.name for field in meta.fields]
 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-    writer = csv.writer(response)
+#     response = HttpResponse(content_type='text/csv')
+#     response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+#     writer = csv.writer(response)
 
-    writer.writerow(field_names)
-    for obj in queryset:
-        row = writer.writerow([getattr(obj, field) for field in field_names])
+#     writer.writerow(field_names)
+#     for obj in queryset:
+#         row = writer.writerow([getattr(obj, field) for field in field_names])
 
-    return response
+#     return response
 
-export_as_csv.short_description = "Export Selected"
+# export_as_csv.short_description = "Export Selected"
+
+# class GHPUserResource(resources.ModelResource):
+
+#     class Meta:
+#         model = GHPUser
 
 
-
-
-class GHPUserAdmin(admin.ModelAdmin):
+class GHPUserAdmin(ImportExportModelAdmin):
     list_display = ['first_name', 'last_name', 'email', 'phone_number',
                      'current_student', 'current_staff', 'current_admin', 
                      'last_measure_date', 'consent', 'consent_date', 'current']
@@ -501,20 +505,42 @@ class GHPUserAdmin(admin.ModelAdmin):
         print("Model: ", self.model)
         print("Queryset: ", queryset)
         meta = self.model._meta
-        field_names = [field.name for field in meta.fields]
-
+        #field_names = [field.name for field in meta.fields]
+        #print("field names: ", field_names)
+        field_names =  ['email', 'first_name', 'last_name', 'last_login', 'last_measure_date', 'date_joined', 'consent']
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
         writer = csv.writer(response)
 
-        writer.writerow(field_names)
+        writer.writerow(field_names + ['balance', 'last_balance_update'])
         for obj in queryset:
-            row = writer.writerow([getattr(obj, field) for field in field_names])
+            obj_account = Account.objects.filter(ghp_user=obj)
+            row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_account[0].balance, obj_account[0].last_update])
 
         return response
 
     export_as_csv.short_description = "Export Selected"
 
+    @admin.action(description="Export selected objects as csv")
+    def import_users(self, request, queryset):
+        print("Model: ", self.model)
+        print("Queryset: ", queryset)
+        meta = self.model._meta
+        #field_names = [field.name for field in meta.fields]
+        #print("field names: ", field_names)
+        field_names =  ['email', 'first_name', 'last_name', 'last_login', 'last_measure_date', 'date_joined', 'consent']
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+        writer = csv.writer(response)
+
+        writer.writerow(field_names + ['balance', 'last_balance_update'])
+        for obj in queryset:
+            obj_account = Account.objects.filter(ghp_user=obj)
+            row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_account[0].balance, obj_account[0].last_update])
+
+        return response
+
+    export_as_csv.short_description = "Export Selected"
 
 
     def get_actions(self, request):
@@ -595,24 +621,28 @@ class AccountAdmin(admin.ModelAdmin):
         if 'delete_selected' in actions:
             del actions['delete_selected']
         return actions
- 
-    @admin.action(description="Export selected objects as csv")
-    def export_as_csv(self, request, queryset):
 
-        meta = self.model._meta
-        field_names = [field.name for field in meta.fields]
+    # @admin.action(description="Export selected objects as csv")
+    # def export_as_csv(self, request, queryset):
+    #     print("Model: ", self.model)
+    #     print("Queryset: ", queryset)
+    #     meta = self.model._meta
+    #     #field_names = [field.name for field in meta.fields]
+    #     #print("field names: ", field_names)
+    #     field_names =  ['email', 'first_name', 'last_name', 'last_login', 'balance', 'last_balance_update']
+    #     response = HttpResponse(content_type='text/csv')
+    #     response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+    #     writer = csv.writer(response)
 
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-        writer = csv.writer(response)
+    #     writer.writerow(field_names)
+    #     for obj in queryset:
+    #         row = writer.writerow([getattr(obj, field) for field in field_names])
 
-        writer.writerow(field_names)
-        for obj in queryset:
-            row = writer.writerow([getattr(obj, field) for field in field_names])
+    #     return response
 
-        return response
+    # export_as_csv.short_description = "Export Selected"
 
-    export_as_csv.short_description = "Export Selected"
+
 
     # def add_view(self, request: HttpRequest, form_url: str = ..., extra_context: None = ...) -> HttpResponse:
     #     return super().add_view(request, form_url, extra_context)

@@ -9,7 +9,7 @@ from . import views
 app_name = 'measure'
 urlpatterns = [
     path("admin/", admin.site.urls),
-
+ 
     path('', views.index_view, name='index'),
     path('base/', views.base_view, name='base'),
     path('register/', views.register_page, name='register'),
@@ -52,6 +52,10 @@ urlpatterns = [
     path('webhook/', views.stripe_webhook), # new
 
 
+   path('importusers/', views.ImportGHPUserView, name='import_ghp_user'),
+   path('importusersbase/', views.ImportGHPUserViewBase, name='import_ghp_user_base'),
+
+
 
     path(
         "admin/password_reset/",
@@ -73,6 +77,10 @@ urlpatterns = [
         auth_views.PasswordResetCompleteView.as_view(),
         name="password_reset_complete",
     ),
+
+
+
+
 ]
 
 
