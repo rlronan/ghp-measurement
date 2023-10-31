@@ -1,12 +1,13 @@
 
 <html>
+{% include "measure/base.html" %} 
 
-<body>
-    <h1>Import GHP User Accounts</h1>
-    <form action="{%url ImportGHPUserView}" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="file" name="csv_events"/>
-        <input type="submit" name="submit" value="Submit" />
+{% block content %}
+    <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="user_import_file">
+    <button type="submit">Upload</button>
     </form>
-</body>
+{% endblock %}
+
 </html>

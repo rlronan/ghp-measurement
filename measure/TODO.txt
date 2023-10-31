@@ -18,7 +18,7 @@
 18. Send emails to users if their balance is too low. 
 19. FIX: image uploads and static file hosting work on AWS? Probably not!
 20. FIX: image uploads and static file hosting work if debug is set to false? Probably not!
-
+21. *DONE: Add ability to upload user balances!
 
 TODO STILL (IN ORDER OF PRIORITY):
 1. *DONE (mostly) Add stripe integration for the site.
@@ -26,7 +26,7 @@ TODO STILL (IN ORDER OF PRIORITY):
 3. Add/fix AWS hosting for the site.
 4. FIX: image uploads and static file hosting work on AWS? Probably not!
 5. FIX: image uploads and static file hosting work if debug is set to false? Probably not!
-6. Fix export to csv to include all list_display fields, not all model fields (e.g. don't want to export the password field).
+6. *Done: Fix export to csv to include all list_display fields, not all model fields (e.g. don't want to export the password field).
 7. Add logging for the main site and admin site.
 8. Add more documentation for the admin site, and for users on the main site.
 9. Add a way to export certain aspects of the logging (e.g. all logs for a certain user, or all logs for a certain date range, all logs of a refund action, etc.).

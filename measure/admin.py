@@ -419,10 +419,11 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
 
 # export_as_csv.short_description = "Export Selected"
 
-# class GHPUserResource(resources.ModelResource):
-
-#     class Meta:
-#         model = GHPUser
+class GHPUserResource(resources.ModelResource):
+    class Meta:
+        model = GHPUser
+        import_id_fields = ('username',) 
+        fields = ('first_name', 'last_name', 'email', 'username') #, 'balance',
 
 
 class GHPUserAdmin(ImportExportModelAdmin):

@@ -435,7 +435,7 @@ def ImportGHPUserView(request):
         if not result.has_errors():
             model_resource.import_data(dataset, dry_run=False)  # Actually import now
     print("redirecting")
-    return redirect(reverse('measure:import_ghp_user'))
+    return redirect(reverse('measure:base'))
 
 
 def ImportGHPUserViewBase(request):
@@ -443,24 +443,52 @@ def ImportGHPUserViewBase(request):
     #if request.method == 'POST':
         #print("Request method is post")
     return render(request, 'measure/import_ghp_user.html')
-#    HttpResponseRedirect(reverse('measure:import_ghp_user'))
-    # print("redirecting")
-    # return redirect(reverse('measure:import_ghp_user'))
 
 
-    #     form = AddCreditForm(request.POST, ghp_user=ghp_user, ghp_user_account=ghp_user_account)
-    #     if form.is_valid():
+from tablib import Dataset
+from .admin import GHPUserResource
+def simple_upload(request):
+    if request.method == 'POST':
+        print("defining ghp user resource")
+        ghp_user_resource = GHPUserResource()
+        dataset = tablib.Dataset(
+            #headers=['first_name', 'last_name', 'email', 'balance']
+        )
+        print("Getting file")
+        new_users = request.FILES['user_import_file']
 
-    #         instance = form.save(commit=False)
+        print("reading file...")
+        imported_data = dataset.load(new_users.read().decode('utf-8'), format='csv')
+        print("imported data: ", imported_data)
 
-    #         # process the data in form.cleaned_data as required
-    #         instance.save()
-    #         return HttpResponseRedirect(reverse('admin:measure_account_change', args=(ghp_user_id,)))
-    #     else:
-    #         print("Add credit form is not valid")
-    #         print(form.errors)
-    #         return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})
-    # else:
-    #     # GET request
-    #     form = AddCreditForm(ghp_user=ghp_user, ghp_user_account=ghp_user_account)
-    # return render(request, 'measure/add_credit.html', {'form': form, 'ghp_user': ghp_user, 'ghp_user_account': ghp_user_account})
+        print("pulling emails and balances")
+        emails = dataset['email']
+        print("emails: ", emails)
+        
+        balances = dataset['balance']
+        print("balances: ", balances)
+
+        print("dropping balance column")
+        del dataset['balance']
+        print("appending username column")
+        dataset.append_col(dataset['email'], header='username')
+        #dataset['username'] = dataset['email']
+        print("Dry running import")
+        result = ghp_user_resource.import_data(dataset, dry_run=True)  # Test the data import
+        print("Result: ", result)
+        if not result.has_errors():
+            print("Dry run was successful. Importing data.")
+            ghp_user_resource.import_data(dataset, dry_run=False)  # Actually import now
+            print("Import was successful")
+            print("Setting user balances")
+            for email, balance in zip(emails, balances):
+                print("email: {}, balance: {}".format(email, balance))
+                ghp_user = GHPUser.objects.get(email=email)
+                print("ghp_user: ", ghp_user)
+                ghp_user.account.balance = balance
+                ghp_user.account.save()
+                print("ghp_user.account.balance: ", ghp_user.account.balance)
+        else:
+            print("Dry run was not successful")
+            print(result)
+    return render(request, 'measure/import_ghp_user.html')
