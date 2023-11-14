@@ -15,3 +15,6 @@ setuptools==65.5.1
 sqlparse==0.4.3
 stripe==2.49.0
 tablib==3.5.0
+django-on-heroku
+gunicorn
+whitenoise
