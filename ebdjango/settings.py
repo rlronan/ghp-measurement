@@ -169,7 +169,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_ROOT = BASE_DIR / "staticfiles" #'./static/'
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 # for django >= 3.1
 ##STATICFILES_DIRS = [os.path.join(BASE_DIR, 'measure/static')]  # new
 
@@ -186,8 +186,8 @@ MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 
-DATABASES["default"]["ATOMIC_REQUESTS"] = True
-DATABASES["default"]["CONN_MAX_AGE"] = 60
+# DATABASES["default"]["ATOMIC_REQUESTS"] = True
+# DATABASES["default"]["CONN_MAX_AGE"] = 60
 
 
 # Don't store the original (un-hashed filename) version of static files, to reduce slug size:
