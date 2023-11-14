@@ -18,7 +18,7 @@ tablib==3.5.0
 django-on-heroku
 gunicorn>=21.2,<22.0
 dj-database-url>=2.0,<3.0
-whitenoise[brotli][brotli]
+whitenoise[brotli]>=6.0,<7.0
 
 
 # Uncomment these lines to use a Postgres database. Both are needed, since in production
