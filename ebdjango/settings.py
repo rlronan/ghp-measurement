@@ -173,13 +173,13 @@ STATIC_URL = 'static/'
 # for django >= 3.1
 ##STATICFILES_DIRS = [os.path.join(BASE_DIR, 'measure/static')]  # new
 
-# STORAGES = {
-#     # Enable WhiteNoise's GZip and Brotli compression of static assets:
-#     # https://whitenoise.readthedocs.io/en/latest/django.html#add-compression-and-caching-support
-#     "staticfiles": {
-#         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-#     },
-# }
+STORAGES = {
+    # Enable WhiteNoise's GZip and Brotli compression of static assets:
+    # https://whitenoise.readthedocs.io/en/latest/django.html#add-compression-and-caching-support
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 
 MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')
@@ -192,7 +192,7 @@ MEDIA_URL = '/media/'
 
 # Don't store the original (un-hashed filename) version of static files, to reduce slug size:
 # https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_KEEP_ONLY_HASHED_FILES
-#WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 LOGGING = {
@@ -215,7 +215,7 @@ EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_emails")
 
 
-django_on_heroku.settings(locals())
-config = locals()
-config['STORAGES']['staticfiles'] = config['STATICFILES_STORAGE']
-del config['STATICFILES_STORAGE']
+django_on_heroku.settings(locals(), staticfiles=False)
+# config = locals()
+# config['STORAGES']['staticfiles'] = config['STATICFILES_STORAGE']
+# del config['STATICFILES_STORAGE']
