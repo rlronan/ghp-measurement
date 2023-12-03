@@ -161,15 +161,16 @@ TIME_ZONE = 'America/New_York'
 
 USE_I18N = True
 
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
-STATIC_ROOT = BASE_DIR / "/measure/static/" #'./static/'
-STATIC_URL = '/staticfiles/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_URL = "static/"
+# STATIC_ROOT = BASE_DIR / "/measure/static/" #'./static/'
+# STATIC_URL = '/staticfiles/'
 # for django >= 3.1
 ##STATICFILES_DIRS = [os.path.join(BASE_DIR, 'measure/static')]  # new
 
@@ -180,19 +181,19 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+# Don't store the original (un-hashed filename) version of static files, to reduce slug size:
+# https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_KEEP_ONLY_HASHED_FILES
+WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 
 
-MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
+MEDIA_ROOT =  BASE_DIR / 'media'
+MEDIA_URL = 'media/'
 
 
 # DATABASES["default"]["ATOMIC_REQUESTS"] = True
 # DATABASES["default"]["CONN_MAX_AGE"] = 60
 
 
-# Don't store the original (un-hashed filename) version of static files, to reduce slug size:
-# https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_KEEP_ONLY_HASHED_FILES
-WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 LOGGING = {
@@ -212,10 +213,10 @@ LOGGING = {
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
-EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_emails")
+EMAIL_FILE_PATH = BASE_DIR / "sent_emails"
 
 
-django_on_heroku.settings(locals(), staticfiles=False)
+django_on_heroku.settings(locals(), staticfiles=True)
 # config = locals()
 # config['STORAGES']['staticfiles'] = config['STATICFILES_STORAGE']
 # del config['STATICFILES_STORAGE']
