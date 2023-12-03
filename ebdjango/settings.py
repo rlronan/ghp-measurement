@@ -168,8 +168,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
-STATIC_ROOT = BASE_DIR / "/measure/static/" #'./static/'
-STATIC_URL = '/staticfiles/'
+STATIC_ROOT = BASE_DIR / "staticfiles" #'./static/'
+STATIC_URL = 'static/'
 # for django >= 3.1
 ##STATICFILES_DIRS = [os.path.join(BASE_DIR, 'measure/static')]  # new
 
