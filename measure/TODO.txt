@@ -31,3 +31,36 @@ TODO STILL (IN ORDER OF PRIORITY):
 8. Add more documentation for the admin site, and for users on the main site.
 9. Add a way to export certain aspects of the logging (e.g. all logs for a certain user, or all logs for a certain date range, all logs of a refund action, etc.).
 10. Send emails to users if their balance is too low. 
+
+
+
+FIX PASSWORD RESSET
+FIX STRIPE Redirect
+
+
+Get rid of cone 2, git rid of cone 06
+
+Add something to clarify that this is also paying for bisque firing
+
+
+Login page should not be blank
+
+USER IMPORT WITH A LOCATION THING\
+
+LETS USERS MEASURE A PIECE FOR GLAZING ONLY
+
+IF YOU SELECT ANY GLAZE TEMP YOU ARE MEASURE A PIECE FOR BOTH FIRINGS
+
+PRINTER THEY SENT A LINK FOR
+	Printing from djano
+
+ON THE PIECE MEASURING PAGE, SHOW NO PLACEHOLDER NUMBERS
+
+MOVE TEH NOTE AND IMAGE FIELD TO THE VIEW PIECE PAGE
+
+FROM TIME BUT NOT TDATE FROM THE ACCOUNT PAGE
+
+
+
+
+
