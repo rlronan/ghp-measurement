@@ -883,9 +883,7 @@ class LedgerAdmin(admin.ModelAdmin):
 # Unregister the old User model admin
 admin.site.unregister(Group)
 
-# Register the GHPUser model with the UserAdmin
-#admin.site.register(GHPUser, UserAdmin)
-
+# Register the GHPUser model with the GHPUserAdmin
 admin.site.register(GHPUser, GHPUserAdmin)
 admin.site.register(Account, AccountAdmin)
 admin.site.register(Piece, PieceAdmin)
