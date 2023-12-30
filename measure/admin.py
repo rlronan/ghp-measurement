@@ -419,6 +419,8 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
 #     return response
 
 # export_as_csv.short_description = "Export Selected"
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group
 
 class GHPUserResource(resources.ModelResource):
     class Meta:
@@ -427,7 +429,7 @@ class GHPUserResource(resources.ModelResource):
         fields = ('first_name', 'last_name', 'email', 'current_location') #, 'balance',
 
 
-class GHPUserAdmin(admin.ModelAdmin):
+class GHPUserAdmin(BaseUserAdmin):
     list_display = ['first_name', 'last_name', 'email', 'current_location',
                      'current_student', 'current_staff', 'current_admin', 
                      'last_measure_date', 'consent', 'consent_date', 'current']
@@ -877,8 +879,11 @@ def my_custom_view(request):
     # ...
     return render(request, 'my_custom_template.html')
 
+# Unregister the old User model admin
+admin.site.unregister(Group)
 
-
+# Register the GHPUser model with the UserAdmin
+admin.site.register(GHPUser, UserAdmin)
 
 admin.site.register(GHPUser, GHPUserAdmin)
 admin.site.register(Account, AccountAdmin)
