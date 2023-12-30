@@ -17,6 +17,7 @@ import csv
 from django.http import HttpResponse
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+from .forms import CSVUploadForm
 # Register your models here.
 
 
@@ -426,7 +427,7 @@ class GHPUserResource(resources.ModelResource):
         fields = ('first_name', 'last_name', 'email', 'current_location') #, 'balance',
 
 
-class GHPUserAdmin(ImportExportModelAdmin):
+class GHPUserAdmin(admin.ModelAdmin):
     list_display = ['first_name', 'last_name', 'email', 'current_location',
                      'current_student', 'current_staff', 'current_admin', 
                      'last_measure_date', 'consent', 'consent_date', 'current']
@@ -521,6 +522,51 @@ class GHPUserAdmin(ImportExportModelAdmin):
         return response
 
     export_as_csv.short_description = "Export Selected"
+
+    @admin.action(description="Import users from CSV file")
+    def import_users_from_csv(self, request, queryset):
+        form = None
+
+        if 'apply' in request.POST:
+            form = CSVUploadForm(request.POST, request.FILES)
+
+            if form.is_valid():
+                csv_file = form.cleaned_data['csv_file']
+                reader = csv.DictReader(csv_file)
+
+                for row in reader:
+                    print("row: ", row)
+                    GHPUser.objects.create_user(first_name=row['first_name'], last_name=row['last_name'], 
+                                                email=row['email'], username=row['email'], 
+                                                current_location=row['location'], password='VerySecurePassword123!')
+                    
+                    # Add more fields as needed
+                    ghp_user = GHPUser.objects.get(email=row['email'])
+                    print("found user: ", ghp_user)
+                    ghp_user.account.balance = row['balance']
+                    ghp_user.account.save()
+                    print("ghp_user.account.balance: ", ghp_user.account.balance)
+
+                self.message_user(request, f'Successfully imported users from {csv_file.name}')
+                return
+
+        if not form:
+            form = CSVUploadForm()
+        context = {
+            'adminform': form,
+            'title': 'Import users from CSV',
+            'is_popup': "_popup" in request.GET,
+            'to_field': request.GET.get("to_field"),
+            'media': self.media,
+            'errors': form.errors,
+            'app_label': self.model._meta.app_label,
+        }
+
+        return render(request, 'admin/import_users_inline.html', context)
+
+    import_users_from_csv.short_description = 'Import users from CSV'
+
+
 
     # @admin.action(description="Export selected objects as csv")
     # def import_users(self, request, queryset):

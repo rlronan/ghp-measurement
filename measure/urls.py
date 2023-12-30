@@ -1,7 +1,7 @@
 from django.urls import path, include, reverse_lazy
 from django.contrib.auth import views as auth_views
 from django.contrib import admin
-
+from .admin import GHPUserAdmin  # Make sure to import GHPUserAdmin
 # urlpatterns = [
 # ]
 from . import views
@@ -67,9 +67,8 @@ urlpatterns = [
 
 #    path('importusers/', views.ImportGHPUserView, name='import_ghp_user'),
 #    path('importusersbase/', views.ImportGHPUserViewBase, name='import_ghp_user_base'),
-   path('importuser/', views.simple_upload, name='import_ghp_user'),
-
-
+    path('importuser/', views.simple_upload, name='import_ghp_user'),
+    path('admin/import_users_inline/', admin.site.admin_view(GHPUserAdmin().import_users_from_csv), name='import_users_inline'),
 
     path(
         "admin/password_reset/",
