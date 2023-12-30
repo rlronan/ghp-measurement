@@ -501,6 +501,10 @@ def simple_upload(request):
         print("Dry running import")
         result = ghp_user_resource.import_data(dataset, dry_run=True)  # Test the data import
         print("Result: ", result)
+        print("Result has errors: ", result.has_errors())
+        print("result has validation errors: ", result.has_validation_errors())
+        print(dir(result))
+        print("result errors: ", result.errors)
         if not result.has_errors():
             print("Dry run was successful. Importing data.")
             ghp_user_resource.import_data(dataset, dry_run=False)  # Actually import now
