@@ -8,7 +8,7 @@ from .models import Piece, GHPUser, User, Account, Ledger
 from django.utils import timezone
 from .constants import *
 import decimal
-
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 import gettext
 _ = gettext.gettext
 # class PieceForm(forms.ModelForm):
@@ -471,7 +471,20 @@ class CreateGHPUserForm(UserCreationForm):
 
         # Return the cleaned data
         return cleaned_data
-    
+
+class GHPUserCreationForm(UserCreationForm):
+    class Meta:
+        model = GHPUser
+        fields = ('username',)
+
+class GHPUserChangeForm(UserChangeForm):
+    class Meta:
+        model = GHPUser
+        fields = UserChangeForm.Meta.fields
+
+
+
+
 # TODO: Really should create a better way to manage transaction_types!
 class RefundPieceForm(forms.ModelForm):
 

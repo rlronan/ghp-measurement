@@ -19,7 +19,7 @@ from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from .forms import CSVUploadForm
 from django.shortcuts import get_object_or_404, render, redirect
-
+from .forms import GHPUserCreationForm, GHPUserChangeForm
 # Register your models here.
 
 
@@ -432,6 +432,8 @@ class GHPUserResource(resources.ModelResource):
 
 
 class GHPUserAdmin(BaseUserAdmin):
+    form = GHPUserChangeForm
+    add_form = GHPUserCreationForm
     list_display = ['first_name', 'last_name', 'email', 'current_location',
                      'current_student', 'current_staff', 'current_admin', 
                      'last_measure_date', 'consent', 'consent_date', 'current']
