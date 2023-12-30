@@ -18,6 +18,8 @@ from django.http import HttpResponse
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from .forms import CSVUploadForm
+from django.shortcuts import get_object_or_404, render, redirect
+
 # Register your models here.
 
 
@@ -867,23 +869,22 @@ class LedgerAdmin(admin.ModelAdmin):
     export_as_csv.short_description = "Export Selected"
 
 
-from django.contrib import admin
-from django.shortcuts import redirect
-from django.shortcuts import render
+# from django.contrib import admin
+# from django.shortcuts import redirect
+# from django.shortcuts import render
 
-from django.contrib import admin
 
-@admin.site.admin_view
-def my_custom_view(request):
-    # perform some custom action
-    # ...
-    return render(request, 'my_custom_template.html')
+# @admin.site.admin_view
+# def my_custom_view(request):
+#     # perform some custom action
+#     # ...
+#     return render(request, 'my_custom_template.html')
 
 # Unregister the old User model admin
 admin.site.unregister(Group)
 
 # Register the GHPUser model with the UserAdmin
-admin.site.register(GHPUser, UserAdmin)
+#admin.site.register(GHPUser, UserAdmin)
 
 admin.site.register(GHPUser, GHPUserAdmin)
 admin.site.register(Account, AccountAdmin)
