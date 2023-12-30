@@ -438,7 +438,7 @@ class GHPUserAdmin(admin.ModelAdmin):
 
     ordering = ['last_name', 'first_name', 'email',  'last_measure_date', 'consent_date']
 
-    actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'export_as_csv']
+    actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'export_as_csv', 'import_users_from_csv']
 
     list_display_links = ["first_name", "last_name", 'email']
 
@@ -562,7 +562,7 @@ class GHPUserAdmin(admin.ModelAdmin):
             'app_label': self.model._meta.app_label,
         }
 
-        return render(request, 'admin/import_users_inline.html', context)
+        return render(request, 'measure/import_users_inline.html', context)
 
     import_users_from_csv.short_description = 'Import users from CSV'
 
