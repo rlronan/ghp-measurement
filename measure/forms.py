@@ -222,7 +222,8 @@ class ModifyPieceForm(forms.ModelForm):
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'piece_location', 'length', 'width', 'height', 
-                  'glaze_temp', 'size', 'price', 'firing_price', 'glazing_price', 'course_number', 
+                  'bisque_temp', 'glaze_temp', 
+                  'size', 'price', 'firing_price', 'glazing_price', 'course_number', 
                  'note', 'image']
         #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
@@ -393,7 +394,7 @@ class CreateGHPUserForm(UserCreationForm):
     required_css_class = "required"
     class Meta:
         model = GHPUser
-        fields = ['first_name', 'last_name', 'email', 'username', 'phone_number', 'consent']
+        fields = ['first_name', 'last_name', 'email', 'username', 'consent']
         widgets = {
             'first_name': forms.TextInput(attrs={'placeholder': 'First Name'}),
             'last_name': forms.TextInput(attrs={'placeholder': 'Last Name'}),
