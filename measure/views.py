@@ -464,7 +464,8 @@ def simple_upload(request):
         print("Dataset dict: ", dataset.dict)
         #print("pulling emails and balances")
         print("trying to look at dataset columns")
-        print(dataset.columns)
+        print(dir(dataset))
+        print(dir(imported_data))
         try:
             print(dataset['first_name'])
         except Exception as e:
@@ -504,7 +505,10 @@ def simple_upload(request):
         print("Result has errors: ", result.has_errors())
         print("result has validation errors: ", result.has_validation_errors())
         print(dir(result))
-        print("result errors: ", result.errors)
+        try:
+            print("result errors: ", result.errors)
+        except Exception as e:
+            print("Error getting result errors: ", e)
         if not result.has_errors():
             print("Dry run was successful. Importing data.")
             ghp_user_resource.import_data(dataset, dry_run=False)  # Actually import now
