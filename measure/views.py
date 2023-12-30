@@ -452,7 +452,7 @@ def simple_upload(request):
         print("defining ghp user resource")
         ghp_user_resource = GHPUserResource()
         dataset = tablib.Dataset(
-            #headers=['first_name', 'last_name', 'email', 'balance']
+            headers=['first_name', 'last_name', 'email', 'location', 'balance']
         )
         print("Getting file")
         new_users = request.FILES['user_import_file']
@@ -462,7 +462,12 @@ def simple_upload(request):
         print("imported data: ", imported_data)
         print("datset: ", dataset)
         print("pulling emails and balances")
-        emails = dataset['email']
+
+        try:
+            emails = dataset['email']
+        except Exception as e:
+            print("Error getting emails: ", e)
+            emails = dataset['username']
         print("emails: ", emails)
         
         balances = dataset['balance']
