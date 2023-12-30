@@ -719,7 +719,3 @@ class AddCreditForm(forms.ModelForm):
             cleaned_data['transaction_type'] = 'manual_gh_add_misc_credit'
 
         return cleaned_data
-    
-
-class CSVUploadForm(forms.Form):
-    csv_file = forms.FileField(label='CSV File')

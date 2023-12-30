@@ -458,14 +458,13 @@ def simple_upload(request):
         new_users = request.FILES['user_import_file']
 
         print("reading file...")
-
-        ## CANNOT HAVE SPACES BETWEEN HEADERS OR DATA ENTRIES OR IT WILL NOT WORK.
         imported_data = dataset.load(new_users.read().decode('utf-8'), format='csv')
         print("imported data: ", imported_data)
         print("datset: ", dataset)
         print("Dataset dict: ", dataset.dict)
         #print("pulling emails and balances")
         print("trying to look at dataset columns")
+        print(dataset.columns)
         try:
             print(dataset['first_name'])
         except Exception as e:

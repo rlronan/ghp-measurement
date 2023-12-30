@@ -1,7 +1,9 @@
 from django.urls import path, include, reverse_lazy
 from django.contrib.auth import views as auth_views
 from django.contrib import admin
-from measure.admin import GHPUserAdmin  # Import your GHPUserAdmin
+
+# urlpatterns = [
+# ]
 from . import views
 
 app_name = 'measure'
@@ -65,8 +67,10 @@ urlpatterns = [
 
 #    path('importusers/', views.ImportGHPUserView, name='import_ghp_user'),
 #    path('importusersbase/', views.ImportGHPUserViewBase, name='import_ghp_user_base'),
-    path('importuser/', views.simple_upload, name='import_ghp_user'),
-    path('import_users_inline/', admin.site.admin_view(GHPUserAdmin.import_users_from_csv), name='import_users_inline'),
+   path('importuser/', views.simple_upload, name='import_ghp_user'),
+
+
+
     path(
         "admin/password_reset/",
         auth_views.PasswordResetView.as_view(),
