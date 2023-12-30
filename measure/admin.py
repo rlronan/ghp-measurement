@@ -423,23 +423,23 @@ class GHPUserResource(resources.ModelResource):
     class Meta:
         model = GHPUser
         import_id_fields = ('username',) 
-        fields = ('first_name', 'last_name', 'email', 'username') #, 'balance',
+        fields = ('first_name', 'last_name', 'email', 'username', 'location') #, 'balance',
 
 
 class GHPUserAdmin(ImportExportModelAdmin):
-    list_display = ['first_name', 'last_name', 'email', 'phone_number',
+    list_display = ['first_name', 'last_name', 'email', 'current_location',
                      'current_student', 'current_staff', 'current_admin', 
                      'last_measure_date', 'consent', 'consent_date', 'current']
 
-    list_filter = ['current_student', 'current_staff', 'current_admin', CurrentUserFilter]
+    list_filter = ['current_student', 'current_staff', 'current_admin', CurrentUserFilter, 'current_location',]
 
-    search_fields = ['first_name', 'last_name', 'email', 'phone_number']
+    search_fields = ['first_name', 'last_name', 'email']
 
     ordering = ['last_name', 'first_name', 'email',  'last_measure_date', 'consent_date']
 
     actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'export_as_csv']
 
-    list_display_links = ["first_name", "last_name", 'email', 'phone_number']
+    list_display_links = ["first_name", "last_name", 'email']
 
     @admin.display(description='Current', boolean=True)
     def current(self, obj):
@@ -522,26 +522,26 @@ class GHPUserAdmin(ImportExportModelAdmin):
 
     export_as_csv.short_description = "Export Selected"
 
-    @admin.action(description="Export selected objects as csv")
-    def import_users(self, request, queryset):
-        print("Model: ", self.model)
-        print("Queryset: ", queryset)
-        meta = self.model._meta
-        #field_names = [field.name for field in meta.fields]
-        #print("field names: ", field_names)
-        field_names =  ['email', 'first_name', 'last_name', 'last_login', 'last_measure_date', 'date_joined', 'consent']
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-        writer = csv.writer(response)
+    # @admin.action(description="Export selected objects as csv")
+    # def import_users(self, request, queryset):
+    #     print("Model: ", self.model)
+    #     print("Queryset: ", queryset)
+    #     meta = self.model._meta
+    #     #field_names = [field.name for field in meta.fields]
+    #     #print("field names: ", field_names)
+    #     field_names =  ['email', 'first_name', 'last_name', 'last_login', 'last_measure_date', 'date_joined', 'consent']
+    #     response = HttpResponse(content_type='text/csv')
+    #     response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+    #     writer = csv.writer(response)
 
-        writer.writerow(field_names + ['balance', 'last_balance_update'])
-        for obj in queryset:
-            obj_account = Account.objects.filter(ghp_user=obj)
-            row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_account[0].balance, obj_account[0].last_update])
+    #     writer.writerow(field_names + ['balance', 'last_balance_update'])
+    #     for obj in queryset:
+    #         obj_account = Account.objects.filter(ghp_user=obj)
+    #         row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_account[0].balance, obj_account[0].last_update])
 
-        return response
+    #     return response
 
-    export_as_csv.short_description = "Export Selected"
+    # export_as_csv.short_description = "Export Selected"
 
 
     def get_actions(self, request):
