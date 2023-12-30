@@ -81,6 +81,10 @@
             </tr>
         </table> -->
         <tr>
+            <th>Piece Location {{form.piece_location.erros}}</th>
+            <td class="centertext">{{ form.piece_location }}</td>
+        </tr>
+        <tr>
             <th>Length {{form.length.erros}} </th>
             <td>{{ form.length}} </td>
         </tr>
@@ -90,6 +94,10 @@
         </tr>
             <th>Height {{form.height.erros}}</th>
             <td>{{ form.height}}</td>
+        </tr>
+        <tr>
+            <th>Bisque Temp {{form.bisque_temp.erros}}</th>
+            <td class="centertext">{{ form.bisque_temp }}</td>
         </tr>
         <tr>
             <th>Glaze Temp {{form.glaze_temp.erros}}</th>
@@ -207,6 +215,9 @@
                 $('input[name=width]').val(width);
                 $('input[name=height]').val(height);
 
+                // get the current values of bisque_temp selection and convert it to a string
+                var bisque_temp = $('select[name=bisque_temp]').val();
+
                 // get the current values of glaze_temp selection and convert it to a string
                 var glaze_temp = $('select[name=glaze_temp]').val();
 
@@ -215,6 +226,12 @@
 
                 // update the value of the size field
                 $('input[name=size]').val(size.toFixed(2));
+
+                // Set the value of bisque_temp_scalar to be 1 if bisque_temp is not 'None'
+                var bisque_temp_scalar = 0;
+                if (bisque_temp != 'None') {
+                    bisque_temp_scalar = 1;
+                }
 
                 // Set the value of glaze_temp_scalar to be 1 if glaze_temp is not 'None'
                 var glaze_temp_scalar = 0;
@@ -227,7 +244,7 @@
                 var glazing_price_per_cubic_inch = $('input[name=glazing_price_per_cubic_inch]').val();
 
                 // calculate the new value of price
-                var price = firing_price_per_cubic_inch * size + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
+                var price = firing_price_per_cubic_inch * size * bisque_temp_scalar + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
 
                 // if price is less than 1.00, set it to 1.00
                 if (price < 1.00) {

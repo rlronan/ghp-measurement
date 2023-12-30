@@ -74,7 +74,7 @@
     <tbody>
         <tr>
             <td>{{ t.ghp_user_transaction_number}}</td>
-            <td>{{ t.date}}</td>
+            <td>{{ t.date|date:"M d Y" }}</td>
             {% if t.amount >= 0 %}
             <td>${{ t.amount }}</td>
             {% else %}

@@ -26,8 +26,8 @@ class PieceForm(forms.ModelForm):
     glazing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
     class Meta:
         model = Piece
-        fields = ['ghp_user', 'ghp_user_piece_id', 
-                  'length', 'width', 'height', 
+        fields = ['ghp_user', 'ghp_user_piece_id', 'piece_location',
+                  'length', 'width', 'height', 'bisque_temp',
                   'glaze_temp', 'size', 'price', 
                   'firing_price', 'glazing_price', 
                   'course_number', 'note', 
@@ -36,7 +36,10 @@ class PieceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
         self.user_balance = kwargs.pop('user_balance', None)
+        self.ghp_user_location = self.ghp_user.get_location()
+
         print("user balance: ", self.user_balance)
+        print("user location: ", self.ghp_user_location)
         super().__init__(*args, **kwargs)
         self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['ghp_user_piece_id'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
@@ -44,17 +47,29 @@ class PieceForm(forms.ModelForm):
         self.fields['ghp_user'].initial = self.ghp_user
         self.fields['ghp_user_piece_id'].initial = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
 
+        self.fields['bisque_temp'].initial = 'Cone 06'
         self.fields['glaze_temp'].initial = 'Cone 10'
 
-        self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
+
+        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
+        
+        if self.fields['piece_location'].initial == 'Greenwhich':
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='Cone 06')
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial='Cone 10')
+        elif self.fields['piece_location'].initial == 'Chelsea':
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial='Cone 06')
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial='Cone 10')
+    
+
+        self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
         self.fields['length'].widget.attrs['min'] = 0.5
         self.fields['length'].widget.attrs['step'] = 0.5
       
-        self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=0.0)
+        self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
         self.fields['width'].widget.attrs['min'] = 0.5
         self.fields['width'].widget.attrs['step'] = 0.5
 
-        self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=3.0)
+        self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=3.0)
         self.fields['height'].widget.attrs['min'] = 3.0
         self.fields['height'].widget.attrs['step'] = 0.5
 
@@ -134,13 +149,19 @@ class PieceForm(forms.ModelForm):
         cleaned_data['size'] = size
 
         # Calculate the price
-        # get the price scaling based on the user is a current_staff or current_admin or not
-        if self.ghp_user.current_staff or self.ghp_user.current_admin:
-            firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
-        else: 
-            firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
-        # set to 2 decimal places
-        firing_price = firing_price.quantize(decimal.Decimal('0.01'))
+
+        # Get the bisque temperature
+        bisque_temp = cleaned_data.get('bisque_temp')
+        if bisque_temp != 'None':
+            # get the price scaling based on the user is a current_staff or current_admin or not
+            if self.ghp_user.current_staff or self.ghp_user.current_admin:
+                firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
+            else: 
+                firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
+            # set to 2 decimal places
+            firing_price = firing_price.quantize(decimal.Decimal('0.01'))
+        else:
+            firing_price = decimal.Decimal(0.00)
         # Set the cleaned data for price
         cleaned_data['firing_price'] = firing_price
 
@@ -157,8 +178,6 @@ class PieceForm(forms.ModelForm):
                 glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
         else:
             glazing_price = decimal.Decimal(0.00)
-
-
         # Set the cleaned data for glazing_price
         cleaned_data['glazing_price'] = glazing_price
             
@@ -170,8 +189,6 @@ class PieceForm(forms.ModelForm):
         price = price.quantize(decimal.Decimal('0.01'))
         # Set the cleaned data for price
         cleaned_data['price'] = price
-
-
 
         # Check that the size and price are not negative
         if cleaned_data['size'] < 0:
@@ -189,7 +206,6 @@ class PieceForm(forms.ModelForm):
                 code="balance_too_low")
 
         # Return the cleaned data
-        
         return cleaned_data
 
 
@@ -205,13 +221,15 @@ class ModifyPieceForm(forms.ModelForm):
     # piece_id.widget.attrs.update({'class': 'form-control'})
     class Meta:
         model = Piece
-        fields = ['ghp_user', 'ghp_user_piece_id',  'length', 'width', 'height', 
+        fields = ['ghp_user', 'ghp_user_piece_id', 'piece_location', 'length', 'width', 'height', 
                   'glaze_temp', 'size', 'price', 'firing_price', 'glazing_price', 'course_number', 
-                  'piece_description', 'glaze_description', 'note', 'image']
+                 'note', 'image']
         #exclude = ['ghp_user', 'ghp_user_piece_id']
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
         self.piece = kwargs.pop('piece', None)
+        self.ghp_user_location = self.ghp_user.get_location()
+
         ##self.piece_image = kwargs.pop('piece_image', None)
         super().__init__(*args, **kwargs)
         self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
@@ -220,6 +238,8 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['ghp_user'].initial = self.ghp_user
         self.fields['ghp_user_piece_id'].initial = self.piece.ghp_user_piece_id
 
+        self.fields['piece_location'].initial  = self.piece.piece_location
+        self.fields['bisque_temp'].initial = self.piece.bisque_temp
         self.fields['glaze_temp'].initial = self.piece.glaze_temp
 
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.length)
@@ -248,13 +268,13 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['course_number'].initial = self.piece.course_number
         self.fields['course_number'].widget.attrs['readonly'] = 'readonly'
 
-        self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
-        self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
-        self.fields['piece_description'].initial = self.piece.piece_description
+        # self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
+        # self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
+        # self.fields['piece_description'].initial = self.piece.piece_description
 
-        self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
-        self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
-        self.fields['glaze_description'].initial = self.piece.glaze_description
+        # self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
+        # self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
+        # self.fields['glaze_description'].initial = self.piece.glaze_description
 
 
         self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
@@ -312,17 +332,23 @@ class ModifyPieceForm(forms.ModelForm):
         cleaned_data['size'] = size
 
         # Calculate the price
-        # get the price scaling based on the user is a current_staff or current_admin or not
-        if self.ghp_user.current_staff or self.ghp_user.current_admin:
-            firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
-        else: 
-            firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
-        # set to 2 decimal places
-        firing_price = firing_price.quantize(decimal.Decimal('0.01'))
+
+        # Get the bisque temperature
+        bisque_temp = cleaned_data.get('bisque_temp')
+        if bisque_temp != 'None':
+            # get the price scaling based on the user is a current_staff or current_admin or not
+            if self.ghp_user.current_staff or self.ghp_user.current_admin:
+                firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
+            else: 
+                firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
+            # set to 2 decimal places
+            firing_price = firing_price.quantize(decimal.Decimal('0.01'))
+        else:
+            firing_price = decimal.Decimal(0.00)
         # Set the cleaned data for price
         cleaned_data['firing_price'] = firing_price
 
-        # Get the glaze temperature
+        # Get the glaze temperatures
         glaze_temp = cleaned_data.get('glaze_temp')
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
@@ -335,12 +361,8 @@ class ModifyPieceForm(forms.ModelForm):
                 glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
         else:
             glazing_price = decimal.Decimal(0.00)
-
-
         # Set the cleaned data for glazing_price
         cleaned_data['glazing_price'] = glazing_price
-            
-            
             
         # Set the new price
         price = glazing_price + firing_price
@@ -348,8 +370,6 @@ class ModifyPieceForm(forms.ModelForm):
         price = price.quantize(decimal.Decimal('0.01'))
         # Set the cleaned data for price
         cleaned_data['price'] = price
-
-
 
         # Check that the size and price are not negative
         if cleaned_data['size'] < 0:
@@ -362,7 +382,6 @@ class ModifyPieceForm(forms.ModelForm):
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
 
         # self.add_error('user_balance_too_low', 'You cannot measure a piece that will bring your account balance below -$25.00. Please pay your balance before measuring this piece.')
-
         
         # Return the cleaned data
         return cleaned_data
@@ -394,14 +413,14 @@ class CreateGHPUserForm(UserCreationForm):
         #self.fields['password2'].widget.attrs['autocomplete'] = 'new-password'
         self.fields['email'].widget.attrs['placeholder'] = 'Email'
         
-        self.fields['phone_number'].widget.attrs['placeholder'] = 'Phone Number'
+        #self.fields['phone_number'].widget.attrs['placeholder'] = 'Phone Number'
         #self.fields['phone_number'].widget.attrs['type'] = 'tel'
-        self.fields['phone_number'].widget.attrs['pattern'] = '[0-9]{3}-[0-9]{3}-[0-9]{4}'
-        self.fields['phone_number'].widget.attrs['title'] = 'Phone number must be in the format XXX-XXX-XXXX'
+        #self.fields['phone_number'].widget.attrs['pattern'] = '[0-9]{3}-[0-9]{3}-[0-9]{4}'
+        #self.fields['phone_number'].widget.attrs['title'] = 'Phone number must be in the format XXX-XXX-XXXX'
         #self.fields['phone_number'].widget.attrs['autocomplete'] = 'tel-national'
-        self.fields['phone_number'].widget.attrs['required'] = True
-        self.fields['phone_number'].error_messages = {'required': 'Phone number is required'}
-        self.fields['phone_number'].help_text = 'Phone number must be in the format XXX-XXX-XXXX'
+        #self.fields['phone_number'].widget.attrs['required'] = True
+        #self.fields['phone_number'].error_messages = {'required': 'Phone number is required'}
+        #self.fields['phone_number'].help_text = 'Phone number must be in the format XXX-XXX-XXXX'
         #self.fields['phone_number'].validators = [RegexValidator(regex='[0-9]{3}-[0-9]{3}-[0-9]{4}', message='Phone number must be in the format XXX-XXX-XXXX')]
         
         #self.fields['email'].widget.attrs['autocomplete'] = 'email'

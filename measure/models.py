@@ -32,7 +32,7 @@ class GHPUser(User):
     #user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True)
     #first_name = models.CharField(max_length=100)
     #last_name = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length = 12, unique=False, blank=True, default='')
+    ##phone_number = models.CharField(max_length = 12, unique=False, blank=True, default='') # renove 12/29/23
     #email = models.EmailField(unique=True, max_length=200, blank=True)
 
     current_student = models.BooleanField(default=False)
@@ -43,6 +43,24 @@ class GHPUser(User):
 
     consent = models.BooleanField(default=False)
     consent_date = models.DateField(null=True)
+
+
+    GREENWICH = 'Greenwich'
+    CHELSEA = 'Chelsea'
+    BOTH = 'Both'
+    
+    LOCATION_CHOICES = [
+        (GREENWICH, 'Greenwich'),
+        (CHELSEA, 'Chelsea'),
+        (BOTH, 'Both'),
+    ]
+
+    current_location = models.CharField(
+        max_length=10,
+        choices=LOCATION_CHOICES,
+        default=GREENWICH,  # You can set a default value if needed
+    )
+    
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
     class Meta:
@@ -91,6 +109,11 @@ class GHPUser(User):
             print("Account created for GHPUser")
         return Account.objects.get(ghp_user=self).balance
 
+    def get_location(self):
+        if self.current_location == 'Both':
+            return 'None'
+        else: return self.current_location 
+
     def __str__(self):
         s = self.first_name + ' ' + self.last_name
         if self.current_admin:
@@ -109,25 +132,43 @@ class Piece(models.Model):
     ghp_user = models.ForeignKey(GHPUser, models.CASCADE, null=False)
     ghp_user_piece_id = models.IntegerField(default= 1 )
     date = models.DateField(blank=True, null=True)
-    length = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
-    width = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
-    height = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+    length = models.DecimalField(max_digits=5, decimal_places=1)
+    width = models.DecimalField(max_digits=5, decimal_places=1)
+    height = models.DecimalField( max_digits=5, decimal_places=1)
     size = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     firing_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     glazing_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
 
     course_number = models.CharField(max_length=4, blank=True)
-    piece_description = models.CharField(max_length=1000, blank=True)
-    glaze_description = models.CharField(max_length=1000, blank=True)
-    bisque_temp = models.CharField(max_length=4, choices=BISQUE_TEMPS, default="06B") # imported from constants.py
+    bisque_temp = models.CharField(max_length=4, choices=BISQUE_TEMPS, default="06") # imported from constants.py
 
     glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="10") # imported from constants.py
 
     note = models.CharField(max_length=1000, blank=True)
+    #TODO: FIX IMAGE FIELD FOR HEROKU
     image = models.ImageField(upload_to='images/', blank=True, null=True)
-    bisque_fired = models.BooleanField(default=False)
-    glaze_fired = models.BooleanField(default=False)
+
+    ## Added 12/29/23:
+    GREENWICH = 'Greenwich'
+    CHELSEA = 'Chelsea'
+    
+    LOCATION_CHOICES = [
+        (GREENWICH, 'Greenwich'),
+        (CHELSEA, 'Chelsea'),
+    ]
+
+    piece_location = models.CharField(
+        max_length=10,
+        choices=LOCATION_CHOICES,
+        default=GREENWICH,  # You can set a default value if needed
+    )
+
+    ## Remove these four on 12/29/23:
+    ## piece_description = models.CharField(max_length=1000, blank=True)
+    ## glaze_description = models.CharField(max_length=1000, blank=True)
+    ## bisque_fired = models.BooleanField(default=False)
+    ## glaze_fired = models.BooleanField(default=False)
 
 
 
@@ -171,12 +212,17 @@ class Piece(models.Model):
 
         # Calculate the price
         # get the price scaling based on the user is a current_staff or current_admin or not
-        if self.ghp_user.current_staff or self.ghp_user.current_admin:
-            firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
-        else: 
-            firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
-        # set to 2 decimal places
-        firing_price = firing_price.quantize(decimal.Decimal('0.01'))
+        bisque_temp = self.bisque_temp
+        if bisque_temp != 'None':
+            # get the price scaling based on the user is a current_staff or current_admin or not
+            if self.ghp_user.current_staff or self.ghp_user.current_admin:
+                firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
+            else: 
+                firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
+            # set to 2 decimal places
+            firing_price = firing_price.quantize(decimal.Decimal('0.01'))
+        else:
+            firing_price = decimal.Decimal(0.00)
         # Set the cleaned data for price
         self.firing_price = firing_price
 
@@ -284,9 +330,9 @@ class Piece(models.Model):
                 # The total price should be at least MINIMUM_PRICE. 
                 # if it is less, set the glazing_price and firing_price each to 
                 # 1/2 of the MINIMUM_PRICE, and set the total price to MINIMUM_PRICE
-                if self.firing_price + self.glazing_price < 1.0:
-                    self.firing_price = decimal.Decimal(0.5)
-                    self.glazing_price = decimal.Decimal(0.5)
+                if self.firing_price + self.glazing_price <  decimal.Decimal(MINIMUM_PRICE):
+                    self.firing_price =  decimal.Decimal(MINIMUM_PRICE) / 2
+                    self.glazing_price =  decimal.Decimal(MINIMUM_PRICE) / 2
                     self.price = self.firing_price + self.glazing_price
 
             # if we are only firing
@@ -294,16 +340,16 @@ class Piece(models.Model):
                 # The total price should be at least MINIMUM_PRICE. 
                 # if it is less, set the firing_price to MINIMUM_PRICE, 
                 # and set the total price to MINIMUM_PRICE
-                if self.firing_price < 1.0:
-                    self.firing_price = decimal.Decimal(1.0)
+                if self.firing_price < decimal.Decimal(MINIMUM_PRICE):
+                    self.firing_price = decimal.Decimal(MINIMUM_PRICE)
                     self.price = self.firing_price
             # if we are only glazing
             elif self.glaze_temp != 'None' and self.bisque_temp == 'None':
                 # The total price should be at least MINIMUM_PRICE. 
                 # if it is less, set the glazing_price to MINIMUM_PRICE, 
                 # and set the total price to MINIMUM_PRICE
-                if self.glazing_price < 1.0:
-                    self.glazing_price = decimal.Decimal(1.0)
+                if self.glazing_price < decimal.Decimal(MINIMUM_PRICE):
+                    self.glazing_price = decimal.Decimal(MINIMUM_PRICE)
                     self.price = self.glazing_price
             # if we are not firing or glazing
             elif self.glaze_temp == 'None' and self.bisque_temp == 'None':
@@ -479,7 +525,6 @@ class Ledger(models.Model):
     ghp_user = models.ForeignKey(GHPUser, models.SET_NULL, null=True)
     ghp_user_transaction_number = models.IntegerField(default= None )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    
     
     transaction_type = models.CharField(max_length=100, choices=TRANSACTION_TYPES)
 

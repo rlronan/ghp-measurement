@@ -6,16 +6,58 @@
 GLAZE_TEMPS  = [
         ("10",   "Δ 10 (Cone 10)"),
         ("6",    "Δ 6 (Cone 6)"),
-        ("2",    "Δ 2 (Cone 2)"),
+        ##("2",    "Δ 2 (Cone 2)"), # removed 12/29/23
         ("014",  "Δ 014 (Cone 014)"),
-        ("06G",   "Δ 06 (Cone 06)"),
+        ##("06G",   "Δ 06 (Cone 06)"), # remove 12/29/23
         ("04",   "Δ 04 (Cone 04)"),
         ("None", "None"),
 ]
 
-BISQUE_TEMPS = [
-        ("06B",   "Δ 06 BISQUE (Cone 06 Bisque)"),
+GLAZE_TEMPS_GREENWICH  = [
+        ("10",   "Δ 10 (Cone 10)"),
+        ("6",    "Δ 6 (Cone 6)"),
+        ##("2",    "Δ 2 (Cone 2)"), # removed 12/29/23
+        ("014",  "Δ 014 (Cone 014)"),
+        ##("06G",   "Δ 06 (Cone 06)"), # remove 12/29/23
+        ("04",   "Δ 04 (Cone 04)"),
         ("None", "None"),
+]
+
+GLAZE_TEMPS_CHELSEA  = [
+        ("10",   "Δ 10 (Cone 10)"),
+        ("6",    "Δ 6 (Cone 6)"),
+        ##("2",    "Δ 2 (Cone 2)"), # removed 12/29/23
+        ("014",  "Δ 014 (Cone 014)"),
+        ##("06G",   "Δ 06 (Cone 06)"), # remove 12/29/23
+        ("04",   "Δ 04 (Cone 04)"),
+        ("None", "None"),
+]
+
+
+
+BISQUE_TEMPS = [
+        ("06",   "Δ 06 (Cone 06)"),
+        ("None", "None"),
+
+]
+
+BISQUE_TEMPS_GREENWICH = [
+        ("06",   "Δ 06 (Cone 06)"),
+        ("None", "None"),
+
+]
+
+BISQUE_TEMPS_CHELSEA = [
+        ("06",   "Δ 06 (Cone 06)"),
+        ("None", "None"),
+
+]
+
+LOCATION_CHOICES = [
+        ("Greenwhich", "Greenwhich"),
+        ("Chelsea", "Chelsea"),
+        ##("Both", "Both"),
+        ##("None", "None"),
 
 ]
 

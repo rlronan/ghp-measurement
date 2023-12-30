@@ -288,7 +288,7 @@ def stripe_config(request):
 def create_checkout_session(request):
     if request.method == 'GET':
         #TODO: need to change the following line to the correct domain
-        domain_url = 'http://localhost:8000/'
+        domain_url = 'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
         stripe.api_key = settings.STRIPE_SECRET_KEY
         try:
             # Create new Checkout Session for the order
@@ -413,13 +413,13 @@ def ImportGHPUserView(request):
         new_users = request.FILES['csv_events'] # to get the file
         # this part is to add the a column with the user id
         dataset = tablib.Dataset(
-            headers=['first_name', 'last_name', 'email', 'balance']
+            headers=['first_name', 'last_name', 'email', 'balance', 'location']
         ).load(new_users.read().decode('utf-8'), format='csv')
         
         
         emails = dataset['email']
         balances = dataset['balance']
-
+        locations = dataset['location']
         dataset = dataset.subset(
             cols=[0,1,2]
         )
@@ -467,6 +467,9 @@ def simple_upload(request):
         
         balances = dataset['balance']
         print("balances: ", balances)
+
+        locations = dataset['location']
+        print("locations: ", locations)
 
         print("dropping balance column")
         del dataset['balance']
