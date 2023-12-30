@@ -460,7 +460,7 @@ def simple_upload(request):
         print("reading file...")
         imported_data = dataset.load(new_users.read().decode('utf-8'), format='csv')
         print("imported data: ", imported_data)
-
+        print("datset: ", dataset)
         print("pulling emails and balances")
         emails = dataset['email']
         print("emails: ", emails)

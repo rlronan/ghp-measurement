@@ -53,7 +53,7 @@ class PieceForm(forms.ModelForm):
 
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
         
-        if self.fields['piece_location'].initial == 'Greenwhich':
+        if self.fields['piece_location'].initial == 'Greenwich':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='Cone 06')
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial='Cone 10')
         elif self.fields['piece_location'].initial == 'Chelsea':

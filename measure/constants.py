@@ -54,7 +54,7 @@ BISQUE_TEMPS_CHELSEA = [
 ]
 
 LOCATION_CHOICES = [
-        ("Greenwhich", "Greenwhich"),
+        ("Greenwich", "Greenwich"),
         ("Chelsea", "Chelsea"),
         ##("Both", "Both"),
         ##("None", "None"),
