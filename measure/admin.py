@@ -423,7 +423,7 @@ class GHPUserResource(resources.ModelResource):
     class Meta:
         model = GHPUser
         import_id_fields = ('username',) 
-        fields = ('first_name', 'last_name', 'email', 'username', 'location') #, 'balance',
+        fields = ('first_name', 'last_name', 'email', 'current_location') #, 'balance',
 
 
 class GHPUserAdmin(ImportExportModelAdmin):

@@ -413,13 +413,13 @@ def ImportGHPUserView(request):
         new_users = request.FILES['csv_events'] # to get the file
         # this part is to add the a column with the user id
         dataset = tablib.Dataset(
-            headers=['first_name', 'last_name', 'email', 'balance', 'location']
+            headers=['first_name', 'last_name', 'email', 'current_location', 'balance']
         ).load(new_users.read().decode('utf-8'), format='csv')
         
         
         emails = dataset['email']
         balances = dataset['balance']
-        locations = dataset['location']
+        locations = dataset['current_location']
         dataset = dataset.subset(
             cols=[0,1,2]
         )
@@ -452,7 +452,7 @@ def simple_upload(request):
         print("defining ghp user resource")
         ghp_user_resource = GHPUserResource()
         dataset = tablib.Dataset(
-            headers=['first_name', 'last_name', 'email', 'location', 'balance']
+            ##headers=['first_name', 'last_name', 'email', 'location', 'balance']
         )
         print("Getting file")
         new_users = request.FILES['user_import_file']
@@ -461,13 +461,30 @@ def simple_upload(request):
         imported_data = dataset.load(new_users.read().decode('utf-8'), format='csv')
         print("imported data: ", imported_data)
         print("datset: ", dataset)
-        print("pulling emails and balances")
+        print("Dataset dict: ", dataset.dict)
+        #print("pulling emails and balances")
+        print("trying to look at dataset columns")
+        print(dataset.columns)
+        try:
+            print(dataset['first_name'])
+        except Exception as e:
+            print("Error getting first_name: ", e)
+        
+        print("trying to look at other columns")
 
+        try:
+            print("Trying to look at dataset email")
+            print(dataset['email'])
+        except Exception as e:
+            print("Error getting emails: ", e)
+            print("Trying to look at dataset username")
+            print(dataset['username'])
         try:
             emails = dataset['email']
         except Exception as e:
             print("Error getting emails: ", e)
             emails = dataset['username']
+
         print("emails: ", emails)
         
         balances = dataset['balance']
