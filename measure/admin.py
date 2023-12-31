@@ -15,7 +15,7 @@ from django.contrib import messages
 from django.utils.translation import ngettext
 import csv
 from django.http import HttpResponse
-from import_export import resources
+from import_export import resources, fields
 from import_export.admin import ImportExportModelAdmin
 # Register your models here.
 
@@ -421,14 +421,58 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 
+# class GHPUserResource(resources.ModelResource):
+#     class Meta:
+#         model = GHPUser
+#         import_id_fields = ('username',) 
+#         fields = ('first_name', 'last_name', 'username', 'current_location', 'balance')
+#         exclude = ('id', 'password', 'last_login', 'is_superuser', 'is_staff', 'is_active', 'date_joined', 'groups', 'user_permissions', 'current_student', 'current_staff', 'current_admin', 'last_measure_date', 'consent', 'consent_date', 'current')
+#         skip_unchanged = True
+#         report_skipped = True
+#         clean_model_instances = True
+#         use_transactions = True
+
+#     def after_import_row(self, row, row_result, **kwargs):
+#         username = row.get('username')
+#         balance = row.get('balance')
+#         if username and balance is not None:
+#             try:
+#                 user = GHPUser.objects.get(username=username)
+#                 if user.account.balance == 0.0:
+#                     user.account.balance = balance
+#                     user.account.save()
+#             except GHPUser.DoesNotExist:
+#                 pass
 class GHPUserResource(resources.ModelResource):
+    first_name = fields.Field(attribute='first_name', column_name='first_name')
+    last_name = fields.Field(attribute='last_name', column_name='last_name')
+    username = fields.Field(attribute='username', column_name='username')
+    email = fields.Field(attribute='email', column_name='email')
+    current_location = fields.Field(attribute='current_location', column_name='current_location')
+    balance = fields.Field(column_name='balance')
+
     class Meta:
         model = GHPUser
-        import_id_fields = ('username',) 
-        fields = ('first_name', 'last_name', 'email', 'current_location') #, 'balance',
+        import_id_fields = ('username',)  # Use email as the identifier for import
+        fields = ('first_name', 'last_name', 'username', 'email', 'current_location', 'balance')
+        export_order = ('first_name', 'last_name', 'email', 'current_location', 'balance')
 
+    def after_import_row(self, row, row_result, **kwargs):
+        """
+        Update the balance if the user already exists and balance is 0.0
+        """
+        try:
+            ghpuser = GHPUser.objects.get(email=row['email'])
+            account, created = Account.objects.get_or_create(ghp_user=ghpuser)
+            if account.balance == 0.0:
+                account.balance = row['balance']
+                account.save()
+        except GHPUser.DoesNotExist:
+            # If the user does not exist, it will be created by the import process
+            pass
 
 class GHPUserAdmin(ImportExportModelAdmin):
+    resource_class = GHPUserResource
     list_display = ['first_name', 'last_name', 'email', 'current_location',
                      'current_student', 'current_staff', 'current_admin', 
                      'last_measure_date', 'consent', 'consent_date', 'current']
@@ -442,6 +486,11 @@ class GHPUserAdmin(ImportExportModelAdmin):
     actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'export_as_csv', 'import_users_from_csv']
 
     list_display_links = ["first_name", "last_name", 'email']
+
+    # def get_import_resource_kwargs(self, request, *args, **kwargs):
+    #     kwargs = super().get_resource_kwargs(request, *args, **kwargs)
+    #     kwargs.update({"user": request.user})
+    #     return kwargs
 
     @admin.display(description='Current', boolean=True)
     def current(self, obj):
