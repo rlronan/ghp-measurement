@@ -544,18 +544,9 @@ def simple_upload(request):
         except Exception as e:
             print("Error getting failed_dataset:", e)
 
-        try:
-            print("has_errors:", result.has_errors)
-        except Exception as e:
-            print("Error getting has_errors:", e)
 
         try:
-            print("has_validation_errors:", result.has_validation_errors)
-        except Exception as e:
-            print("Error getting has_validation_errors:", e)
-
-        try:
-            print("increment_row_result_total:", result.increment_row_result_total)
+            print("increment_row_result_total:", result.increment_row_result_total(result.rows))
         except Exception as e:
             print("Error getting increment_row_result_total:", e)
 
@@ -565,7 +556,7 @@ def simple_upload(request):
             print("Error getting invalid_rows:", e)
 
         try:
-            print("row_errors:", result.row_errors)
+            print("row_errors:", result.row_errors())
         except Exception as e:
             print("Error getting row_errors:", e)
 
@@ -585,7 +576,7 @@ def simple_upload(request):
             print("Error getting totals:", e)
 
         try:
-            print("valid_rows:", result.valid_rows)
+            print("valid_rows:", result.valid_rows())
         except Exception as e:
             print("Error getting valid_rows:", e)
 
