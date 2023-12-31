@@ -405,44 +405,44 @@ def handle_checkout_session(session):
 import tablib
 from import_export import resources
 
-def ImportGHPUserView(request):
-    print("in view")
-    if request.method == 'POST':
-        print("Request method is post")
-        model_resource = resources.modelresource_factory(model=GHPUser)() # to take the model as a reference
-        new_users = request.FILES['csv_events'] # to get the file
-        # this part is to add the a column with the user id
-        dataset = tablib.Dataset(
-            headers=['first_name', 'last_name', 'email', 'current_location', 'balance']
-        ).load(new_users.read().decode('utf-8'), format='csv')
+# def ImportGHPUserView(request):
+#     print("in view")
+#     if request.method == 'POST':
+#         print("Request method is post")
+#         model_resource = resources.modelresource_factory(model=GHPUser)() # to take the model as a reference
+#         new_users = request.FILES['csv_events'] # to get the file
+#         # this part is to add the a column with the user id
+#         dataset = tablib.Dataset(
+#             headers=['first_name', 'last_name', 'email', 'current_location', 'balance']
+#         ).load(new_users.read().decode('utf-8'), format='csv')
         
         
-        emails = dataset['email']
-        balances = dataset['balance']
-        locations = dataset['current_location']
-        dataset = dataset.subset(
-            cols=[0,1,2]
-        )
+#         emails = dataset['email']
+#         balances = dataset['balance']
+#         locations = dataset['current_location']
+#         dataset = dataset.subset(
+#             cols=[0,1,2]
+#         )
 
-        # dataset.append_col(
-        #     col=tuple(f'{user_id}' for _ in range(dataset.height)),
-        #     header='user_id'
-        # )
-
-
-        result = model_resource.import_data(dataset, dry_run=True)  # Test the data import
-
-        if not result.has_errors():
-            model_resource.import_data(dataset, dry_run=False)  # Actually import now
-    print("redirecting")
-    return redirect(reverse('measure:base'))
+#         # dataset.append_col(
+#         #     col=tuple(f'{user_id}' for _ in range(dataset.height)),
+#         #     header='user_id'
+#         # )
 
 
-def ImportGHPUserViewBase(request):
-    print("in import base")
-    #if request.method == 'POST':
-        #print("Request method is post")
-    return render(request, 'measure/import_ghp_user.html')
+#         result = model_resource.import_data(dataset, dry_run=True)  # Test the data import
+
+#         if not result.has_errors():
+#             model_resource.import_data(dataset, dry_run=False)  # Actually import now
+#     print("redirecting")
+#     return redirect(reverse('measure:base'))
+
+
+# def ImportGHPUserViewBase(request):
+#     print("in import base")
+#     #if request.method == 'POST':
+#         #print("Request method is post")
+#     return render(request, 'measure/import_ghp_user.html')
 
 
 from tablib import Dataset
@@ -491,9 +491,19 @@ def simple_upload(request):
         balances = dataset['balance']
         print("balances: ", balances)
 
-        locations = dataset['location']
-        print("locations: ", locations)
-
+        try:
+            locations = dataset['location']
+            print("locations: ", locations)
+        except Exception as e:
+            print("Error getting locations: ", e)
+            try:
+                locations = dataset['current_location']
+                print("locations: ", locations)
+            except Exception as e:
+                print("Error getting locations: ", e)
+                locations = [''] * len(emails)
+                print("locations: ", locations)
+        
         print("dropping balance column")
         del dataset['balance']
         print("appending username column")
@@ -509,6 +519,76 @@ def simple_upload(request):
             print("result errors: ", result.errors)
         except Exception as e:
             print("Error getting result errors: ", e)
+
+        try:
+            print("result base errors: ", result.base_errors)
+        except Exception as e:
+            print("Error getting result base errors: ", e)
+        try:
+            print("result diff headers: ", result.diff_headers)
+        except Exception as e:
+            print("Error getting result diff headers: ", e)
+        
+        try:
+            print("base_errors:", result.base_errors)
+        except Exception as e:
+            print("Error getting base_errors:", e)
+
+        try:
+            print("diff_headers:", result.diff_headers)
+        except Exception as e:
+            print("Error getting diff_headers:", e)
+
+        try:
+            print("failed_dataset:", result.failed_dataset)
+        except Exception as e:
+            print("Error getting failed_dataset:", e)
+
+        try:
+            print("has_errors:", result.has_errors)
+        except Exception as e:
+            print("Error getting has_errors:", e)
+
+        try:
+            print("has_validation_errors:", result.has_validation_errors)
+        except Exception as e:
+            print("Error getting has_validation_errors:", e)
+
+        try:
+            print("increment_row_result_total:", result.increment_row_result_total)
+        except Exception as e:
+            print("Error getting increment_row_result_total:", e)
+
+        try:
+            print("invalid_rows:", result.invalid_rows)
+        except Exception as e:
+            print("Error getting invalid_rows:", e)
+
+        try:
+            print("row_errors:", result.row_errors)
+        except Exception as e:
+            print("Error getting row_errors:", e)
+
+        try:
+            print("rows:", result.rows)
+        except Exception as e:
+            print("Error getting rows:", e)
+
+        try:
+            print("total_rows:", result.total_rows)
+        except Exception as e:
+            print("Error getting total_rows:", e)
+
+        try:
+            print("totals:", result.totals)
+        except Exception as e:
+            print("Error getting totals:", e)
+
+        try:
+            print("valid_rows:", result.valid_rows)
+        except Exception as e:
+            print("Error getting valid_rows:", e)
+
         if not result.has_errors():
             print("Dry run was successful. Importing data.")
             ghp_user_resource.import_data(dataset, dry_run=False)  # Actually import now
