@@ -148,9 +148,9 @@
 
     <script>
         $(document).ready(function () {
-            // listen for changes in the length, width, and height, and glaze_temp fields
+            // listen for changes in the length, width, and height, and glaze_temp, and bisque_temp fields
             // glaze_temp is a choice field, so it is a select element
-            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp]').change(function () {
+            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp], select[name=bisque_temp]').change(function () {
 
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
