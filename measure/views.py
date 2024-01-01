@@ -444,155 +444,155 @@ from import_export import resources
 #         #print("Request method is post")
 #     return render(request, 'measure/import_ghp_user.html')
 
+# DO NOT USE
+# from tablib import Dataset
+# from .admin import GHPUserResource
+# def simple_upload(request):
+#     if request.method == 'POST':
+#         print("defining ghp user resource")
+#         ghp_user_resource = GHPUserResource()
+#         dataset = tablib.Dataset(
+#             ##headers=['first_name', 'last_name', 'email', 'location', 'balance']
+#         )
+#         print("Getting file")
+#         new_users = request.FILES['user_import_file']
 
-from tablib import Dataset
-from .admin import GHPUserResource
-def simple_upload(request):
-    if request.method == 'POST':
-        print("defining ghp user resource")
-        ghp_user_resource = GHPUserResource()
-        dataset = tablib.Dataset(
-            ##headers=['first_name', 'last_name', 'email', 'location', 'balance']
-        )
-        print("Getting file")
-        new_users = request.FILES['user_import_file']
-
-        print("reading file...")
-        imported_data = dataset.load(new_users.read().decode('utf-8'), format='csv')
-        print("imported data: ", imported_data)
-        print("datset: ", dataset)
-        print("Dataset dict: ", dataset.dict)
-        #print("pulling emails and balances")
-        print("trying to look at dataset columns")
-        print(dir(dataset))
-        print(dir(imported_data))
-        try:
-            print(dataset['first_name'])
-        except Exception as e:
-            print("Error getting first_name: ", e)
+#         print("reading file...")
+#         imported_data = dataset.load(new_users.read().decode('utf-8'), format='csv')
+#         print("imported data: ", imported_data)
+#         print("datset: ", dataset)
+#         print("Dataset dict: ", dataset.dict)
+#         #print("pulling emails and balances")
+#         print("trying to look at dataset columns")
+#         print(dir(dataset))
+#         print(dir(imported_data))
+#         try:
+#             print(dataset['first_name'])
+#         except Exception as e:
+#             print("Error getting first_name: ", e)
         
-        print("trying to look at other columns")
+#         print("trying to look at other columns")
 
-        try:
-            print("Trying to look at dataset email")
-            print(dataset['email'])
-        except Exception as e:
-            print("Error getting emails: ", e)
-            print("Trying to look at dataset username")
-            print(dataset['username'])
-        try:
-            emails = dataset['email']
-        except Exception as e:
-            print("Error getting emails: ", e)
-            emails = dataset['username']
+#         try:
+#             print("Trying to look at dataset email")
+#             print(dataset['email'])
+#         except Exception as e:
+#             print("Error getting emails: ", e)
+#             print("Trying to look at dataset username")
+#             print(dataset['username'])
+#         try:
+#             emails = dataset['email']
+#         except Exception as e:
+#             print("Error getting emails: ", e)
+#             emails = dataset['username']
 
-        print("emails: ", emails)
+#         print("emails: ", emails)
         
-        balances = dataset['balance']
-        print("balances: ", balances)
+#         balances = dataset['balance']
+#         print("balances: ", balances)
 
-        try:
-            locations = dataset['location']
-            print("locations: ", locations)
-        except Exception as e:
-            print("Error getting locations: ", e)
-            try:
-                locations = dataset['current_location']
-                print("locations: ", locations)
-            except Exception as e:
-                print("Error getting locations: ", e)
-                locations = [''] * len(emails)
-                print("locations: ", locations)
+#         try:
+#             locations = dataset['location']
+#             print("locations: ", locations)
+#         except Exception as e:
+#             print("Error getting locations: ", e)
+#             try:
+#                 locations = dataset['current_location']
+#                 print("locations: ", locations)
+#             except Exception as e:
+#                 print("Error getting locations: ", e)
+#                 locations = [''] * len(emails)
+#                 print("locations: ", locations)
         
-        print("dropping balance column")
-        del dataset['balance']
-        print("appending username column")
-        dataset.append_col(dataset['email'], header='username')
-        #dataset['username'] = dataset['email']
-        print("Dry running import")
-        result = ghp_user_resource.import_data(dataset, dry_run=True)  # Test the data import
-        print("Result: ", result)
-        print("Result has errors: ", result.has_errors())
-        print("result has validation errors: ", result.has_validation_errors())
-        print(dir(result))
-        try:
-            print("result errors: ", result.errors)
-        except Exception as e:
-            print("Error getting result errors: ", e)
+#         print("dropping balance column")
+#         del dataset['balance']
+#         print("appending username column")
+#         dataset.append_col(dataset['email'], header='username')
+#         #dataset['username'] = dataset['email']
+#         print("Dry running import")
+#         result = ghp_user_resource.import_data(dataset, dry_run=True)  # Test the data import
+#         print("Result: ", result)
+#         print("Result has errors: ", result.has_errors())
+#         print("result has validation errors: ", result.has_validation_errors())
+#         print(dir(result))
+#         try:
+#             print("result errors: ", result.errors)
+#         except Exception as e:
+#             print("Error getting result errors: ", e)
 
-        try:
-            print("result base errors: ", result.base_errors)
-        except Exception as e:
-            print("Error getting result base errors: ", e)
-        try:
-            print("result diff headers: ", result.diff_headers)
-        except Exception as e:
-            print("Error getting result diff headers: ", e)
+#         try:
+#             print("result base errors: ", result.base_errors)
+#         except Exception as e:
+#             print("Error getting result base errors: ", e)
+#         try:
+#             print("result diff headers: ", result.diff_headers)
+#         except Exception as e:
+#             print("Error getting result diff headers: ", e)
         
-        try:
-            print("base_errors:", result.base_errors)
-        except Exception as e:
-            print("Error getting base_errors:", e)
+#         try:
+#             print("base_errors:", result.base_errors)
+#         except Exception as e:
+#             print("Error getting base_errors:", e)
 
-        try:
-            print("diff_headers:", result.diff_headers)
-        except Exception as e:
-            print("Error getting diff_headers:", e)
+#         try:
+#             print("diff_headers:", result.diff_headers)
+#         except Exception as e:
+#             print("Error getting diff_headers:", e)
 
-        try:
-            print("failed_dataset:", result.failed_dataset)
-        except Exception as e:
-            print("Error getting failed_dataset:", e)
+#         try:
+#             print("failed_dataset:", result.failed_dataset)
+#         except Exception as e:
+#             print("Error getting failed_dataset:", e)
 
 
-        try:
-            print("increment_row_result_total:", result.increment_row_result_total(result.rows))
-        except Exception as e:
-            print("Error getting increment_row_result_total:", e)
+#         try:
+#             print("increment_row_result_total:", result.increment_row_result_total(result.rows))
+#         except Exception as e:
+#             print("Error getting increment_row_result_total:", e)
 
-        try:
-            print("invalid_rows:", result.invalid_rows)
-        except Exception as e:
-            print("Error getting invalid_rows:", e)
+#         try:
+#             print("invalid_rows:", result.invalid_rows)
+#         except Exception as e:
+#             print("Error getting invalid_rows:", e)
 
-        try:
-            print("row_errors:", result.row_errors())
-        except Exception as e:
-            print("Error getting row_errors:", e)
+#         try:
+#             print("row_errors:", result.row_errors())
+#         except Exception as e:
+#             print("Error getting row_errors:", e)
 
-        try:
-            print("rows:", result.rows)
-        except Exception as e:
-            print("Error getting rows:", e)
+#         try:
+#             print("rows:", result.rows)
+#         except Exception as e:
+#             print("Error getting rows:", e)
 
-        try:
-            print("total_rows:", result.total_rows)
-        except Exception as e:
-            print("Error getting total_rows:", e)
+#         try:
+#             print("total_rows:", result.total_rows)
+#         except Exception as e:
+#             print("Error getting total_rows:", e)
 
-        try:
-            print("totals:", result.totals)
-        except Exception as e:
-            print("Error getting totals:", e)
+#         try:
+#             print("totals:", result.totals)
+#         except Exception as e:
+#             print("Error getting totals:", e)
 
-        try:
-            print("valid_rows:", result.valid_rows())
-        except Exception as e:
-            print("Error getting valid_rows:", e)
+#         try:
+#             print("valid_rows:", result.valid_rows())
+#         except Exception as e:
+#             print("Error getting valid_rows:", e)
 
-        if not result.has_errors():
-            print("Dry run was successful. Importing data.")
-            ghp_user_resource.import_data(dataset, dry_run=False)  # Actually import now
-            print("Import was successful")
-            print("Setting user balances")
-            for email, balance in zip(emails, balances):
-                print("email: {}, balance: {}".format(email, balance))
-                ghp_user = GHPUser.objects.get(email=email)
-                print("ghp_user: ", ghp_user)
-                ghp_user.account.balance = balance
-                ghp_user.account.save()
-                print("ghp_user.account.balance: ", ghp_user.account.balance)
-        else:
-            print("Dry run was not successful")
-            print(result)
-    return render(request, 'measure/import_ghp_user.html')
+#         if not result.has_errors():
+#             print("Dry run was successful. Importing data.")
+#             ghp_user_resource.import_data(dataset, dry_run=False)  # Actually import now
+#             print("Import was successful")
+#             print("Setting user balances")
+#             for email, balance in zip(emails, balances):
+#                 print("email: {}, balance: {}".format(email, balance))
+#                 ghp_user = GHPUser.objects.get(email=email)
+#                 print("ghp_user: ", ghp_user)
+#                 ghp_user.account.balance = balance
+#                 ghp_user.account.save()
+#                 print("ghp_user.account.balance: ", ghp_user.account.balance)
+#         else:
+#             print("Dry run was not successful")
+#             print(result)
+#     return render(request, 'measure/import_ghp_user.html')
