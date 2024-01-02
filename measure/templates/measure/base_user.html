@@ -1,0 +1,47 @@
+{% extends "measure/base.html" %}
+{% load static %}
+{% block title %}GHP{% endblock %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            text-align: center;
+        }
+        a {font-size: 32px}
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            
+        }
+        
+        .button-container button {
+            margin-top: 5px;
+            margin-bottom: 5px;
+            padding: 5px 5px;
+            font-size: 32px;
+        }
+    </style>
+    <script src="https://js.stripe.com/v3/"></script>  <!-- new -->
+    <script src="{% static 'measure/main.js' %}"></script> 
+    <script defer src="https://use.fontawesome.com/releases/v6.4.0/js/all.js"></script>
+    
+</head>
+<body>
+    <div class="button-container">
+        <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
+        <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account Log</a>
+        <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
+        <button class="button is-primary" id="submitBtn">Add Firing Credit</button>
+        <a href="{% url 'measure:logout' %}">Log Out</a>
+
+    </div>
+</body>
+</html>
+
+{% endblock %}

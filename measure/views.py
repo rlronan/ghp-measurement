@@ -18,6 +18,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import TemplateView
 from django.http.response import JsonResponse, HttpResponse
 import stripe
+import decimal
+
 # Create your views here.
 
 
@@ -210,6 +212,14 @@ def register_page(request):
 def base_view(request):
     return render(request, 'measure/base.html', {})
 
+def user_view(request):
+    return render(request, 'measure/base_user.html', {})
+
+
+
+
+
+
 @login_required(login_url='measure:login')
 @permission_required(['measure.view_account', 'measure.view_ledger',
                       'measure.view_piece', 'measure.add_ledger'], raise_exception=True)
@@ -275,7 +285,7 @@ def add_credit_view(request, ghp_user_id):
 class HomePageView(TemplateView):
     template_name = 'measure/home.html'
 # new
-@login_required(login_url='measure:login')
+#@login_required(login_url='measure:login')
 @csrf_exempt
 def stripe_config(request):
     if request.method == 'GET':
@@ -286,10 +296,13 @@ def stripe_config(request):
 @login_required(login_url='measure:login')
 @csrf_exempt
 def create_checkout_session(request):
+    print("In Create checkout session view...")
     if request.method == 'GET':
+        print("Request method is get")
         #TODO: need to change the following line to the correct domain
-        domain_url = 'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
+        domain_url = 'http://localhost:8000/'#'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
         stripe.api_key = settings.STRIPE_SECRET_KEY
+        print("Trying to create checkout session...")
         try:
             # Create new Checkout Session for the order
             # Other optional params include:
@@ -314,8 +327,10 @@ def create_checkout_session(request):
                 },
             ],
             )
+            print("Created checkout session")
             return JsonResponse({'sessionId': checkout_session['id']})
         except Exception as e:
+            print("Error creating checkout session")
             return JsonResponse({'error': str(e)})
 
 #@login_required(login_url='measure:login')
@@ -326,9 +341,10 @@ class StripeSuccessView(TemplateView):
 class StripeCancelledView(TemplateView):
     template_name = 'measure/stripe_cancelled.html'
 
-@login_required(login_url='measure:login')
+#@login_required(login_url='measure:login')
 @csrf_exempt
 def stripe_webhook(request):
+    print("In stripe webhook view...")
     stripe.api_key = settings.STRIPE_SECRET_KEY
     endpoint_secret = settings.STRIPE_ENDPOINT_SECRET
     payload = request.body
@@ -336,27 +352,40 @@ def stripe_webhook(request):
     event = None
     print("Received webhook")
     try:
+        print("Trying to construct event")
         event = stripe.Webhook.construct_event(
             payload, sig_header, endpoint_secret
         )
+        print("Constructed event")
     except ValueError as e:
         # Invalid payload
+        print("Error constructing event: ", e)
         return HttpResponse(status=400)
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
+        print("Error verifying signature: ", e)
         return HttpResponse(status=400)
 
+    print("Event type: {}".format(event['type']))
     # Handle the checkout.session.completed event
     if event['type'] == 'checkout.session.completed':
+        print("Event type is checkout.session.completed")
+        print("Event: {}".format(event))
+        print("Event type: {}".format(event['type']))
+        print("Event data: {}".format(event['data']))
+        print("Event object: {}".format(event['data']['object']))
+
         session = event['data']['object']
         print("Payment was successful.")
         # This method will be called when user successfully purchases something.
+        print("Calling handle_checkout_session")
         handle_checkout_session(session)
+        print("Handled checkout session. Redirecting to user account page")
         return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(session.get("client_reference_id"),)))
 
     return HttpResponse(status=200)
 
-@login_required(login_url='measure:login')
+#@login_required(login_url='measure:login')
 def handle_checkout_session(session):
     print("Handling checkout session")
     # client_reference_id = user's id
@@ -365,234 +394,58 @@ def handle_checkout_session(session):
     payment_intent = session.get("payment_intent")
     print("Client reference id: {}".format(client_reference_id))
     print("Payment intent: {}".format(payment_intent))
+    ghp_user = None
     if client_reference_id is None:
+        print("WARNING: Client wasn't logged in when purchasing!")
         # Customer wasn't logged in when purchasing
-        return
-
+        print("Trying to match customer by email")
+        email = session.get("customer_details").get("email")
+        if email is None:
+            email = session.get("customer_email")
+        print("Email: {}".format(email))
+        if email is not None:
+            try: 
+                ghp_user = GHPUser.objects.get(email=session.get("customer_email"))
+            except GHPUser.DoesNotExist:
+                print("WARNING: Could not find customer by email")
+                print("ERROR: STRIPE PAYMENT WAS NOT PROCESSED BY WEBSITE.")
+                print(session)
+                print("Canceling attempt to add credit to user account.")
+                print("ERROR: STAFF WILL HAVE TO MANUALLY ADD CREDIT TO USER ACCOUNT.")
+                return
     # Customer was logged in we can now fetch the Django user and make changes to our models
     try:
-        user = User.objects.get(id=client_reference_id)
-        print(user.username, "just purchased something.")
-        ghp_user = GHPUser.objects.get(username=user.username)
+        ghp_user = GHPUser.objects.get(pk=client_reference_id)#get_object_or_404(GHPUser, pk=client_reference_id)
+        print(ghp_user.username, "just purchased something.")
+        #ghp_user = GHPUser.objects.get(username=user.username)
         ghp_user_transaction_number = Ledger.objects.filter(ghp_user=ghp_user).count() + 1
         print("GHP user: {}".format(ghp_user))
         print("GHP user transaction number: {}".format(ghp_user_transaction_number))
-        amount = float(session.get("amount_subtotal")) / 100.0 # cents to dollars
+        amount = decimal.Decimal(float(session.get("amount_subtotal")) / 100.0 )# cents to dollars to decimal
         print("Amount: {}".format(amount))
         try:
-            Ledger.objects.create(
-                date = timezone.now(),
-                ghp_user=ghp_user,
-                ghp_user_transaction_number=ghp_user_transaction_number,
-                amount= amount, # amount is negative because this is a fee
-                transaction_type='auto_user_add_firing_credit',
-                note='Stripe Payment of ${}'.format(amount),
-                piece=None
-                )
-            print("Created ledger entry")
-        except:
-            print("Error creating ledger entry")
+            print("Creating ledger entry")
+            print("ghp_user: ", ghp_user)
+            print("amount: ", amount)
+            print("transaction_type: ", 'auto_user_add_firing_credit')
+            print("note: ", 'Stripe Payment of ${}'.format(amount))
+            user_payment = Ledger.objects.create(
+                                ghp_user=ghp_user,
+                                amount= amount, # amount is postive because the user is buying credit
+                                transaction_type='auto_user_add_firing_credit',
+                                note='Stripe Payment of ${}'.format(amount),
+            )
+            print("Saving ledger entry")
+            user_payment.save()
+            print("Finished creating ledger entry")
+        except Exception as e:
+            print("Error creating ledger entry: ", e)
             pass
         # TODO: make changes to our models.
 
-    except User.DoesNotExist:
-        print("Webhook error: User does not exist")
+    except GHPUser.DoesNotExist:
+        print("Webhook error: GHPUser does not exist")
         pass
-
-
-
-
-import tablib
-from import_export import resources
-
-# def ImportGHPUserView(request):
-#     print("in view")
-#     if request.method == 'POST':
-#         print("Request method is post")
-#         model_resource = resources.modelresource_factory(model=GHPUser)() # to take the model as a reference
-#         new_users = request.FILES['csv_events'] # to get the file
-#         # this part is to add the a column with the user id
-#         dataset = tablib.Dataset(
-#             headers=['first_name', 'last_name', 'email', 'current_location', 'balance']
-#         ).load(new_users.read().decode('utf-8'), format='csv')
-        
-        
-#         emails = dataset['email']
-#         balances = dataset['balance']
-#         locations = dataset['current_location']
-#         dataset = dataset.subset(
-#             cols=[0,1,2]
-#         )
-
-#         # dataset.append_col(
-#         #     col=tuple(f'{user_id}' for _ in range(dataset.height)),
-#         #     header='user_id'
-#         # )
-
-
-#         result = model_resource.import_data(dataset, dry_run=True)  # Test the data import
-
-#         if not result.has_errors():
-#             model_resource.import_data(dataset, dry_run=False)  # Actually import now
-#     print("redirecting")
-#     return redirect(reverse('measure:base'))
-
-
-# def ImportGHPUserViewBase(request):
-#     print("in import base")
-#     #if request.method == 'POST':
-#         #print("Request method is post")
-#     return render(request, 'measure/import_ghp_user.html')
-
-# DO NOT USE
-# from tablib import Dataset
-# from .admin import GHPUserResource
-# def simple_upload(request):
-#     if request.method == 'POST':
-#         print("defining ghp user resource")
-#         ghp_user_resource = GHPUserResource()
-#         dataset = tablib.Dataset(
-#             ##headers=['first_name', 'last_name', 'email', 'location', 'balance']
-#         )
-#         print("Getting file")
-#         new_users = request.FILES['user_import_file']
-
-#         print("reading file...")
-#         imported_data = dataset.load(new_users.read().decode('utf-8'), format='csv')
-#         print("imported data: ", imported_data)
-#         print("datset: ", dataset)
-#         print("Dataset dict: ", dataset.dict)
-#         #print("pulling emails and balances")
-#         print("trying to look at dataset columns")
-#         print(dir(dataset))
-#         print(dir(imported_data))
-#         try:
-#             print(dataset['first_name'])
-#         except Exception as e:
-#             print("Error getting first_name: ", e)
-        
-#         print("trying to look at other columns")
-
-#         try:
-#             print("Trying to look at dataset email")
-#             print(dataset['email'])
-#         except Exception as e:
-#             print("Error getting emails: ", e)
-#             print("Trying to look at dataset username")
-#             print(dataset['username'])
-#         try:
-#             emails = dataset['email']
-#         except Exception as e:
-#             print("Error getting emails: ", e)
-#             emails = dataset['username']
-
-#         print("emails: ", emails)
-        
-#         balances = dataset['balance']
-#         print("balances: ", balances)
-
-#         try:
-#             locations = dataset['location']
-#             print("locations: ", locations)
-#         except Exception as e:
-#             print("Error getting locations: ", e)
-#             try:
-#                 locations = dataset['current_location']
-#                 print("locations: ", locations)
-#             except Exception as e:
-#                 print("Error getting locations: ", e)
-#                 locations = [''] * len(emails)
-#                 print("locations: ", locations)
-        
-#         print("dropping balance column")
-#         del dataset['balance']
-#         print("appending username column")
-#         dataset.append_col(dataset['email'], header='username')
-#         #dataset['username'] = dataset['email']
-#         print("Dry running import")
-#         result = ghp_user_resource.import_data(dataset, dry_run=True)  # Test the data import
-#         print("Result: ", result)
-#         print("Result has errors: ", result.has_errors())
-#         print("result has validation errors: ", result.has_validation_errors())
-#         print(dir(result))
-#         try:
-#             print("result errors: ", result.errors)
-#         except Exception as e:
-#             print("Error getting result errors: ", e)
-
-#         try:
-#             print("result base errors: ", result.base_errors)
-#         except Exception as e:
-#             print("Error getting result base errors: ", e)
-#         try:
-#             print("result diff headers: ", result.diff_headers)
-#         except Exception as e:
-#             print("Error getting result diff headers: ", e)
-        
-#         try:
-#             print("base_errors:", result.base_errors)
-#         except Exception as e:
-#             print("Error getting base_errors:", e)
-
-#         try:
-#             print("diff_headers:", result.diff_headers)
-#         except Exception as e:
-#             print("Error getting diff_headers:", e)
-
-#         try:
-#             print("failed_dataset:", result.failed_dataset)
-#         except Exception as e:
-#             print("Error getting failed_dataset:", e)
-
-
-#         try:
-#             print("increment_row_result_total:", result.increment_row_result_total(result.rows))
-#         except Exception as e:
-#             print("Error getting increment_row_result_total:", e)
-
-#         try:
-#             print("invalid_rows:", result.invalid_rows)
-#         except Exception as e:
-#             print("Error getting invalid_rows:", e)
-
-#         try:
-#             print("row_errors:", result.row_errors())
-#         except Exception as e:
-#             print("Error getting row_errors:", e)
-
-#         try:
-#             print("rows:", result.rows)
-#         except Exception as e:
-#             print("Error getting rows:", e)
-
-#         try:
-#             print("total_rows:", result.total_rows)
-#         except Exception as e:
-#             print("Error getting total_rows:", e)
-
-#         try:
-#             print("totals:", result.totals)
-#         except Exception as e:
-#             print("Error getting totals:", e)
-
-#         try:
-#             print("valid_rows:", result.valid_rows())
-#         except Exception as e:
-#             print("Error getting valid_rows:", e)
-
-#         if not result.has_errors():
-#             print("Dry run was successful. Importing data.")
-#             ghp_user_resource.import_data(dataset, dry_run=False)  # Actually import now
-#             print("Import was successful")
-#             print("Setting user balances")
-#             for email, balance in zip(emails, balances):
-#                 print("email: {}, balance: {}".format(email, balance))
-#                 ghp_user = GHPUser.objects.get(email=email)
-#                 print("ghp_user: ", ghp_user)
-#                 ghp_user.account.balance = balance
-#                 ghp_user.account.save()
-#                 print("ghp_user.account.balance: ", ghp_user.account.balance)
-#         else:
-#             print("Dry run was not successful")
-#             print(result)
-#     return render(request, 'measure/import_ghp_user.html')
+    except Exception as e:
+        print("Error: ", e)
+        pass

@@ -8,12 +8,22 @@
     <title>Django + Stripe Checkout</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <script defer src="https://use.fontawesome.com/releases/v6.4.0/js/all.js"></script>
+    <script type="text/javascript">
+      function redirectToHomePage() {
+          // Redirect after 3 seconds
+          setTimeout(function() {
+              window.location.href = "/user/";
+          }, 3000);
+      }
+    </script>
   </head>
-  <body>
-  <section class="section">
+  <body onload="redirectToHomePage()">
+    <section class="section">
     <div class="container">
       <p>Your payment was cancelled.</p>
+      <p>Redirecting to home page...</p>
     </div>
   </section>
+
   </body>
 </html>
