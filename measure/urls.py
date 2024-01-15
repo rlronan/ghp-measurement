@@ -10,12 +10,13 @@ app_name = 'measure'
 urlpatterns = [
     path("admin/", admin.site.urls),
  
-    path('', views.index_view, name='index'),
+    ##path('', views.index_view, name='index'),
+    path('', views.user_view, name='user'),
     path('base/', views.base_view, name='base'),
 
     path('user/', views.user_view, name='user'),
     path('register/', views.register_page, name='register'),
-    path('login/', auth_views.LoginView.as_view(next_page='measure:base'), name='login'),
+    path('login/', auth_views.LoginView.as_view(next_page='measure:user'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='measure:login'), name='logout'),
     # path('login/password_reset/', auth_views.PasswordResetView.as_view(template_name='registration/password_reset.html', 
     #                                                                    email_template_name='registration/password_reset_email_edit.html',
@@ -67,7 +68,7 @@ urlpatterns = [
     path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/', views.ModifyPieceView, name='modify_piece'),
     path('<int:ghp_user_id>/piece/<int:ghp_user_piece_id>/refund/', views.refund_view, name='refund_piece'),
     path('<int:ghp_user_id>/account/credit/', views.add_credit_view, name='add_credit'),
-    path('home/', views.HomePageView.as_view(), name='home'),
+    ##path('home/', views.HomePageView.as_view(), name='home'),
     path('stripe_config/', views.stripe_config, name='stripe_config'),
     path('create-checkout-session/', views.create_checkout_session), # new
     path('success/', views.StripeSuccessView.as_view()), # new

@@ -37,11 +37,16 @@
                 }
 
             .menu {
+                font-family: "Franklin Gothic Book", Arial, Helvetica, sans-serif;
                 display: flex;
                 align-items: center;
                 height: 100%;
             }
-
+            .a {
+                font-size: 24px;
+                font-family: "Franklin Gothic Book", Arial, Helvetica, sans-serif;
+            
+            }
             .menu a {
                 margin-left: 10px;
                 margin-right: 10px;
@@ -52,12 +57,29 @@
                 font-weight: 600;
                 text-transform: uppercase;
                 }
+                
+            .menu button {
+                margin-left: 10px;
+                margin-right: 10px;
+                padding: 0.25em 0.75em;
+                color: #fff;
+                text-decoration: none;
+                font-size: 18px;
+                font-weight: 600;
+                text-transform: uppercase;
+                background: none!important;
+                outline: none;
+                box-sizing: content-box;
+
+                border: none;
+                }
 
             .menu a:hover {
                 color: #ffffff;
                 }
 
             h {
+                    font-family:"Franklin Gothic Book", Arial, Helvetica, sans-serif;
                     color: #939fb1;
                     font-size: 25px;
                     font-weight: 600;
@@ -67,6 +89,8 @@
                     align-self: baseline;
                 }
             h.mini {
+                    font-family: "Franklin Gothic Demi", Arial, Helvetica, sans-serif;
+
                     color: #ffffff;
                     font-size: 16px;
                     font-weight: 400;
@@ -81,7 +105,9 @@
                     }
 
                     .dropdown .dropbtn {
-                    font-size: 16px;  
+                    font-family: "Franklin Gothic Demi", "Franklin Gothic", "Franklin Gothic Book", Arial, Helvetica, sans-serif;
+
+                    font-size: 32px;  
                     border: none;
                     outline: none;
                     color: white;
@@ -112,6 +138,19 @@
                     display: block;
                     text-align: left;
                     }
+                    .dropdown-content button {
+                    font-family: "Franklin Gothic Demi", "Franklin Gothic", "Franklin Gothic Book", Arial, Helvetica, sans-serif;;
+                    float: none;
+                    color: black;
+                    padding: 12px 16px;
+                    text-decoration: none;
+                    display: block;
+                    text-align: left;
+                    background: none!important;
+                    outline: none;
+
+                    border: none;
+                    }
 
                     .dropdown-content a:hover {
                     background-color: #ddd;
@@ -141,9 +180,11 @@
                 <i class="fa fa-caret-down"></i>
               </button>
               <div id="menuDropdown" class="dropdown-content">
+                <a href="{% url 'measure:user'%}">Home</a>
                 <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
                 <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account</a>
                 <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
+                <button class="button is-primary" id="submitBtn2">Add Firing Credit</button>
                 <a href="{% url 'measure:logout' %}">Log Out</a>
             </div>
           </div> 

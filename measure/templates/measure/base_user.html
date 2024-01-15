@@ -11,7 +11,11 @@
         body {
             text-align: center;
         }
-        a {font-size: 32px}
+        a {
+            font-size: 32px;
+            font-family: "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
+            color: #4F8471;
+}
         .button-container {
             display: flex;
             flex-direction: column;
@@ -21,11 +25,18 @@
         }
         
         .button-container button {
-            margin-top: 5px;
-            margin-bottom: 5px;
-            padding: 5px 5px;
+            background: none!important;
+            border: none;
+            padding: 0!important;
+            font-family: "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
+            color: #4F8471;
+            text-decoration: underline;
             font-size: 32px;
+
+       
         }
+
+
     </style>
     <script src="https://js.stripe.com/v3/"></script>  <!-- new -->
     <script src="{% static 'measure/main.js' %}"></script> 

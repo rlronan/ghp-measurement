@@ -41,8 +41,11 @@ DEBUG = bool( os.environ.get('DJANGO_DEBUG', False) )
 # https://docs.djangoproject.com/en/4.2/ref/settings/#std-setting-ALLOWED_HOSTS
 if IS_HEROKU_APP:
     ALLOWED_HOSTS = ["*"]
+    DOMAIN = "https://ghp-measurement-d2e329f35d3b.herokuapp.com/"
 else:
     ALLOWED_HOSTS = []
+    DOMAIN = "https://localhost:8000/"
+
 
 CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
 

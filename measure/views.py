@@ -208,10 +208,11 @@ def register_page(request):
 
     return render(request, 'measure/register.html', {'form': form})
 
-
+@login_required(login_url='measure:login')
 def base_view(request):
     return render(request, 'measure/base.html', {})
 
+@login_required(login_url='measure:login')
 def user_view(request):
     return render(request, 'measure/base_user.html', {})
 
@@ -300,7 +301,7 @@ def create_checkout_session(request):
     if request.method == 'GET':
         print("Request method is get")
         #TODO: need to change the following line to the correct domain
-        domain_url = 'http://localhost:8000/'#'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
+        domain_url = settings.DOMAIN ##'http://localhost:8000/'#'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
         stripe.api_key = settings.STRIPE_SECRET_KEY
         print("Trying to create checkout session...")
         try:
