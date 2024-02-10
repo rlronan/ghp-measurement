@@ -392,6 +392,7 @@ def handle_checkout_session(session):
     print("Handling checkout session")
     # client_reference_id = user's id
     print("session: {}".format(session))
+    session_id = session.get("id")
     client_reference_id = session.get("client_reference_id")
     payment_intent = session.get("payment_intent")
     print("Client reference id: {}".format(client_reference_id))
@@ -426,9 +427,29 @@ def handle_checkout_session(session):
         amount = decimal.Decimal(float(session.get("amount_subtotal")) / 100.0 )# cents to dollars to decimal
         print("Amount: {}".format(amount))
         try:
+            # Check if this is a duplicate transaction 2/10/24
+            print("Checking if this is a duplicate transaction")
+            print("Session id: ", session_id)
+            print("Payment intent: ", payment_intent)
+            print("GHP user: ", ghp_user)
+            print("Amount: ", amount)
+            # Get all transactions with the same stripe_session_id. Check the note text to see if
+            if session_id is not None:
+                ledgers = Ledger.objects.filter(stripe_session_id=session_id).all()
+                print("Ledgers: ", ledgers)
+                if ledgers.count() > 0:
+                    print("Duplicate transaction detected")
+                    print("Canceling attempt to add credit to user account.")
+                    print("ERROR: STAFF WILL HAVE TO MANUALLY ADD CREDIT TO USER ACCOUNT.")
+                    return
+        except Exception as e:
+            print("Error checking for duplicate transaction: ", e)
+            pass
+        try:
             print("Creating ledger entry")
             print("ghp_user: ", ghp_user)
             print("amount: ", amount)
+            print("Session id: ", session_id)
             print("transaction_type: ", 'auto_user_add_firing_credit')
             print("note: ", 'Stripe Payment of ${}'.format(amount))
             user_payment = Ledger.objects.create(
@@ -436,6 +457,7 @@ def handle_checkout_session(session):
                                 amount= amount, # amount is postive because the user is buying credit
                                 transaction_type='auto_user_add_firing_credit',
                                 note='Stripe Payment of ${}'.format(amount),
+                                stripe_session_id=session_id,
             )
             print("Saving ledger entry")
             user_payment.save()

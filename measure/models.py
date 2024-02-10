@@ -530,7 +530,8 @@ class Ledger(models.Model):
 
     note = models.CharField(max_length=1000, blank=True)
     piece = models.ForeignKey(Piece, models.SET_NULL, null=True, blank=True)
-
+    # adding 2/10/24
+    stripe_session_id = models.CharField(max_length=100, blank=True, null=True)
     class Meta:
         managed = True
         db_table = 'ledger'
