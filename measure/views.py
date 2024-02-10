@@ -324,7 +324,7 @@ def create_checkout_session(request):
                             line_items=[
                 {
                     # Provide the exact Price ID (for example, pr_1234) of the product you want to sell
-                    'price': 'price_1NykHQE1Tl2FOfocAeJNrJKN',
+                    'price': 'price_1OiMoHKNzblAdhbyq93B7xrG', # moving price to ghp_account 'price_1NykHQE1Tl2FOfocAeJNrJKN',
                     'quantity': 1,
                 },
             ],
