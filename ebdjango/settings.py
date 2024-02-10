@@ -41,13 +41,13 @@ DEBUG = bool( os.environ.get('DJANGO_DEBUG', False) )
 # https://docs.djangoproject.com/en/4.2/ref/settings/#std-setting-ALLOWED_HOSTS
 if IS_HEROKU_APP:
     ALLOWED_HOSTS = ["*"]
-    DOMAIN = "https://ghp-measurement-d2e329f35d3b.herokuapp.com/"
+    DOMAIN = "https://potteryapp.greenwichhouse.org/" #https://ghp-measurement-d2e329f35d3b.herokuapp.com/"
 else:
     ALLOWED_HOSTS = []
     DOMAIN = "https://localhost:8000/"
 
 
-CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
+#CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
 
 STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_51Nycv3E1Tl2FOfocx19Lu1uBahAQtLn4xrXzFDkdJuD8Ec95xzBy0UW5ekqIIk90Qe1bhb755oRy97gPnEXk7W1R00dOnwo5c1')
 
@@ -196,9 +196,18 @@ MEDIA_URL = 'media/'
 # DATABASES["default"]["ATOMIC_REQUESTS"] = True
 # DATABASES["default"]["CONN_MAX_AGE"] = 60
 
-
-
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# 2/10/24: securing the site better:
+# SSL redirect
+SECURE_SSL_REDIRECT = True
+# Secure cookies
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+# HSTS
+SECURE_HSTS_SECONDS = 3600 # 2/10/24: enabling HSTS with initial 1 hour duration for testing
+
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

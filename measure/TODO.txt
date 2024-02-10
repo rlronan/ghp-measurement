@@ -1,7 +1,29 @@
+
+TO DO 1/14/24:
+1. Need access to GHP Mailchimp account and domain hosting to fix 
+	email sending and password reset
+2. Need to make GHP a heroku account
+3. DONE: Need to move the domain hosting to GHP website
+4. Finish setting up emails and password resets after (1) is done.
+5. Need Access to ghp stripe account to move the stripe integration to the ghp account.
+6. NEED SET UP PRINTING FROM DJANGO
+7. Need to make home page before you log in.
+8. Fix add firing credit link in menu bar not working if you are not on the user pager.
+9. Need to fix the initial values for the measure page after you change the glaze or bisque TEMP
+10. Need to fix teh glaze valuse to be de dependent on the location, not just the initial location.
+11. Need to wipe the database!
+12. Need to re-add image uploads later
+
+
+
+
+
+
+
 1. *TABLED FOR LATER: Fix URL redirects from admin logout to go to main site login (Do i want this?).
 2. Fix export to csv to include all list_display fields, not all model fields (e.g. don't want to export the password field).
 3. *DONE: Add permission requirements for the refund and credit actions on the main site and admin.
-4. *TABLED FOR LATER: Add a way to properly add a new user from the admin site.
+4. *DONE (PENDING PASSWORD RESETS): Add a way to properly add a new user from the admin site.
 5. Add more documentation for the admin site, and for users on the main site.
 6. *DONE: (IS NOW STAFF ONLY) Add permision requirements for the index page on the main site. Currently anyone can see it.
 7. *TABLED FOR LATER: Add test cases for the main site and admin site.
@@ -12,7 +34,7 @@
 12. *DONE (mostly) Add stripe integration for the site.
 13. Add/fix AWS hosting for the site.
 14. Add a way to export certain aspects of the logging (e.g. all logs for a certain user, or all logs for a certain date range, all logs of a refund action, etc.).
-15. Update settings to be production ready.
+15. *DONE(?)Update settings to be production ready.
 16. *DONE: Add image upload and viewing for main site. 
 17. *DONE: Redirect base url to measure.
 18. Send emails to users if their balance is too low. 
@@ -34,33 +56,25 @@ TODO STILL (IN ORDER OF PRIORITY):
 
 
 
-FIX PASSWORD RESSET
-FIX STRIPE Redirect
-
-
-Get rid of cone 2, git rid of cone 06
-
-Add something to clarify that this is also paying for bisque firing
-
+FIX PASSWORD RESSET [REQUIRES MAILCHIMP AND DOMAIN HOSTING]
+Done: FIX STRIPE Redirect 
+Done: Get rid of cone 2, git rid of cone 06
+Done: Add something to clarify that this is also paying for bisque firing
 
 Login page should not be blank
 
-USER IMPORT WITH A LOCATION THING\
+Done: USER IMPORT WITH A LOCATION THING\
 
-LETS USERS MEASURE A PIECE FOR GLAZING ONLY
+Done: LETS USERS MEASURE A PIECE FOR GLAZING ONLY
 
-IF YOU SELECT ANY GLAZE TEMP YOU ARE MEASURE A PIECE FOR BOTH FIRINGS
 
 PRINTER THEY SENT A LINK FOR
 	Printing from djano
 
-ON THE PIECE MEASURING PAGE, SHOW NO PLACEHOLDER NUMBERS
+Done: ON THE PIECE MEASURING PAGE, SHOW NO PLACEHOLDER NUMBERS
 
-MOVE TEH NOTE AND IMAGE FIELD TO THE VIEW PIECE PAGE
+Done: MOVE TEH NOTE AND IMAGE FIELD TO THE VIEW PIECE PAGE
 
-FROM TIME BUT NOT TDATE FROM THE ACCOUNT PAGE
-
-
-
+Done: FROM TIME BUT NOT TDATE FROM THE ACCOUNT PAGE
 
 

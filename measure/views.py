@@ -302,6 +302,7 @@ def create_checkout_session(request):
         print("Request method is get")
         #TODO: need to change the following line to the correct domain
         domain_url = settings.DOMAIN ##'http://localhost:8000/'#'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
+        print("Domain url: {}".format(domain_url))
         stripe.api_key = settings.STRIPE_SECRET_KEY
         print("Trying to create checkout session...")
         try:
