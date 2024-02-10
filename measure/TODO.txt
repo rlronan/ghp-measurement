@@ -5,7 +5,7 @@ TO DO 1/14/24:
 2. Need to make GHP a heroku account
 3. DONE: Need to move the domain hosting to GHP website
 4. Finish setting up emails and password resets after (1) is done.
-5. Need Access to ghp stripe account to move the stripe integration to the ghp account.
+5. DONE: Need Access to ghp stripe account to move the stripe integration to the ghp account.
 6. NEED SET UP PRINTING FROM DJANGO
 7. Need to make home page before you log in.
 8. Fix add firing credit link in menu bar not working if you are not on the user pager.
@@ -15,6 +15,7 @@ TO DO 1/14/24:
 12. Need to re-add image uploads later
 13. Fix submit button colors on measure page.
 14. Luster Glaze is currently broken.
+15. Need to move stripe to production
 
 
 

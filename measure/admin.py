@@ -796,7 +796,7 @@ class PieceAdmin(admin.ModelAdmin):
 class LedgerAdmin(admin.ModelAdmin):
 
     list_display = [ 'transaction_type', 'date', 'amount', 'ghp_user', 'piece', 
-                    'note', 'transaction_id']
+                    'note', 'transaction_id', 'stripe_session_id']
     
     list_filter = ['transaction_type', 'date', AmountFilter, CurrentUserFilterFromOther, 'ghp_user__current_student', 'ghp_user__current_staff', 'ghp_user__current_admin']
     
@@ -805,7 +805,7 @@ class LedgerAdmin(admin.ModelAdmin):
     
     ordering = ['-date', 'ghp_user__last_name', 'ghp_user__first_name']
 
-    readonly_fields = ['transaction_id', 'date']
+    readonly_fields = ['transaction_id', 'date', 'stripe_session_id']
 
     autocomplete_fields = ['ghp_user', 'piece',] 
 
@@ -813,7 +813,7 @@ class LedgerAdmin(admin.ModelAdmin):
         (
             None,
             {   "classes": ["pretty"],
-                "fields": ['ghp_user', 'amount', 'transaction_type', 'piece', 'note'],
+                "fields": ['ghp_user', 'amount', 'transaction_type', 'piece', 'note', 'stripe_session_id'],
             },
         ),
     ]
