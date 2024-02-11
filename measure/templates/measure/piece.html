@@ -141,16 +141,41 @@
                 <td>{{ form.note }}</td>
             </tr>
 
-            <tr>
+            <!-- <tr>
                 <th>Image {{form.image.errors}}</th>
                 <td>{{ form.image }}</td>
-                <!-- <td><img src ="{{ form.image.url }}"></td> -->
-            </tr>
+            </tr> -->
         </table>
         <button type="submit">Submit</button>
     </form>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var pieceLocationField = document.getElementById('id_piece_location');
+            var glazeTempField = document.getElementById('id_glaze_temp');
+            
+            pieceLocationField.addEventListener('change', function() {
+                var selectedLocation = pieceLocationField.value;
+                var options = glazeTempField.options;
+                
+                // Clear existing options
+                for (var i = options.length - 1; i >= 0; i--) {
+                    glazeTempField.remove(i);
+                }
+
+                // Add new options based on the selected location
+                if (selectedLocation === 'Greenwich') {
+                    glazeTempField.add(new Option("10", "Δ 10 (Cone 10)"));
+                    glazeTempField.add(new Option("6", "Δ 6 (Cone 6)"));
+                    glazeTempField.add(new Option("Lust", "Luster"));
+                    glazeTempField.add(new Option("04", "Δ 04 (Cone 04)"));
+                    glazeTempField.add(new Option("None", "None"));
+                } else if (selectedLocation === 'Chelsea') {
+                    glazeTempField.add(new Option("6", "Δ 6 (Cone 6)"));
+                    glazeTempField.add(new Option("None", "None"));
+                }
+            });
+        });
         $(document).ready(function () {
             // listen for changes in the length, width, and height, and glaze_temp, and bisque_temp fields
             // glaze_temp is a choice field, so it is a select element
