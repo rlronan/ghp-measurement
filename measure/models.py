@@ -311,7 +311,11 @@ class Piece(models.Model):
                 self.size = size_test
 
         # Manage firing, glazing and total price, before we save the piece
-
+        # Make sure not to set the glaze or firing price to zero if the user changes from a non-zero value,
+        # otherwise if they change back to the original value we will re-charge them.
+        if PIECE_UPDATING:
+            self.glazing_price = np.max([self.glazing_price, previous_piece.glazing_price])
+            self.firing_price = np.max([self.firing_price, previous_piece.firing_price])
         # If we are updating, we should not create a ledger entry or change the 
         # glazing_price unless the glaze_temp has changed:
         if PIECE_UPDATING and (

@@ -9,14 +9,14 @@ TO DO 1/14/24:
 6. NEED SET UP PRINTING FROM DJANGO
 7. Need to make home page before you log in.
 8. Fix add firing credit link in menu bar not working if you are not on the user pager.
-9. Need to fix the initial values for the measure page after you change the glaze or bisque TEMP
-10. Need to fix the glaze valuse to be de dependent on the location, not just the initial location.
+9. DONE: Need to fix the initial values for the measure page after you change the glaze or bisque TEMP
+10. DONE: Need to fix the glaze valuse to be de dependent on the location, not just the initial location.
 11. Need to wipe the database!
 12. Need to re-add image uploads later
-13. Fix submit button colors on measure page.
-14. Luster Glaze is currently broken.
+13. DONE: Fix submit button colors on measure page.
+14. DONE: Luster Glaze is currently broken.
 15. Need to move stripe to production
-
+16. Need to make the selection spaces larger on the measure page.
 
 
 

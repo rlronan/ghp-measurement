@@ -31,6 +31,9 @@ input {
   background-color: rgb(225, 225, 225);
   border-radius: 0.25em;
   color: black;
+  height: 20px;
+  font-size: 20px;
+  font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
 } 
 
 button {
@@ -68,4 +71,17 @@ button:hover {
 table {
   font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
   color: black;
+}
+
+select {
+  margin: 0.25em;
+  outline: none;
+  padding: 0.5em;
+  border: none;
+  border-radius: 0.25em;
+  color: black;
+  height: 20px;
+  font-size: 20px;
+  font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
+
 }
