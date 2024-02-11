@@ -47,31 +47,32 @@ class PieceForm(forms.ModelForm):
         self.fields['ghp_user'].initial = self.ghp_user
         self.fields['ghp_user_piece_id'].initial = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
 
-        self.fields['bisque_temp'].initial = 'Cone 06'
-        self.fields['glaze_temp'].initial = 'Cone 10'
+
+        # self.fields['bisque_temp'].initial = 'Cone 06'
+        # self.fields['glaze_temp'].initial = 'Cone 10'
 
 
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
         
         if self.fields['piece_location'].initial == 'Greenwich':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='Cone 06')
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial='Cone 10')
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='06')
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial='10')
         elif self.fields['piece_location'].initial == 'Chelsea':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial='Cone 06')
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial='Cone 10')
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial='06')
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial='6')
     
 
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
         self.fields['length'].widget.attrs['min'] = 0.5
-        self.fields['length'].widget.attrs['step'] = 0.5
+        #self.fields['length'].widget.attrs['step'] = 0.5
       
         self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
         self.fields['width'].widget.attrs['min'] = 0.5
-        self.fields['width'].widget.attrs['step'] = 0.5
+        #self.fields['width'].widget.attrs['step'] = 0.5
 
         self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=3.0)
         self.fields['height'].widget.attrs['min'] = 3.0
-        self.fields['height'].widget.attrs['step'] = 0.5
+        #self.fields['height'].widget.attrs['step'] = 0.5
 
         # Set initial value for size
         self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
@@ -243,9 +244,9 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['bisque_temp'].initial = self.piece.bisque_temp
         self.fields['glaze_temp'].initial = self.piece.glaze_temp
 
-        self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.length)
-        self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.width)
-        self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=2, initial=self.piece.height)
+        self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.length)
+        self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.width)
+        self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.height)
         self.fields['length'].widget.attrs['readonly'] = 'readonly'
         self.fields['width'].widget.attrs['readonly'] = 'readonly'
         self.fields['height'].widget.attrs['readonly'] = 'readonly'

@@ -317,7 +317,7 @@ class Piece(models.Model):
         if PIECE_UPDATING and (
             (previous_piece.glaze_temp == 'None') and (self.glaze_temp != 'None')
             ):
-            # Make sure the glaze price is at least MINIMUM_PRICE, 
+            # Make sure the glaze price + bisque price is at least MINIMUM_PRICE, 
             # and update the price accordingly
             if self.glazing_price < decimal.Decimal(MINIMUM_PRICE):
                 self.glazing_price = decimal.Decimal(MINIMUM_PRICE)
@@ -384,8 +384,7 @@ class Piece(models.Model):
                 
                 # Check that the price is the firing + glazing price or that the 
                 # ~~price is 1.0 because the firing + glazing price is less than 1.0~~
-                assert \
-                    (self.price == self.firing_price + self.glazing_price)
+                assert self.price == self.firing_price + self.glazing_price
                     #   or ( (self.price == 1.0) and 
                     #       (self.firing_price + self.glazing_price < 1.0) 
                     #       )
@@ -417,8 +416,7 @@ class Piece(models.Model):
                 print("Creating ledger entry for bisque firing fee")
 
                 # Check that the firing price is the same as the price or the 
-                assert \
-                    (self.firing_price == self.price)
+                assert self.firing_price == self.price
                     # or ( 
                     #     (self.price == 1.0) 
                     #     and (self.firing_price < 1.0) 
@@ -440,8 +438,7 @@ class Piece(models.Model):
                 print("Creating ledger entry for Glaze firing fee")
 
                 # Check that the glazing price is the same as the price 
-                assert \
-                    (self.glazing_price == self.price), "Glazing price is not the same as the price: " + str(self.glazing_price) + " != " + str(self.price) + " for piece " + str(self.ghp_user_piece_id) + " for user " + str(self.ghp_user)
+                assert self.glazing_price == self.price, "Glazing price is not the same as the price: " + str(self.glazing_price) + " != " + str(self.price) + " for piece " + str(self.ghp_user_piece_id) + " for user " + str(self.ghp_user)
                     # or (
                     #     (self.price == 1.0)
                     #     and (self.glazing_price < 1.0)
@@ -457,6 +454,9 @@ class Piece(models.Model):
                         piece=self
                         )
             else:
+                print('ERROR: You must select a firing temperature for the '\
+                'bisque or glaze firing, or both.\n If you do ' \
+                'not want to fire or glaze this piece, do not submit it.\n')
                 raise ValueError('You must select a firing temperature for the '\
                 'bisque or glaze firing, or both.\n If you do ' \
                 'not want to fire or glaze this piece, do not submit it.\n')
@@ -470,7 +470,7 @@ class Piece(models.Model):
             # The user may be only updating the piece notes, description, booleans
             # for whether the piece has been fired or glazed, etc., or they may be
             # trying to pay for glazing for the piece. We need to check for both cases.
-            print("Updating a piece")
+            print("Checking if new transactions are needed for piece update...")
 
             # Check if the glaze_temp has changed from 'None' to something else
             if (previous_piece.glaze_temp == 'None') and (self.glaze_temp != 'None'):
@@ -502,9 +502,37 @@ class Piece(models.Model):
 
             # Check if the bisque_temp has changed from 'None' to something else
             if (previous_piece.bisque_temp == 'None') and (self.bisque_temp != 'None'):
-                # The user is trying to pay for bisque firing for this piece, 
-                # but the piece has already been glazed, so this is not possible
-                raise ValueError('You cannot pay for bisque firing for a piece that has already been glazed')
+                # 2/11/24: we are going to allow this for now. 
+
+                print("Creating ledger entry for a new Bisque firing fee")
+
+                # first get a new transaction number
+                ghp_user_transaction_number = Ledger.objects.filter(ghp_user=self.ghp_user).count() + 1
+                
+                # get a date for the ledger object
+                ledger_date = timezone.now()
+
+                # We only want to charge the glazing price, not the full price,
+                # since the user may have already paid for the bisque firing
+
+                # Create a ledger entry for the glaze firing fee
+                Ledger.objects.create(
+                        date = ledger_date,
+                        ghp_user=self.ghp_user,
+                        ghp_user_transaction_number=ghp_user_transaction_number,
+                        amount= -1 * self.firing_price, # amount is negative because this is a fee
+                        transaction_type='auto_bisque_fee',
+                        note='Bisque Firing Fee for Piece #' + str(self.ghp_user_piece_id),
+                        piece=self
+                )
+
+                # If the user is now paying for glazing, we need to update the last measure date
+                self.ghp_user.last_measure_date = ledger_date
+
+                # # The user is trying to pay for bisque firing for this piece, 
+                # # but the piece has already been glazed, so this is not possible
+                # print("ERROR: " + str(self.ghp_user) + " is trying to pay for bisque firing for a piece that has already been glazed")
+                # raise ValueError('You cannot pay for bisque firing for a piece that has already been glazed')
 
                 # perhaps we should consider allowing the user to pay for bisque 
                 # firing after glaze firing, in case they get confused, and don't 

@@ -7,7 +7,10 @@ GLAZE_TEMPS  = [
         ("10",   "Δ 10 (Cone 10)"),
         ("6",    "Δ 6 (Cone 6)"),
         ##("2",    "Δ 2 (Cone 2)"), # removed 12/29/23
-        ("014",  "Δ 014 (Cone 014)"),
+        #("014",  "Δ 014 (Cone 014)"),
+        # 2/11/24: replaced 014 with luster
+        ("Lust",  "Luster"),
+
         ##("06G",   "Δ 06 (Cone 06)"), # remove 12/29/23
         ("04",   "Δ 04 (Cone 04)"),
         ("None", "None"),

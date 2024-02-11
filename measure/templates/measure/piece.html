@@ -161,15 +161,18 @@
                 var width = parseFloat($('input[name=width]').val());
                 var height = parseFloat($('input[name=height]').val());
 
-                // if any of the values are NaN, set them to the minimum
+                // if any of the values are NaN, return without continuing.
                 if (isNaN(length)) {
-                    length = 0.5;
+                    return;
+                    //length = 0.5;
                 }
                 if (isNaN(width)) {
-                    width = 0.5;
+                    return;
+                    //width = 0.5;
                 }
                 if (isNaN(height)) {
-                    height = 3.0;
+                    return;
+                    //height = 3.0;
                 }
 
                 // round the values UP to nearest 0.5 inch 
