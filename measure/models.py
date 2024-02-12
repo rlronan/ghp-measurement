@@ -314,6 +314,17 @@ class Piece(models.Model):
         # Make sure not to set the glaze or firing price to zero if the user changes from a non-zero value,
         # otherwise if they change back to the original value we will re-charge them.
         if PIECE_UPDATING:
+            # 
+            if previous_piece.firing_price > 0:
+                previously_paid_for_firing = True
+            else:
+                previously_paid_for_firing = False
+            if previous_piece.glazing_price > 0:
+                previously_paid_for_glazing = True
+            else:
+                previously_paid_for_glazing = False
+            print("previously_paid_for_firing: " + str(previously_paid_for_firing))
+            print("previously_paid_for_glazing: " + str(previously_paid_for_glazing))
             self.glazing_price = np.max([self.glazing_price, previous_piece.glazing_price])
             self.firing_price = np.max([self.firing_price, previous_piece.firing_price])
         # If we are updating, we should not create a ledger entry or change the 
@@ -477,7 +488,7 @@ class Piece(models.Model):
             print("Checking if new transactions are needed for piece update...")
 
             # Check if the glaze_temp has changed from 'None' to something else
-            if (previous_piece.glaze_temp == 'None') and (self.glaze_temp != 'None'):
+            if (not previously_paid_for_glazing) and (previous_piece.glaze_temp == 'None') and (self.glaze_temp != 'None'):
                 # The user is trying to pay for glazing for this piece
                 print("Creating ledger entry for a new Glaze firing fee")
 
@@ -505,7 +516,7 @@ class Piece(models.Model):
                 self.ghp_user.last_measure_date = ledger_date
 
             # Check if the bisque_temp has changed from 'None' to something else
-            if (previous_piece.bisque_temp == 'None') and (self.bisque_temp != 'None'):
+            if (not previously_paid_for_firing) and (previous_piece.bisque_temp == 'None') and (self.bisque_temp != 'None'):
                 # 2/11/24: we are going to allow this for now. 
 
                 print("Creating ledger entry for a new Bisque firing fee")
