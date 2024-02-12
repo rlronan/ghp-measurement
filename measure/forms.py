@@ -280,7 +280,7 @@ class ModifyPieceForm(forms.ModelForm):
 
 
         self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
-        self.fields['note'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Glazed with Chun Blue splattered over Shino White on the outside, Chun Blue on the inside.'
+        self.fields['note'].widget.attrs['placeholder'] = 'e.g. Very skinny vase; Chun Blue splattered over Shino White on the outside, Chun Blue on the inside.'
         self.fields['note'].initial = self.piece.note
 
         self.fields['firing_price_per_cubic_inch'].initial = self.ghp_user.get_price_scale()[0]

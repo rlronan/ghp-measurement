@@ -64,118 +64,76 @@
             {{ hidden }}
         {% endfor %}
         <table class="center">
-            <!-- <tr>
-                <th colspan="6">Measure A New Piece</th>
+            <tr>
+                <th>Piece Location</th>
+                <td class="centertext">{{ form.piece_location }}</td>
+                {% if form.piece_location.errors %}
+                    <td class="error">{{ form.piece_location.errors }}</td>
+                {% endif %}
             </tr>
             <tr>
-                <th>Length {{form.length.errors}} </th>
-                <th>Width {{form.width.errors}}</th>
-                <th>Height {{form.height.errors}}</th>
-                <th>Glaze Temp {{form.glaze_temp.errors}}</th>
-                <th>Size {{form.size.errors}}</th>
-                <th>Price {{form.price.errors}}</th>
-            </tr>
-            <tr>
+                <th>Length</th>
                 <td>{{ form.length}} </td>
-                <td>{{ form.width}}</td>
-                <td>{{ form.height}}</td>
-                <td class="centertext">{{ form.glaze_temp }}</td>
-                <td>{{ form.size }}</td>
-                <td>{{ form.price }}</td>
+                {% if form.length.errors %}
+                    <td class="error">{{ form.length.errors }}</td>
+                {% endif %}
             </tr>
-        </table> -->
-        <tr>
-            <th>Piece Location {{form.piece_location.errors}}</th>
-            <td class="centertext">{{ form.piece_location }}</td>
-        </tr>
-        <tr>
-            <th>Length {{form.length.errors}} </th>
-            <td>{{ form.length}} </td>
-        </tr>
-        <tr>
-            <th>Width {{form.width.errors}}</th>
-            <td>{{ form.width}}</td>
-        </tr>
-            <th>Height {{form.height.errors}}</th>
-            <td>{{ form.height}}</td>
-        </tr>
-        <tr>
-            <th>Bisque Temp {{form.bisque_temp.errors}}</th>
-            <td class="centertext">{{ form.bisque_temp }}</td>
-        </tr>
-        <tr>
-            <th>Glaze Temp {{form.glaze_temp.errors}}</th>
-            <td class="centertext">{{ form.glaze_temp }}</td>
-        </tr>
-        <tr>
-            <th>Price {{form.price.errors}}</th>
-            <td>{{ form.price }}</td>
-        </tr>
-        
-    <!-- </table>
-    <table class="center"> -->
-        <tr>
-            <th>Course Number {{form.course_number.errors}}</th>
-            <td>{{ form.course_number }}</td>
-        </tr>
+            <tr>
+                <th>Width</th>
+                <td>{{ form.width}}</td>
+                {% if form.width.errors %}
+                    <td class="error">{{ form.width.errors }}</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>Height</th>
+                <td>{{ form.height}}</td>
+                {% if form.height.errors %}
+                    <td class="error">{{ form.height.errors }}</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>Bisque Temp</th>
+                <td class="centertext">{{ form.bisque_temp }}</td>
+                {% if form.bisque_temp.errors %}
+                    <td class="error">{{ form.bisque_temp.errors }}</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>Glaze Temp</th>
+                <td class="centertext">{{ form.glaze_temp }}</td>
+                {% if form.glaze_temp.errors %}
+                    <td class="error">{{ form.glaze_temp.errors }}</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>Price</th>
+                <td>{{ form.price }}</td>
+                {% if form.price.errors %}
+                    <td class="error">{{ form.price.errors }}</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>Course Number</th>
+                <td>{{ form.course_number }}</td>
+                {% if form.course_number.errors %}
+                    <td class="error">{{ form.course_number.errors }}</td>
+                {% endif %}
+            </tr>
 
-        <tr>
-            <th>Note (Optional) {{form.note.errors}}</th>
-            <td>{{ form.note }}</td>
-        </tr>
-
-        <tr>
+            <tr>
+                <th>Note (Optional)</th>
+                <td>{{ form.note }}</td>
+                {% if form.note.errors %}
+                    <td class="error">{{ form.note.errors }}</td>
+                {% endif %}
+            </tr>
+        <!-- <tr>
             <th>Image {{form.image.errors}}</th>
             <td>{{ form.image }}</td>
-            <!-- <td><img src ="{{ form.image.url }}"></td> -->
-        </tr>
+            <td><img src ="{{ form.image.url }}"></td>
+        </tr> -->
     </table>
-        <!-- <table class="center">
-            <tr>
-                <th colspan="6">Modify A Piece</th>
-            </tr>
-            <tr>
-                <th>Length {{form.length.errors}} </th>
-                <th>Width {{form.width.errors}}</th>
-                <th>Height {{form.height.errors}}</th>
-                <th>Glaze Temp {{form.glaze_temp.errors}}</th>
-                <th>Size {{form.size.errors}}</th>
-                <th>Price {{form.price.errors}}</th>
-            </tr>
-            <tr>
-                <td>{{ form.length}} </td>
-                <td>{{ form.width}}</td>
-                <td>{{ form.height}}</td>
-                <td class="centertext">{{ form.glaze_temp }}</td>
-                <td>{{ form.size }}</td>
-                <td>{{ form.price }}</td>
-            </tr>
-        </table>
-        <table class="center">
-            <tr>
-                <th>Course Number {{form.course_number.errors}}</th>
-                <td>{{ form.course_number }}</td>
-            </tr>
-
-            <tr>
-                <th>Note (Optional) {{form.note.errors}}</th>
-                <td>{{ form.note }}</td>
-            </tr>
-
-            <tr>
-                <th>Image {{form.image.errors}}</th>
-                {% if form.piece.image %}
-                    <img src ="{{ form.piece.image.url }}" width="100" height="100">
-                {% endif %}
-                <td>
-                {{ form.image }}
-                </td>
-
-            </tr>
-
-        </table> -->
-        <!-- {{ form.bisque_fired }}
-            {{ form.glaze_fired }} -->
         <button type="submit">Submit</button>
 
 

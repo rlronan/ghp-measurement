@@ -55,14 +55,7 @@
 <body>
     <form enctype="multipart/form-data" class="MeasureForm" method="POST">
         {% csrf_token %}
-        {{ form.non_field_errors }}
-        {{ form.field_errors }}
-        {% for hidden in form.hidden_fields %}
-            {% if hidden.errors %}
-                <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
-            {% endif %}
-            {{ hidden }}
-        {% endfor %}
+
         <!-- {{ form.as_div }} -->
         <h1>Measure A New Piece</h1>
         {% if form.user_balance >= 25 %}
@@ -79,7 +72,14 @@
 
         <!-- <th colspan="6">Balance: -${{user_balance|mult:-1}}</th> -->
         {% endif %}
-        
+        {{ form.non_field_errors }}
+        {{ form.field_errors }}
+        {% for hidden in form.hidden_fields %}
+            {% if hidden.errors %}
+                <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
+            {% endif %}
+            {{ hidden }}
+        {% endfor %}
         <table class="center">
                 <!-- <tr>
                     <th colspan="6">Measure A New Piece</th>
@@ -101,44 +101,70 @@
                     <td>{{ form.price }}</td>
                 </tr>
             </table> -->
+
             <tr>
-                <th>Piece Location {{form.piece_location.errors}}</th>
+                <th>Piece Location</th>
                 <td class="centertext">{{ form.piece_location }}</td>
+                {% if form.piece_location.errors %}
+                    <td class="error">{{ form.piece_location.errors }}</td>
+                {% endif %}
             </tr>
             <tr>
-                <th>Length {{form.length.errors}} </th>
+                <th>Length</th>
                 <td>{{ form.length}} </td>
+                {% if form.length.errors %}
+                    <td class="error">{{ form.length.errors }}</td>
+                {% endif %}
             </tr>
             <tr>
-                <th>Width {{form.width.errors}}</th>
+                <th>Width</th>
                 <td>{{ form.width}}</td>
+                {% if form.width.errors %}
+                    <td class="error">{{ form.width.errors }}</td>
+                {% endif %}
             </tr>
-                <th>Height {{form.height.errors}}</th>
+            <tr>
+                <th>Height</th>
                 <td>{{ form.height}}</td>
+                {% if form.height.errors %}
+                    <td class="error">{{ form.height.errors }}</td>
+                {% endif %}
             </tr>
             <tr>
-                <th>Bisque Temp {{form.bisque_temp.errors}}</th>
+                <th>Bisque Temp</th>
                 <td class="centertext">{{ form.bisque_temp }}</td>
+                {% if form.bisque_temp.errors %}
+                    <td class="error">{{ form.bisque_temp.errors }}</td>
+                {% endif %}
             </tr>
             <tr>
-                <th>Glaze Temp {{form.glaze_temp.errors}}</th>
+                <th>Glaze Temp</th>
                 <td class="centertext">{{ form.glaze_temp }}</td>
+                {% if form.glaze_temp.errors %}
+                    <td class="error">{{ form.glaze_temp.errors }}</td>
+                {% endif %}
             </tr>
             <tr>
-                <th>Price {{form.price.errors}}</th>
+                <th>Price</th>
                 <td>{{ form.price }}</td>
+                {% if form.price.errors %}
+                    <td class="error">{{ form.price.errors }}</td>
+                {% endif %}
             </tr>
-            
-        <!-- </table>
-        <table class="center"> -->
             <tr>
-                <th>Course Number {{form.course_number.errors}}</th>
+                <th>Course Number</th>
                 <td>{{ form.course_number }}</td>
+                {% if form.course_number.errors %}
+                    <td class="error">{{ form.course_number.errors }}</td>
+                {% endif %}
             </tr>
 
             <tr>
-                <th>Note (Optional) {{form.note.errors}}</th>
+                <th>Note (Optional)</th>
                 <td>{{ form.note }}</td>
+                {% if form.note.errors %}
+                    <td class="error">{{ form.note.errors }}</td>
+                {% endif %}
             </tr>
 
             <!-- <tr>
@@ -199,6 +225,13 @@
                     return;
                     //height = 3.0;
                 }
+
+                // round the values UP the minimum values 
+                length = Math.max(0.5, length);
+                width = Math.max(0.5, width);
+                height = Math.max(3.0, height);
+
+
 
                 // round the values UP to nearest 0.5 inch 
                 length = Math.max(0.5, Math.ceil(length * 2) / 2);
