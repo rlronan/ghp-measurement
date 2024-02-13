@@ -217,7 +217,8 @@
                 <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
                 <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account</a>
                 <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
-                <button class="button is-primary" id="submitBtn2">Add Firing Credit</button>
+                <!-- Removed this button since it doesn't work from all pages right now.-->
+                <!-- <button class="button is-primary" id="submitBtn2">Add Firing Credit</button> -->
                 <a href="{% url 'measure:logout' %}">Log Out</a>
             </div>
           </div> 
