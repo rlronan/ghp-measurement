@@ -36,11 +36,77 @@
         vertical-align: center;
 
     }
+    input {
+        box-sizing: content-box;    
+    }
+
+    .center {
+        margin: auto;
+        padding: 10px;
+    }
+    .center table {
+        margin: auto;
+        /* width: 100%; */
+        padding: 10px;
+    }
+    .center table td {
+        padding: 10px;
+    }
+    .center table th {
+        padding: 10px;
+    }
+    .center table tr {
+        padding: 10px;
+    }
+    p {
+        text-align: center;
+        font-size: 20px;
+    }
+    .center input {
+        margin: auto;
+        padding: 10px;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        text-align: center;
+    }
+    @media only screen and (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+
+            th,
+            td {
+                padding: 2px 4px;
+            }
+
+            input {
+                max-width: 80%;
+                padding: 4px;
+                margin-bottom: 8px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                font-size: 18px;
+                margin-bottom: 2px;
+            }
+        }
 </style>
 
 </head>
 <body>
 {% block content %}
+
+<h2>Welcome to the Greenwich House Pottery Measuring App</h2>
+<h2>Please login or register with the email you used to register for class.</h2>
 
 {% if form.errors %}
 <p>Your username and password didn't match. Please try again.</p>
@@ -78,7 +144,7 @@
 </form>
 
 {# Assumes you set up the password_reset view in your URLconf #}
-<p><a href="{% url 'measure:password_reset' %}">Lost password?</a></p>
+<p><a href="{% url 'measure:password_reset' %}">Forgot your password?</a></p>
 
 {% endblock %}
 </body>

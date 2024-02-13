@@ -25,6 +25,7 @@ h1, p {
 
 input {
   margin: 0.25em;
+  max-width: 80%;
   outline: none;
   padding: 0.5em;
   border: none;
@@ -85,3 +86,47 @@ select {
   font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
 
 }
+
+/* Mobile-friendly styles
+@media only screen and (max-width: 600px) {
+  table {
+      font-size: 14px;
+  }
+
+  th,
+  td {
+      padding: 2px 4px;
+  }
+
+  input {
+      width: 90%;
+      padding: 4px;
+      margin-bottom: 8px;
+  }
+
+  h1 {
+      font-size: 20px;
+      margin-bottom: 4px;
+  }
+
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+      font-size: 18px;
+      margin-bottom: 2px;
+  }
+
+  p {
+      font-size: 16px;
+      margin-bottom: 8px;
+  }
+
+  select {
+      width: 90%;
+      padding: 4px;
+      margin-bottom: 8px;
+      font-size: 16px;
+  }
+} */

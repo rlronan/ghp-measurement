@@ -23,18 +23,36 @@
                 /* padding: 10px; */
                 height: 100px;
                 }
+            .banner-url {
+                display: inline-block;
+                background: None;
+                color: #fff;
+                padding: 5px 10px;
+                font-size: 18px;
+                text-decoration: none;
+                margin-left: auto;
+                text-transform: uppercase;
+
+            }
 
             .icon {
                 display: flex;
                 align-items: center;
                 height: 100%; 
-                }
+            }
 
             .icon img {
-                height: 100%;
                 max-height: 100px;
-                margin-right: 2px;
+                margin-right: 0px;
+                object-fit: contain;
+                object-position: center;
+            }
+            @media (pointer: coarse)  {
+                /* mobile device */
+                .icon img {
+                    display: none;
                 }
+            }
 
             .menu {
                 font-family: "Franklin Gothic Book", Arial, Helvetica, sans-serif;
@@ -93,11 +111,10 @@
 
                     color: #ffffff;
                     font-size: 16px;
-                    font-weight: 400;
                     text-transform: none;
                     margin: 0px 0px 10px 0px;
                     padding: 0px 0px 0px 0px;
-                    align-self: end;
+                    align-self: center;
                 }
                 .dropdown {
                     float: left;
@@ -162,6 +179,22 @@
                     
                     /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
                     .show {display:block;} 
+                        /* a {
+                display: inline-block;
+                background: None;
+                color: #fff;
+                padding: 5px 10px;
+                font-size: 20px;
+                text-decoration: none;
+                } */
+            /* a {
+                display: inline-block;
+                background: None;
+                color: #fff;
+                padding: 5px 10px;
+                font-size: 20px;
+                text-decoration: none;
+                } */
 
     </style>
 
@@ -200,14 +233,20 @@
           </div> 
           {% endif %}
         </div>
-        {% if user.is_authenticated %}
-        <h class="mini">Hello, {{ user.username }}</h>
-        {% endif %}
+        <!-- <div class="mini"> -->
+            {% if user.is_authenticated %}
+                <h class="mini">Hello, {{ user.username }}</h>
+                <a class="banner-url" href="{% url 'measure:logout' %}">Logout</a>
+            {% else %}
+                <a class="banner-url" href="{% url 'measure:user' %}">Log In</a>
+                <a class="banner-url" href="{% url 'measure:register' %}">Register</a>
+            {% endif %}
+        <!-- </div> -->
 
         <div class="icon">
-            <img src="{% static 'measure/banner.jpg' %}" alt="Icon">
-            <!-- <h>GHP User Site</h> -->
-          </div>
+                <img src="{% static 'measure/banner.jpg' %}" alt="Icon">
+                <!-- <h>GHP User Site</h> -->
+        </div>
   
     </div>
     <div class="content">

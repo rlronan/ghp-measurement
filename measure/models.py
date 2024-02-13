@@ -516,7 +516,7 @@ class Piece(models.Model):
                 self.ghp_user.last_measure_date = ledger_date
 
             # Check if the bisque_temp has changed from 'None' to something else
-            if (not previously_paid_for_firing) and (previous_piece.bisque_temp == 'None') and (self.bisque_temp != 'None'):
+            if (not previously_paid_for_firing  ) and (previous_piece.bisque_temp == 'None') and (self.bisque_temp != 'None'):
                 # 2/11/24: we are going to allow this for now. 
 
                 print("Creating ledger entry for a new Bisque firing fee")

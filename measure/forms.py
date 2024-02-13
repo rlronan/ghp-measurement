@@ -485,7 +485,7 @@ class GHPUserChangeForm(UserChangeForm):
 
 
 
-
+# TODO THIS NEEDS TO BE FIXED!!!
 # TODO: Really should create a better way to manage transaction_types!
 class RefundPieceForm(forms.ModelForm):
 

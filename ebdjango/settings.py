@@ -195,17 +195,17 @@ MEDIA_URL = 'media/'
 
 # DATABASES["default"]["ATOMIC_REQUESTS"] = True
 # DATABASES["default"]["CONN_MAX_AGE"] = 60
+if IS_HEROKU_APP or (not DEBUG):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# 2/10/24: securing the site better:
-# SSL redirect
-SECURE_SSL_REDIRECT = True
-# Secure cookies
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-# HSTS
-SECURE_HSTS_SECONDS = 3600 # 2/10/24: enabling HSTS with initial 1 hour duration for testing
+    # 2/10/24: securing the site better:
+    # SSL redirect
+    SECURE_SSL_REDIRECT = True
+    # Secure cookies
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # HSTS
+    SECURE_HSTS_SECONDS = 3600 # 2/10/24: enabling HSTS with initial 1 hour duration for testing
 
 
 LOGGING = {

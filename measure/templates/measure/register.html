@@ -4,7 +4,42 @@
 
 <!-- <!DOCTYPE html>
 <html lang="en"> -->
+<style>
+    h1, h2, h3, h4, h5, h6 {
+        text-align: center;
+    }
+  @media only screen and (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
 
+            th,
+            td {
+                padding: 2px 4px;
+            }
+
+            input {
+                max-width: 80%;
+                padding: 4px;
+                margin-bottom: 8px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                font-size: 18px;
+                margin-bottom: 2px;
+            }
+        }
+
+</style>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,6 +49,9 @@
 
 <body>
   <form method="post">
+    <h2>Welcome to the Greenwich House Pottery Measuring App</h2>
+    <h2>Please register with the email you used to register for class</h2>
+
     {% csrf_token %}
     <p> Create A User Account</p>
     {% if form.non_field_errors %}

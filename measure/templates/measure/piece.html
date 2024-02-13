@@ -2,11 +2,7 @@
 
 {% load static %}
 {% load number_mult %}
-
-
-
 <html>
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,38 +14,81 @@
         table.center td.centertext {
             text-align: center;
         }
-    
+
         th,
         td {
             padding: 0px 0px;
             text-align: center;
             vertical-align: center;
-    
         }
-    
+
         table {
             /* border: 1px solid black; */
             font: 16px "Open Sans", Helvetica, Arial, sans-serif;
             border-spacing: 0;
             border-collapse: collapse;
             /* width: 150px; */
-    
         }
-    
+
         th,
         td {
             /* border: 1px solid black; */
             padding: 4px 6px;
             text-align: center;
             vertical-align: center;
-    
         }
+
         button {
             background-color: #655F79;
+            display: block;
+            margin: 0 auto; /* Add this line to center the button */
+            margin-top: 10px; /* Add this line to create space between the table and the button */
+        }
 
+        /* Mobile-friendly styles */
+        @media only screen and (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+
+            th,
+            td {
+                padding: 2px 4px;
+            }
+
+            input {
+                width: 90%;
+                padding: 4px;
+                margin-bottom: 8px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                font-size: 18px;
+                margin-bottom: 2px;
+            }
+
+            p {
+                font-size: 16px;
+                margin-bottom: 8px;
+            }
+
+            select {
+                width: 90%;
+                padding: 4px;
+                margin-bottom: 8px;
+                font-size: 16px;
+            }
         }
     </style>
-    
 </head>
 
 <body>
@@ -59,16 +98,18 @@
         <!-- {{ form.as_div }} -->
         <h1>Measure A New Piece</h1>
         {% if form.user_balance >= 25 %}
-        <h2>Firing Account Balance: ${{form.user_balance}}</h2>
+            <h2>Firing Account Balance: ${{form.user_balance}}</h2>
         {% elif form.user_balance >= 0 %}
-        <h2>Firing Account Balance: ${{form.user_balance}}<h2>
-        </h3> (Your account balance is getting low. Please consider adding funds)</h3>
+            <h2>Firing Account Balance: ${{form.user_balance}}<h2>
+            <p>Your account balance is getting low.</p>
+            <p> Please consider adding funds</p>
+            
         {% elif form.user_balance >= -25 %}
-        <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
-        </h3>(Warning: Your account balance is negative. You will not be able to fire anything that brings it too negative)</h3>
+            <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
+            <h3>(Warning: Your account balance is negative. You will not be able to fire anything that brings it too negative)</h3>
         {% else %}
-        <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
-        </h3>(WARNING: YOU CANNOT MEASURE OR FIRE ADDITIONAL PIECES UNTIL YOU ADD FUNDS TO YOUR ACCOUNT BALANCE)</h3>
+            <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
+            <h3>(WARNING: YOU CANNOT MEASURE OR FIRE ADDITIONAL PIECES UNTIL YOU ADD FUNDS TO YOUR ACCOUNT BALANCE)</h3>
 
         <!-- <th colspan="6">Balance: -${{user_balance|mult:-1}}</th> -->
         {% endif %}

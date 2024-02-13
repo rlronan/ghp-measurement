@@ -24,7 +24,6 @@
             padding: 0px 0px;
             text-align: center;
             vertical-align: center;
-
         }
 
         table {
@@ -33,7 +32,6 @@
             border-spacing: 0;
             border-collapse: collapse;
             /* width: 150px; */
-
         }
 
         th,
@@ -42,11 +40,57 @@
             padding: 4px 6px;
             text-align: center;
             vertical-align: center;
-
         }
+
         button {
             background-color: #655F79;
+            display: block;
+            margin: 0 auto; /* Add this line to center the button */
+            margin-top: 10px; /* Add this line to create space between the table and the button */
+        }
 
+        /* Mobile-friendly styles */
+        @media only screen and (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+
+            th,
+            td {
+                padding: 2px 4px;
+            }
+
+            input {
+                width: 90%;
+                padding: 4px;
+                margin-bottom: 8px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                font-size: 18px;
+                margin-bottom: 2px;
+            }
+
+            p {
+                font-size: 16px;
+                margin-bottom: 8px;
+            }
+
+            select {
+                width: 90%;
+                padding: 4px;
+                margin-bottom: 8px;
+                font-size: 16px;
+            }
         }
     </style>
 </head>
