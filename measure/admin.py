@@ -487,6 +487,24 @@ class GHPUserAdmin(ImportExportModelAdmin):
 
     list_display_links = ["first_name", "last_name", 'email']
 
+    exclude = ['password', 'last_login', 'is_superuser', 
+                'is_staff', 'is_active', 'date_joined', 'groups', 
+                'user_permissions', 'current']
+
+    fieldsets = [
+        (
+            None,
+            {   "classes": ["pretty"],
+                # "exclude": ['password', 'last_login', 'is_superuser', 
+                #             'is_staff', 'is_active', 'date_joined', 'groups', 
+                #             'user_permissions', 'current_student', 'current_staff', 
+                #             'current_admin', 'last_measure_date', 'consent', 'consent_date', 'current'],
+                "fields": ['first_name', 'last_name', 'email', 'current_location',
+                     'current_student', 'current_staff', 'current_admin', 
+                     ],
+            },
+        ),
+    ]
     # def get_import_resource_kwargs(self, request, *args, **kwargs):
     #     kwargs = super().get_resource_kwargs(request, *args, **kwargs)
     #     kwargs.update({"user": request.user})
