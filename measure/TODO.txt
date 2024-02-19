@@ -7,7 +7,7 @@ TO DO 1/14/24:
 4. Finish setting up emails and password resets after (1) is done.
 5. DONE: Need Access to ghp stripe account to move the stripe integration to the ghp account.
 6. NEED SET UP PRINTING FROM DJANGO
-7. Need to make home page before you log in.
+7. DONE PARTIALLY: Need to make home page before you log in.
 8. Fix add firing credit link in menu bar not working if you are not on the user pager.
 9. DONE: Need to fix the initial values for the measure page after you change the glaze or bisque TEMP
 10. DONE: Need to fix the glaze valuse to be de dependent on the location, not just the initial location.
@@ -16,11 +16,12 @@ TO DO 1/14/24:
 13. DONE: Fix submit button colors on measure page.
 14. DONE: Luster Glaze is currently broken.
 15. Need to move stripe to production
-16. Need to make the selection spaces larger on the measure page.
-17. Need to fix the refund option. 
-18. Need to fix when a user to tries to measure a peice with no glaze or firing option selected.
-
-
+16. DONE: Need to make the selection spaces larger on the measure page.
+17. DONE: Need to fix the refund option. 
+18. DONE: Need to fix when a user to tries to measure a peice with no glaze or firing option selected.
+19. DONE: $0.01 per cubic inch, per firing is a “faculty & resident designation”. Staff get free firings, no tickets necessary. (I didn’t specify this before, so totally my bad.) 
+20. DONE: Add text saying minimum height is 3", round up to nearest half inch to the measure page.
+21. DONE: Can there be a "Number of handles" box that would add the $0.10 per attachment to the total as part of the measuring calculator by any chance? 
 
 
 

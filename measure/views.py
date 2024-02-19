@@ -50,8 +50,8 @@ def index_view(request):
         print("Requesting user: {}, does not have access to the account index page".format(request.user.get_username()))
         return redirect(reverse("measure:login"))#/?next=%s" % request.path))
 
-    ghp_user_admins = GHPUser.objects.filter(current_admin=True).order_by('last_name').all()
-    ghp_user_staff = GHPUser.objects.filter(current_staff=True).order_by('last_name').all()
+    ghp_user_admins = GHPUser.objects.filter(current_faculty=True).order_by('last_name').all()
+    ghp_user_staff = GHPUser.objects.filter(current_ghp_staff=True).order_by('last_name').all()
     ghp_user_students = GHPUser.objects.filter(current_student=True).order_by('last_name').all()
     num_rows = max([ghp_user_admins.count(), ghp_user_staff.count(), ghp_user_students.count()])
 
@@ -262,6 +262,7 @@ def add_credit_view(request, ghp_user_id):
     # get the user, and the user's account
     ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
     ghp_user_account = get_object_or_404(Account, ghp_user=ghp_user)
+    print("Ghp user id: ", ghp_user_id)
     print("Found ghp user: " + str(ghp_user))
     print("Found account: " + str(ghp_user_account))
     if request.method == 'POST':

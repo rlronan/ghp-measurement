@@ -27,7 +27,7 @@ class PieceForm(forms.ModelForm):
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'piece_location',
-                  'length', 'width', 'height', 'bisque_temp',
+                  'length', 'width', 'height', 'handles', 'bisque_temp',
                   'glaze_temp', 'size', 'price', 
                   'firing_price', 'glazing_price', 
                   'course_number', 'note', 
@@ -74,9 +74,11 @@ class PieceForm(forms.ModelForm):
         self.fields['height'].widget.attrs['min'] = 3.0
         #self.fields['height'].widget.attrs['step'] = 0.5
 
+        self.fields['handles'] = forms.IntegerField(initial=0, min_value=0, max_value=10, show_hidden_initial=False)
+
         # Set initial value for size
         self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
-        self.fields['price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=1.00)
+        self.fields['price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
 
         self.fields['firing_price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=1.00)
         self.fields['glazing_price'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=0.00)
@@ -90,11 +92,6 @@ class PieceForm(forms.ModelForm):
         self.fields['glazing_price'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
 
         self.fields['course_number'].widget.attrs['placeholder'] = 'e.g. W7'
-        # self.fields['piece_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
-        # self.fields['piece_description'].widget.attrs['placeholder'] = 'e.g. Very skinny vase with handles and a gash. Planning to paint a face on it later with green wash'
-
-        # self.fields['glaze_description'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
-        # self.fields['glaze_description'].widget.attrs['placeholder'] = 'e.g. Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
 
         self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 30})
         self.fields['note'].widget.attrs['placeholder'] = 'Chun Blue splattered over Shino White on the outside, Chun Blue on the inside'
@@ -124,6 +121,7 @@ class PieceForm(forms.ModelForm):
         length = cleaned_data.get('length')
         width = cleaned_data.get('width')
         height = cleaned_data.get('height')
+        handles = cleaned_data.get('handles')
         # Check that the length, width, and height are not negative
         if length < 0:
             self.add_error('length', 'Length must be positive')
@@ -154,9 +152,11 @@ class PieceForm(forms.ModelForm):
         # Get the bisque temperature
         bisque_temp = cleaned_data.get('bisque_temp')
         if bisque_temp != 'None':
-            # get the price scaling based on the user is a current_staff or current_admin or not
-            if self.ghp_user.current_staff or self.ghp_user.current_admin:
+            # get the price scaling based on the user is a current_ghp_staff or current_faculty or not
+            if self.ghp_user.current_ghp_staff:
                 firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
+            elif self.ghp_user.current_faculty:
+                firing_price = decimal.Decimal(FACULTY_FIRING_SCALE) * size
             else: 
                 firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
             # set to 2 decimal places
@@ -170,9 +170,12 @@ class PieceForm(forms.ModelForm):
         glaze_temp = cleaned_data.get('glaze_temp')
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
-            # Get the price scaling based on the user is a current_staff or current_admin or not
-            if self.ghp_user.current_staff or self.ghp_user.current_admin:
+            # Get the price scaling based on the user is a current_ghp_staff or current_faculty or not
+            if self.ghp_user.current_ghp_staff:
                 glazing_price = decimal.Decimal(STAFF_GLAZING_SCALE) * size
+                glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
+            elif self.ghp_user.current_faculty:
+                glazing_price = decimal.Decimal(FACULTY_GLAZING_SCALE) * size
                 glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
             else:
                 glazing_price = decimal.Decimal(USER_GLAZING_SCALE) * size
@@ -182,23 +185,28 @@ class PieceForm(forms.ModelForm):
         # Set the cleaned data for glazing_price
         cleaned_data['glazing_price'] = glazing_price
             
-            
-            
         # Set the new price
         price = glazing_price + firing_price
+        if self.ghp_user.current_ghp_staff:
+            price = decimal.Decimal(0.00)
+        else:
+            price = price + handles*decimal.Decimal(PRICE_PER_HANDLE)
         # set to 2 decimal places
         price = price.quantize(decimal.Decimal('0.01'))
         # Set the cleaned data for price
         cleaned_data['price'] = price
 
         # Check that the size and price are not negative
-        if cleaned_data['size'] < 0:
+        if cleaned_data['size'] <= 0:
             self.add_error('size', 'Size must be positive')
         if cleaned_data['price'] < 0:
-            self.add_error('price', 'Price must be positive')
+            self.add_error('price', 'Price cannot be negative')
         
         if cleaned_data['price'] < MINIMUM_PRICE:
-            cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
+            if self.ghp_user.current_ghp_staff:
+                pass
+            else:
+                cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
         print(self.user_balance, cleaned_data['price'], self.user_balance - cleaned_data['price'])
         if self.user_balance - cleaned_data['price'] < -25:
@@ -247,9 +255,12 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.length)
         self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.width)
         self.fields['height'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.height)
+        self.fields['handles'] = forms.IntegerField(initial=self.piece.handles)
+
         self.fields['length'].widget.attrs['readonly'] = 'readonly'
         self.fields['width'].widget.attrs['readonly'] = 'readonly'
         self.fields['height'].widget.attrs['readonly'] = 'readonly'
+        self.fields['handles'].widget.attrs['readonly'] = 'readonly'    
         # Set initial value for size
         # self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=self.piece.size)
         # self.fields['size'].widget.attrs['readonly'] = 'readonly'
@@ -299,15 +310,11 @@ class ModifyPieceForm(forms.ModelForm):
         print("Cleaning modify piece form")
         cleaned_data = super().clean()
         
-        original_image = self.piece.image
-        print("original image: ", original_image)
-        new_image = cleaned_data.get('image')
-        print("new image: ", new_image)
-        
         # Get the length, width, and height
         length = cleaned_data.get('length')
         width = cleaned_data.get('width')
         height = cleaned_data.get('height')
+        handles = cleaned_data.get('handles')
         # Check that the length, width, and height are not negative
         if length < 0:
             self.add_error('length', 'Length must be positive')
@@ -338,9 +345,11 @@ class ModifyPieceForm(forms.ModelForm):
         # Get the bisque temperature
         bisque_temp = cleaned_data.get('bisque_temp')
         if bisque_temp != 'None':
-            # get the price scaling based on the user is a current_staff or current_admin or not
-            if self.ghp_user.current_staff or self.ghp_user.current_admin:
+            # get the price scaling based on the user is a current_ghp_staff or current_faculty or not
+            if self.ghp_user.current_ghp_staff:
                 firing_price = decimal.Decimal(STAFF_FIRING_SCALE) * size
+            elif self.ghp_user.current_faculty:
+                firing_price = decimal.Decimal(FACULTY_FIRING_SCALE) * size
             else: 
                 firing_price = decimal.Decimal(USER_FIRING_SCALE) * size
             # set to 2 decimal places
@@ -354,9 +363,12 @@ class ModifyPieceForm(forms.ModelForm):
         glaze_temp = cleaned_data.get('glaze_temp')
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
-            # Get the price scaling based on the user is a current_staff or current_admin or not
-            if self.ghp_user.current_staff or self.ghp_user.current_admin:
+            # Get the price scaling based on the user is a current_ghp_staff or current_faculty or not
+            if self.ghp_user.current_ghp_staff:
                 glazing_price = decimal.Decimal(STAFF_GLAZING_SCALE) * size
+                glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
+            elif self.ghp_user.current_faculty:
+                glazing_price = decimal.Decimal(FACULTY_GLAZING_SCALE) * size
                 glazing_price = glazing_price.quantize(decimal.Decimal('0.01'))
             else:
                 glazing_price = decimal.Decimal(USER_GLAZING_SCALE) * size
@@ -368,23 +380,28 @@ class ModifyPieceForm(forms.ModelForm):
             
         # Set the new price
         price = glazing_price + firing_price
+        if self.ghp_user.current_ghp_staff:
+            price = decimal.Decimal(0.00)
+        else:
+            price = price + handles*decimal.Decimal(PRICE_PER_HANDLE)
         # set to 2 decimal places
         price = price.quantize(decimal.Decimal('0.01'))
         # Set the cleaned data for price
         cleaned_data['price'] = price
 
         # Check that the size and price are not negative
-        if cleaned_data['size'] < 0:
+        if cleaned_data['size'] <= 0:
             self.add_error('size', 'Size must be positive')
         if cleaned_data['price'] < 0:
-            self.add_error('price', 'Price must be positive')
+            self.add_error('price', 'Price cannot be negative')
         
         if cleaned_data['price'] < MINIMUM_PRICE:
-            cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
+            if self.ghp_user.current_ghp_staff:
+                pass
+            else:
+                cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
 
-        # self.add_error('user_balance_too_low', 'You cannot measure a piece that will bring your account balance below -$25.00. Please pay your balance before measuring this piece.')
-        
         # Return the cleaned data
         return cleaned_data
     

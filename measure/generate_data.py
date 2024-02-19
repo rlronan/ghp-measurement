@@ -5,7 +5,7 @@ import csv
 import math
 from django.utils import timezone
 from .models import GHPUser, Account, Piece, Ledger
-from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, USER_FIRING_SCALE, STAFF_FIRING_SCALE, USER_GLAZING_SCALE, STAFF_GLAZING_SCALE, MINIMUM_PRICE, TRANSACTION_TYPES
+from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, USER_FIRING_SCALE, FACULTY_FIRING_SCALE, USER_GLAZING_SCALE, FACULTY_GLAZING_SCALE, MINIMUM_PRICE, TRANSACTION_TYPES
 
 # Create your tests here.
 def generate_ghp_user(num_customers=100, p_student=0.9, p_staff=0.1, p_admin=0.03):
@@ -55,8 +55,8 @@ def generate_ghp_user(num_customers=100, p_student=0.9, p_staff=0.1, p_admin=0.0
                 #dob = dobs[i],
                 current_student = students[i],
                 #current_teacher = teachers[i],
-                current_staff = staff[i],
-                current_admin = admin[i],
+                current_ghp_staff = staff[i],
+                current_faculty = admin[i],
                 
                 consent = consent[i],
                 consent_date = consent_date[i],
@@ -107,8 +107,8 @@ def generate_piece(num_pieces=1000):
         bisque_temp = np.random.choice(BISQUE_TEMP_INTERNAL, p=[0.95, 0.05])
 
         glaze_temp = np.where(bisque_temp == "None", GLAZE_TEMP_INTERNAL[0], glaze_temp) # if bisque_temp is None, glaze_temp must not be None
-        # get price scaling factor based on whether the user is current_staff or current_admin or not
-        if ghp_user.current_staff or ghp_user.current_admin:
+        # get price scaling factor based on whether the user is current_ghp_staff or current_faculty or not
+        if ghp_user.current_ghp_staff or ghp_user.current_faculty:
             if bisque_temp != "None":
                 firing_price = size * decimal.Decimal(0.01)
             else:

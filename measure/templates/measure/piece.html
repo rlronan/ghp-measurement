@@ -111,6 +111,9 @@
             <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
             <h3>(WARNING: YOU CANNOT MEASURE OR FIRE ADDITIONAL PIECES UNTIL YOU ADD FUNDS TO YOUR ACCOUNT BALANCE)</h3>
 
+
+        <h3>Please note all measurement values will be rounded up to the nearest half inch, and the minimum firing fee is $1.</h3>
+
         <!-- <th colspan="6">Balance: -${{user_balance|mult:-1}}</th> -->
         {% endif %}
         {{ form.non_field_errors }}
@@ -151,24 +154,31 @@
                 {% endif %}
             </tr>
             <tr>
-                <th>Length</th>
+                <th>Length (Min 0.5")</th>
                 <td>{{ form.length}} </td>
                 {% if form.length.errors %}
                     <td class="error">{{ form.length.errors }}</td>
                 {% endif %}
             </tr>
             <tr>
-                <th>Width</th>
+                <th>Width (Min 0.5")</th>
                 <td>{{ form.width}}</td>
                 {% if form.width.errors %}
                     <td class="error">{{ form.width.errors }}</td>
                 {% endif %}
             </tr>
             <tr>
-                <th>Height</th>
+                <th>Height (Min 3")</th>
                 <td>{{ form.height}}</td>
                 {% if form.height.errors %}
                     <td class="error">{{ form.height.errors }}</td>
+                {% endif %}
+            </tr>
+            <tr>
+                <th>Number Of Handles</th>
+                <td>{{ form.handles}}</td>
+                {% if form.handles.errors %}
+                    <td class="error">{{ form.handles.errors }}</td>
                 {% endif %}
             </tr>
             <tr>
@@ -244,15 +254,15 @@
             });
         });
         $(document).ready(function () {
-            // listen for changes in the length, width, and height, and glaze_temp, and bisque_temp fields
+            // listen for changes in the length, width, and height, handles, and glaze_temp, and bisque_temp fields
             // glaze_temp is a choice field, so it is a select element
-            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp], select[name=bisque_temp]').change(function () {
+            $('input[name=length], input[name=width], input[name=height], input[name=handles], select[name=glaze_temp], select[name=bisque_temp]').change(function () {
 
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
                 var width = parseFloat($('input[name=width]').val());
                 var height = parseFloat($('input[name=height]').val());
-
+                var handles = parseInt($('input[name=handles]').val());
                 // if any of the values are NaN, return without continuing.
                 if (isNaN(length)) {
                     return;
@@ -264,6 +274,10 @@
                 }
                 if (isNaN(height)) {
                     return;
+                    //height = 3.0;
+                }
+                if (isNaN(handles)) {
+                    handles = 0;
                     //height = 3.0;
                 }
 
@@ -283,7 +297,6 @@
                 length = length.toFixed(1);
                 width = width.toFixed(1);
                 height = height.toFixed(1);
-
                 // update the value of the length, width, and height fields
                 $('input[name=length]').val(length);
                 $('input[name=width]').val(width);
@@ -318,7 +331,7 @@
                 var glazing_price_per_cubic_inch = $('input[name=glazing_price_per_cubic_inch]').val();
 
                 // calculate the new value of price
-                var price = firing_price_per_cubic_inch * size * bisque_temp_scalar + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
+                var price = firing_price_per_cubic_inch * size * bisque_temp_scalar + glazing_price_per_cubic_inch * size * glaze_temp_scalar + handles*0.10;
 
                 // if price is less than 1.00, set it to 1.00
                 if (price < 1.00) {

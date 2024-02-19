@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 from django.db.models.functions import Concat
 from django.db.models import Value
-from .models import GHPUser, Account, Piece, Ledger
+from .models import GHPUser, Account, PlaceholderAccount, Piece, Ledger
 from django.contrib import messages
 from django.utils.translation import ngettext
 import csv
@@ -51,10 +51,10 @@ class CurrentUserFilter(admin.SimpleListFilter):
         # to decide how to filter the queryset.
         if self.value() == "true":
             return queryset.filter(
-                Q(current_student=True) | Q(current_staff=True) | Q(current_admin=True))
+                Q(current_student=True) | Q(current_ghp_staff=True) | Q(current_faculty=True))
         if self.value() == "false":
             return queryset.filter(
-                Q(current_student=False) & Q(current_staff=False) & Q(current_admin=False))
+                Q(current_student=False) & Q(current_ghp_staff=False) & Q(current_faculty=False))
 
 
 class BalanceFilter(admin.SimpleListFilter):
@@ -389,10 +389,10 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
         # to decide how to filter the queryset.
         if self.value() == "true":
             return queryset.filter(
-                Q(ghp_user__current_student=True) | Q(ghp_user__current_staff=True) | Q(ghp_user__current_admin=True))
+                Q(ghp_user__current_student=True) | Q(ghp_user__current_ghp_staff=True) | Q(ghp_user__current_faculty=True))
         if self.value() == "false":
             return queryset.filter(
-                Q(ghp_user__current_student=False) & Q(ghp_user__current_staff=False) & Q(ghp_user__current_admin=False))
+                Q(ghp_user__current_student=False) & Q(ghp_user__current_ghp_staff=False) & Q(ghp_user__current_faculty=False))
 
 
 # # class ExportCsvMixin:
@@ -426,7 +426,7 @@ from django.contrib.auth.models import Group
 #         model = GHPUser
 #         import_id_fields = ('username',) 
 #         fields = ('first_name', 'last_name', 'username', 'current_location', 'balance')
-#         exclude = ('id', 'password', 'last_login', 'is_superuser', 'is_staff', 'is_active', 'date_joined', 'groups', 'user_permissions', 'current_student', 'current_staff', 'current_admin', 'last_measure_date', 'consent', 'consent_date', 'current')
+#         exclude = ('id', 'password', 'last_login', 'is_superuser', 'is_staff', 'is_active', 'date_joined', 'groups', 'user_permissions', 'current_student', 'current_ghp_staff', 'current_faculty', 'last_measure_date', 'consent', 'consent_date', 'current')
 #         skip_unchanged = True
 #         report_skipped = True
 #         clean_model_instances = True
@@ -449,35 +449,35 @@ class GHPUserResource(resources.ModelResource):
     username = fields.Field(attribute='username', column_name='username')
     email = fields.Field(attribute='email', column_name='email')
     current_location = fields.Field(attribute='current_location', column_name='current_location')
-    balance = fields.Field(column_name='balance')
+    #balance = fields.Field(column_name='balance')
 
     class Meta:
         model = GHPUser
         import_id_fields = ('username',)  # Use email as the identifier for import
-        fields = ('first_name', 'last_name', 'username', 'email', 'current_location', 'balance')
-        export_order = ('first_name', 'last_name', 'email', 'current_location', 'balance')
+        fields = ('first_name', 'last_name', 'username', 'email', 'current_location', )
+        export_order = ('first_name', 'last_name', 'email', 'current_location', )
 
-    def after_import_row(self, row, row_result, **kwargs):
-        """
-        Update the balance if the user already exists and balance is 0.0
-        """
-        try:
-            ghpuser = GHPUser.objects.get(email=row['email'])
-            account, created = Account.objects.get_or_create(ghp_user=ghpuser)
-            if account.balance == 0.0:
-                account.balance = row['balance']
-                account.save()
-        except GHPUser.DoesNotExist:
-            # If the user does not exist, it will be created by the import process
-            pass
+    # def after_import_row(self, row, row_result, **kwargs):
+    #     """
+    #     Update the balance if the user already exists and balance is 0.0
+    #     """
+    #     try:
+    #         ghpuser = GHPUser.objects.get(email=row['email'])
+    #         account, created = Account.objects.get_or_create(ghp_user=ghpuser)
+    #         if account.balance == 0.0:
+    #             account.balance = row['balance']
+    #             account.save()
+    #     except GHPUser.DoesNotExist:
+    #         # If the user does not exist, it will be created by the import process
+    #         pass
 
 class GHPUserAdmin(ImportExportModelAdmin):
     resource_class = GHPUserResource
     list_display = ['first_name', 'last_name', 'email', 'current_location',
-                     'current_student', 'current_staff', 'current_admin', 
+                     'current_student', 'current_ghp_staff', 'current_faculty', 
                      'last_measure_date', 'consent', 'consent_date', 'current']
 
-    list_filter = ['current_student', 'current_staff', 'current_admin', CurrentUserFilter, 'current_location',]
+    list_filter = ['current_student', 'current_ghp_staff', 'current_faculty', CurrentUserFilter, 'current_location',]
 
     search_fields = ['first_name', 'last_name', 'email']
 
@@ -497,10 +497,10 @@ class GHPUserAdmin(ImportExportModelAdmin):
             {   "classes": ["pretty"],
                 # "exclude": ['password', 'last_login', 'is_superuser', 
                 #             'is_staff', 'is_active', 'date_joined', 'groups', 
-                #             'user_permissions', 'current_student', 'current_staff', 
-                #             'current_admin', 'last_measure_date', 'consent', 'consent_date', 'current'],
+                #             'user_permissions', 'current_student', 'current_ghp_staff', 
+                #             'current_faculty', 'last_measure_date', 'consent', 'consent_date', 'current'],
                 "fields": ['first_name', 'last_name', 'email', 'current_location',
-                     'current_student', 'current_staff', 'current_admin', 
+                     'current_student', 'current_ghp_staff', 'current_faculty', 
                      ],
             },
         ),
@@ -512,7 +512,7 @@ class GHPUserAdmin(ImportExportModelAdmin):
 
     @admin.display(description='Current', boolean=True)
     def current(self, obj):
-        return obj.current_student or obj.current_staff or obj.current_admin
+        return obj.current_student or obj.current_ghp_staff or obj.current_faculty
 
     @admin.action(description="Mark selected users as current students")
     def make_students(self, request, queryset):
@@ -528,37 +528,37 @@ class GHPUserAdmin(ImportExportModelAdmin):
             messages.SUCCESS,
         )
 
-    @admin.action(description="Mark selected users as current staff")
+    @admin.action(description="Mark selected users as current ghp staff")
     def make_staff(self, request, queryset):
-        updated = queryset.update(current_staff=True)
+        updated = queryset.update(current_ghp_staff=True)
         self.message_user(
             request,
             ngettext(
-                "%d user was successfully marked as staff.",
-                "%d users were successfully marked as staff.",
+                "%d user was successfully marked as GHP staff.",
+                "%d users were successfully marked as GHP staff.",
                 updated,
             )
             % updated,
             messages.SUCCESS,
         )
     
-    @admin.action(description="Mark selected users as current admins")
+    @admin.action(description="Mark selected users as current faculty or residents")
     def make_admins(self, request, queryset):
-        updated = queryset.update(current_admin=True)
+        updated = queryset.update(current_faculty=True)
         self.message_user(
             request,
             ngettext(
-                "%d user was successfully marked as admin.",
-                "%d users were successfully marked as admins.",
+                "%d user was successfully marked as faculty or resident.",
+                "%d users were successfully marked as faculty or resident.",
                 updated,
             )
             % updated,
             messages.SUCCESS,
         )
     
-    @admin.action(description="Mark selected users as not current students, staff, nor admins")
+    @admin.action(description="Mark selected users as not current students, staff, nor faculty")
     def make_not_current(self, request, queryset):
-        updated = queryset.update(current_student=False, current_staff=False, current_admin=False)
+        updated = queryset.update(current_student=False, current_ghp_staff=False, current_faculty=False)
         self.message_user(
             request,
             ngettext(
@@ -619,6 +619,31 @@ class GHPUserAdmin(ImportExportModelAdmin):
             del actions['delete_selected']
         return actions
 
+
+
+
+
+class PlaceholderAccountResource(resources.ModelResource):
+    email = fields.Field(attribute='email', column_name='email')
+    balance = fields.Field(attribute='balance', column_name='balance')
+
+    class Meta:
+        model = PlaceholderAccount
+        import_id_fields = ('email',)  # Use email as the identifier for import
+        fields = ('email', 'balance')
+        export_order = ('email', 'balance')
+
+class PlaceholderAccountAdmin(ImportExportModelAdmin):
+    resource_class = PlaceholderAccountResource
+    list_display = ['email', 'balance', 'last_update']#, "ghp_user", 'balance_link', 'piece_link', 'ledger_credit_link']
+    ordering = ['balance', 'last_update']
+
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
 
 class AccountAdmin(admin.ModelAdmin):
 
@@ -760,7 +785,7 @@ class PieceAdmin(admin.ModelAdmin):
 
     list_filter = ['glaze_temp', 'bisque_temp', 'date', CurrentUserFilterFromOther,
                    PriceFilter, LengthORWidthFilter, LengthANDWidthFilter, HeightFilter,
-                   'ghp_user__current_student', 'ghp_user__current_staff', 'ghp_user__current_admin']
+                   'ghp_user__current_student', 'ghp_user__current_ghp_staff', 'ghp_user__current_faculty']
     
     search_fields = ['ghp_user__first_name', 'ghp_user__last_name', 'ghp_user__email']
     
@@ -816,7 +841,7 @@ class LedgerAdmin(admin.ModelAdmin):
     list_display = [ 'transaction_type', 'date', 'amount', 'ghp_user', 'piece', 
                     'note', 'transaction_id', 'stripe_session_id']
     
-    list_filter = ['transaction_type', 'date', AmountFilter, CurrentUserFilterFromOther, 'ghp_user__current_student', 'ghp_user__current_staff', 'ghp_user__current_admin']
+    list_filter = ['transaction_type', 'date', AmountFilter, CurrentUserFilterFromOther, 'ghp_user__current_student', 'ghp_user__current_ghp_staff', 'ghp_user__current_faculty']
     
     search_fields = ['ghp_user__first_name', 'ghp_user__last_name', 'ghp_user__email', 
                      'transaction_type', 'date', 'note']
@@ -905,5 +930,6 @@ admin.site.unregister(Group)
 # Register the GHPUser model with the GHPUserAdmin
 admin.site.register(GHPUser, GHPUserAdmin)
 admin.site.register(Account, AccountAdmin)
+admin.site.register(PlaceholderAccount, PlaceholderAccountAdmin)
 admin.site.register(Piece, PieceAdmin)
 admin.site.register(Ledger, LedgerAdmin)

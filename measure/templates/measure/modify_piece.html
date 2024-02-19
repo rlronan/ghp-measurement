@@ -137,6 +137,13 @@
                 {% endif %}
             </tr>
             <tr>
+                <th>Number Of Handles</th>
+                <td>{{ form.handles}}</td>
+                {% if form.handles.errors %}
+                    <td class="error">{{ form.handles.errors }}</td>
+                {% endif %}
+            </tr>
+            <tr>
                 <th>Bisque Temp</th>
                 <td class="centertext">{{ form.bisque_temp }}</td>
                 {% if form.bisque_temp.errors %}
@@ -186,25 +193,39 @@
 
     <script>
         $(document).ready(function () {
-            // listen for changes in the length, width, and height, glaze_temp, and bisque_temp fields
+            // listen for changes in the length, width, and height, handles, and glaze_temp, and bisque_temp fields
             // glaze_temp is a choice field, so it is a select element
-            $('input[name=length], input[name=width], input[name=height], select[name=glaze_temp], select[name=bisque_temp]').change(function () {
+            $('input[name=length], input[name=width], input[name=height], input[name=handles], select[name=glaze_temp], select[name=bisque_temp]').change(function () {
 
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
                 var width = parseFloat($('input[name=width]').val());
                 var height = parseFloat($('input[name=height]').val());
-
-                // if any of the values are NaN, set them to the minimum
+                var handles = parseInt($('input[name=handles]').val());
+                // if any of the values are NaN, return without continuing.
                 if (isNaN(length)) {
-                    length = 0.5;
+                    return;
+                    //length = 0.5;
                 }
                 if (isNaN(width)) {
-                    width = 0.5;
+                    return;
+                    //width = 0.5;
                 }
                 if (isNaN(height)) {
-                    height = 3.0;
+                    return;
+                    //height = 3.0;
                 }
+                if (isNaN(handles)) {
+                    handles = 0;
+                    //height = 3.0;
+                }
+
+                // round the values UP the minimum values 
+                length = Math.max(0.5, length);
+                width = Math.max(0.5, width);
+                height = Math.max(3.0, height);
+
+
 
                 // round the values UP to nearest 0.5 inch 
                 length = Math.max(0.5, Math.ceil(length * 2) / 2);
@@ -215,7 +236,6 @@
                 length = length.toFixed(1);
                 width = width.toFixed(1);
                 height = height.toFixed(1);
-
                 // update the value of the length, width, and height fields
                 $('input[name=length]').val(length);
                 $('input[name=width]').val(width);
@@ -250,7 +270,7 @@
                 var glazing_price_per_cubic_inch = $('input[name=glazing_price_per_cubic_inch]').val();
 
                 // calculate the new value of price
-                var price = firing_price_per_cubic_inch * size * bisque_temp_scalar + glazing_price_per_cubic_inch * size * glaze_temp_scalar;
+                var price = firing_price_per_cubic_inch * size * bisque_temp_scalar + glazing_price_per_cubic_inch * size * glaze_temp_scalar + handles*0.10;
 
                 // if price is less than 1.00, set it to 1.00
                 if (price < 1.00) {
