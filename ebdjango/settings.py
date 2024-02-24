@@ -54,6 +54,9 @@ STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_51Nyc
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_ENDPOINT_SECRET = os.environ.get('STRIPE_ENDPOINT_SECRET', '')
 
+# print server secret key 
+PRINT_SERVER_SECRET_KEY = os.environ.get('PRINT_SERVER_SECRET_KEY', '')
+
 # Application definition
 
 INSTALLED_APPS = [

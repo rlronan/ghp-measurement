@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
 from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm, RefundPieceForm, AddCreditForm
-from .models import GHPUser, Account, Piece, Ledger
+from .models import GHPUser, Account, Piece, Ledger, PieceReceipt
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, \
     PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -474,3 +474,60 @@ def handle_checkout_session(session):
     except Exception as e:
         print("Error: ", e)
         pass
+
+
+@csrf_exempt
+def get_print_jobs(request):
+    if request.method == 'GET':
+        print("In get print jobs view GET")
+        print_server_key = request.GET.get('secret_key', '')
+        print("Provided secret key: ", print_server_key)
+        print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
+        if print_server_secret_key == '':
+            print("Print server secret key not set")
+            #raise ValueError("PRINT_SERVER_SECRET_KEY is not set")
+            return JsonResponse({'error': 'Print server secret key not set'}, status=500)
+        elif print_server_key == print_server_secret_key:  # Replace 'YOUR_SECRET_KEY' with your actual secret key
+            print("Valid secret key, getting unprinted receipts")
+            all_receipts = PieceReceipt.objects.all()
+            #print("All receipts: ", all_receipts)
+            unprinted_receipts = PieceReceipt.objects.filter(printed=False).filter(piece_location='Chelsea').all()
+            print("Unprinted Receipts: ", unprinted_receipts)
+            data = {
+                'unprinted_receipts': list(unprinted_receipts.values())
+            }
+            # Mark the receipts as printed since we are sending to the printer, and I cannot get the local server to respond..
+            for receipt_obj in unprinted_receipts:
+                print("Marking receipt as printed")
+                receipt = get_object_or_404(PieceReceipt, pk=receipt_obj.id)
+                receipt.printed = True
+                receipt.save()
+
+            return JsonResponse(data)   
+        else:
+            print("Invalid secret key")
+            return JsonResponse({'error': 'Invalid secret key'}, status=403)
+    elif request.method == 'POST':
+        print("In get print jobs view POST")
+
+        print_server_key = request.POST.get('secret_key', '')
+        print("Provided secret key: ", print_server_key)
+        print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
+        if print_server_secret_key == '':
+            print("Print server secret key not set")
+            #raise ValueError("PRINT_SERVER_SECRET_KEY is not set")
+            return JsonResponse({'error': 'Print server secret key not set'}, status=500)
+        elif print_server_key == print_server_secret_key:
+            print("Valid secret key, marking receipt as printed")
+            receipt_ids = request.POST.get('receipt_ids', '')
+            print("Receipt ids: ", receipt_ids)
+            for receipt_id in receipt_ids:
+                receipt = get_object_or_404(PieceReceipt, pk=receipt_id)
+                receipt.printed = True
+                receipt.save()
+            return HttpResponse(status=200)
+        
+    else:
+        print("Cannot understand request")
+        return HttpResponse(status=400)
+

@@ -8,7 +8,7 @@ import decimal
 from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, \
     USER_FIRING_SCALE, FACULTY_FIRING_SCALE, STAFF_FIRING_SCALE,\
     USER_GLAZING_SCALE, FACULTY_GLAZING_SCALE,  STAFF_GLAZING_SCALE, \
-    MINIMUM_PRICE, TRANSACTION_TYPES, PRICE_PER_HANDLE
+    MINIMUM_PRICE, TRANSACTION_TYPES, PRICE_PER_HANDLE, LOCATION_CHOICES
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 
@@ -148,6 +148,7 @@ class GHPUser(User):
         elif self.current_student:
             s += ' (Student)'
         return s
+
 
 
 class Piece(models.Model):
@@ -441,6 +442,27 @@ class Piece(models.Model):
                         piece=self
                         )
                 
+                PieceReceipt.objects.create(
+                    ghp_user_name=str(self.ghp_user),
+                    piece = self,
+                    piece_date=self.date,
+                    length=self.length,
+                    width=self.width,
+                    height=self.height,
+                    handles=self.handles,
+                    size=self.size,
+                    price=self.paid_price,
+                    course_number=self.course_number,
+                    bisque_temp=self.bisque_temp,
+                    glaze_temp=self.glaze_temp,
+                    receipt_type='Bisque',
+                    #image=self.image,
+                    piece_location=self.piece_location,
+                    printed=False,
+                    printed_date=None,
+                    number_printed=0
+                )
+
                 Ledger.objects.create(
                         date = self.date,
                         ghp_user=self.ghp_user,
@@ -450,6 +472,28 @@ class Piece(models.Model):
                         note='Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                         piece=self
                         )
+                
+
+                PieceReceipt.objects.create(
+                    ghp_user_name=str(self.ghp_user),
+                    piece = self,
+                    piece_date=self.date,
+                    length=self.length,
+                    width=self.width,
+                    height=self.height,
+                    handles=self.handles,
+                    size=self.size,
+                    price=self.paid_price,
+                    course_number=self.course_number,
+                    bisque_temp=self.bisque_temp,
+                    glaze_temp=self.glaze_temp,
+                    receipt_type='Glaze',
+                    #image=self.image,
+                    piece_location=self.piece_location,
+                    printed=False,
+                    printed_date=None,
+                    number_printed=0
+                )
             # Handle case 2: The piece is being fired, but not glazed
             # Only charge the firing price
             elif self.glaze_temp == 'None' and self.bisque_temp != 'None':
@@ -473,6 +517,26 @@ class Piece(models.Model):
                         note='Bisque Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                         piece=self
                         )
+                PieceReceipt.objects.create(
+                    ghp_user_name=str(self.ghp_user),
+                    piece = self,
+                    piece_date=self.date,
+                    length=self.length,
+                    width=self.width,
+                    height=self.height,
+                    handles=self.handles,
+                    size=self.size,
+                    price=self.paid_price,
+                    course_number=self.course_number,
+                    bisque_temp=self.bisque_temp,
+                    glaze_temp=self.glaze_temp,
+                    receipt_type='Bisque',
+                    #image=self.image,
+                    piece_location=self.piece_location,
+                    printed=False,
+                    printed_date=None,
+                    number_printed=0
+                )
             # Handle case 3: The piece is not being fired, but is being glazed
             elif self.glaze_temp != 'None' and self.bisque_temp == 'None':
                 # Create the ledger enter for the glaze firing fee
@@ -494,6 +558,27 @@ class Piece(models.Model):
                         note='Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                         piece=self
                         )
+                PieceReceipt.objects.create(
+                    ghp_user_name=str(self.ghp_user),
+                    piece = self,
+                    piece_date=self.date,
+                    length=self.length,
+                    width=self.width,
+                    height=self.height,
+                    handles=self.handles,
+                    size=self.size,
+                    price=self.paid_price,
+                    course_number=self.course_number,
+                    bisque_temp=self.bisque_temp,
+                    glaze_temp=self.glaze_temp,
+                    receipt_type='Glaze',
+                    #image=self.image,
+                    piece_location=self.piece_location,
+                    printed=False,
+                    printed_date=None,
+                    number_printed=0
+                )
+
             else:
                 print('ERROR: You must select a firing temperature for the '\
                 'bisque or glaze firing, or both.\n If you do ' \
@@ -552,7 +637,26 @@ class Piece(models.Model):
                             note='Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                             piece=self
                     )
-
+                    PieceReceipt.objects.create(
+                        ghp_user_name=str(self.ghp_user),
+                        piece = self,
+                        piece_date=self.date,
+                        length=self.length,
+                        width=self.width,
+                        height=self.height,
+                        handles=self.handles,
+                        size=self.size,
+                        price=self.paid_price,
+                        course_number=self.course_number,
+                        bisque_temp=self.bisque_temp,
+                        glaze_temp=self.glaze_temp,
+                        receipt_type='Glaze',
+                        #image=self.image,
+                        piece_location=self.piece_location,
+                        printed=False,
+                        printed_date=None,
+                        number_printed=0
+                    )
                     # If the user is now paying for glazing, we need to update the last measure date
                     self.ghp_user.last_measure_date = ledger_date
                     # set the paid_price to the new price
@@ -576,6 +680,26 @@ class Piece(models.Model):
                             note='Bisque Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                             piece=self
                     )
+                    PieceReceipt.objects.create(
+                        ghp_user_name=str(self.ghp_user),
+                        piece = self,
+                        piece_date=self.date,
+                        length=self.length,
+                        width=self.width,
+                        height=self.height,
+                        handles=self.handles,
+                        size=self.size,
+                        price=self.paid_price,
+                        course_number=self.course_number,
+                        bisque_temp=self.bisque_temp,
+                        glaze_temp=self.glaze_temp,
+                        receipt_type='Bisque',
+                        #image=self.image,
+                        piece_location=self.piece_location,
+                        printed=False,
+                        printed_date=None,
+                        number_printed=0
+                    )
                     self.ghp_user.last_measure_date = ledger_date
                     # set the paid_price to the new price
                     self.paid_price = new_price
@@ -597,7 +721,26 @@ class Piece(models.Model):
                             note='Bisque Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                             piece=self
                             )
-                    
+                    PieceReceipt.objects.create(
+                        ghp_user_name=str(self.ghp_user),
+                        piece = self,
+                        piece_date=self.date,
+                        length=self.length,
+                        width=self.width,
+                        height=self.height,
+                        handles=self.handles,
+                        size=self.size,
+                        price=self.paid_price,
+                        course_number=self.course_number,
+                        bisque_temp=self.bisque_temp,
+                        glaze_temp=self.glaze_temp,
+                        receipt_type='Bisque',
+                        #image=self.image,
+                        piece_location=self.piece_location,
+                        printed=False,
+                        printed_date=None,
+                        number_printed=0
+                    )
                     Ledger.objects.create(
                             date = ledger_date,
                             ghp_user=self.ghp_user,
@@ -607,6 +750,26 @@ class Piece(models.Model):
                             note='Glaze Firing Fee for Piece #' + str(self.ghp_user_piece_id),
                             piece=self
                             )
+                    PieceReceipt.objects.create(
+                        ghp_user_name=str(self.ghp_user),
+                        piece = self,
+                        piece_date=self.date,
+                        length=self.length,
+                        width=self.width,
+                        height=self.height,
+                        handles=self.handles,
+                        size=self.size,
+                        price=self.paid_price,
+                        course_number=self.course_number,
+                        bisque_temp=self.bisque_temp,
+                        glaze_temp=self.glaze_temp,
+                        receipt_type='Glaze',
+                        #image=self.image,
+                        piece_location=self.piece_location,
+                        printed=False,
+                        printed_date=None,
+                        number_printed=0
+                    )
                     self.ghp_user.last_measure_date = ledger_date
                     # set the paid_price to the new price
                     self.paid_price = new_price
@@ -619,6 +782,47 @@ class Piece(models.Model):
                 + str(self.length) + 'x' + str(self.width) + 'x' \
                 + str(self.height) + ' ' + '$' +  str(self.price) + ' ' \
                 + str(self.bisque_temp) + ' ' + str(self.glaze_temp) 
+
+class PieceReceipt(models.Model):
+    # id = models.AutoField(primary_key=True)
+    ghp_user_name = models.CharField(max_length=100, blank=True)
+    piece = models.ForeignKey(Piece, models.CASCADE, null=False)
+    #ghp_user_piece_id = models.IntegerField(default= 1 )
+    piece_date = models.DateField(blank=True, null=True)
+    length = models.DecimalField(max_digits=5, decimal_places=1)
+    width = models.DecimalField(max_digits=5, decimal_places=1)
+    height = models.DecimalField( max_digits=5, decimal_places=1)
+    handles = models.DecimalField(max_digits=2, decimal_places=0, default=0)
+    size = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+    price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+
+    course_number = models.CharField(max_length=4, blank=True)
+    bisque_temp = models.CharField(max_length=4, choices=BISQUE_TEMPS, default="06") # imported from constants.py
+    glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="10") # imported from constants.py
+    receipt_type = models.CharField(max_length=6, choices=[('Bisque', 'Bisque'), ('Glaze', 'Glaze')], blank=True)
+    image = models.ImageField(upload_to='images/', blank=True, null=True)
+    piece_location = models.CharField(
+        max_length=10,
+        choices=LOCATION_CHOICES,
+        default='Chelsea',  # You can set a default value if needed
+    )
+
+    printed = models.BooleanField(default=False)
+    printed_date = models.DateField(blank=True, null=True)
+    number_printed = models.IntegerField(default=0)
+
+    class Meta:
+        managed = True
+        db_table = 'piece_receipt'
+
+
+    def save(self, *args, **kwargs):
+        #do_something()
+        print("trying to save a piece receipt of type: " + self.receipt_type)
+        super().save(*args, **kwargs)
+        print("saved a piece receipt of type: " + self.receipt_type)
+
+
 
 
 class Ledger(models.Model):
