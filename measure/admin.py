@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 from django.db.models.functions import Concat
 from django.db.models import Value
-from .models import GHPUser, Account, PlaceholderAccount, Piece, Ledger
+from .models import GHPUser, Account, PlaceholderAccount, Piece, Ledger, PieceReceipt
 from django.contrib import messages
 from django.utils.translation import ngettext
 import csv
@@ -834,7 +834,45 @@ class PieceAdmin(admin.ModelAdmin):
 
     export_as_csv.short_description = "Export Selected"
 
+class PieceReciptAdmin(admin.ModelAdmin):
 
+    list_display = ['ghp_user_name', 'piece', 'bisque_temp', 'glaze_temp', 'piece_location', 'piece_date', 'length', 'width', 'height', 'printed', 'price']
+
+
+    #         unprinted_receipts = PieceReceipt.objects.filter(printed=False).filter(piece_location='Chelsea').all()
+    #         print("Unprinted Receipts: ", unprinted_receipts)
+    #         data = {
+    #             'unprinted_receipts': list(unprinted_receipts.values())
+    #         }
+
+
+    @admin.action(description="Reprint the receipt")
+    def reprint_receipt(self, request, queryset):
+        for obj in queryset:
+            obj.printed = False
+            obj.save()
+
+    @admin.action(description="Change the Receipt Location to Chelsea")
+    def move_receipt_to_chelsea(self, request, queryset):
+        for obj in queryset:
+            obj.piece_location = 'Chelsea'
+            obj.printed = False
+            obj.save()
+
+    @admin.action(description="Change the Receipt Location to Greenwich")
+    def move_receipt_to_greenwich(self, request, queryset):
+        for obj in queryset:
+            obj.piece_location = 'Greenwich'
+            obj.printed = False
+            obj.save()
+
+    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich']
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
 
 class LedgerAdmin(admin.ModelAdmin):
 
@@ -927,9 +965,11 @@ class LedgerAdmin(admin.ModelAdmin):
 # Unregister the old User model admin
 admin.site.unregister(Group)
 
+
 # Register the GHPUser model with the GHPUserAdmin
 admin.site.register(GHPUser, GHPUserAdmin)
 admin.site.register(Account, AccountAdmin)
 admin.site.register(PlaceholderAccount, PlaceholderAccountAdmin)
 admin.site.register(Piece, PieceAdmin)
+admin.site.register(PieceReceipt, PieceReciptAdmin)
 admin.site.register(Ledger, LedgerAdmin)
