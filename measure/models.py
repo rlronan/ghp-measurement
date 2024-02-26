@@ -352,8 +352,58 @@ class Piece(models.Model):
                 previously_paid_for_firing = True
                 previously_paid_for_glazing = True
 
-                new_price = 0.00
+                new_price = decimal.Decimal(0.00)
                 new_price = new_price.quantize(decimal.Decimal('0.01'))
+                previous_price = previous_piece.paid_price
+
+                # since there are conditonals below that prevent the user from being charged twice for the same thing,
+                # no ledgers or receipts will be created for staff. So we need to create a receipt here if the glaze or bisque temp has changed
+                if self.bisque_temp != previous_piece.bisque_temp:
+                    # Create a bisque receipt
+                    PieceReceipt.objects.create(
+                        ghp_user_name=str(self.ghp_user),
+                        piece = self,
+                        piece_date=self.date,
+                        length=self.length,
+                        width=self.width,
+                        height=self.height,
+                        handles=self.handles,
+                        size=self.size,
+                        price=self.paid_price,
+                        course_number=self.course_number,
+                        bisque_temp=self.bisque_temp,
+                        glaze_temp=self.glaze_temp,
+                        receipt_type='Bisque',
+                        #image=self.image,
+                        piece_location=self.piece_location,
+                        printed=False,
+                        printed_date=None,
+                        number_printed=0
+                    )
+                if self.glaze_temp != previous_piece.glaze_temp:
+                    # Create a glaze receipt
+                    PieceReceipt.objects.create(
+                        ghp_user_name=str(self.ghp_user),
+                        piece = self,
+                        piece_date=self.date,
+                        length=self.length,
+                        width=self.width,
+                        height=self.height,
+                        handles=self.handles,
+                        size=self.size,
+                        price=self.paid_price,
+                        course_number=self.course_number,
+                        bisque_temp=self.bisque_temp,
+                        glaze_temp=self.glaze_temp,
+                        receipt_type='Glaze',
+                        #image=self.image,
+                        piece_location=self.piece_location,
+                        printed=False,
+                        printed_date=None,
+                        number_printed=0
+                    )
+
+
             else:
                 # Get the previous glazing, firing prices, and handles from the previous piece
 
