@@ -52,7 +52,8 @@ class PieceForm(forms.ModelForm):
         # self.fields['glaze_temp'].initial = 'Cone 10'
 
 
-        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
+        # self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
+        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
         if self.fields['piece_location'].initial == 'Greenwich':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='06')
@@ -249,8 +250,15 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['ghp_user_piece_id'].initial = self.piece.ghp_user_piece_id
 
         self.fields['piece_location'].initial  = self.piece.piece_location
-        self.fields['bisque_temp'].initial = self.piece.bisque_temp
-        self.fields['glaze_temp'].initial = self.piece.glaze_temp
+        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
+        if self.fields['piece_location'].initial == 'Greenwich':
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=self.piece.bisque_temp)
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=self.piece.glaze_temp)
+        elif self.fields['piece_location'].initial == 'Chelsea':
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=self.piece.bisque_temp)
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=self.piece.glaze_temp)
+        # self.fields['bisque_temp'].initial = self.piece.bisque_temp
+        # self.fields['glaze_temp'].initial = self.piece.glaze_temp
 
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.length)
         self.fields['width'] = forms.DecimalField(max_digits=5, decimal_places=1, initial=self.piece.width)

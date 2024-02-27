@@ -65,6 +65,14 @@ LOCATION_CHOICES = [
 
 ]
 
+LOCATION_CHOICES_ONLY_CHELSEA = [
+        ("Chelsea", "Chelsea")
+        ##("Both", "Both"),
+        ##("None", "None"),
+
+]
+
+
 # Price Scaling
 USER_FIRING_SCALE = 0.03
 FACULTY_FIRING_SCALE = 0.01

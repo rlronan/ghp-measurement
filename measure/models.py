@@ -73,7 +73,7 @@ class GHPUser(User):
     current_location = models.CharField(
         max_length=10,
         choices=LOCATION_CHOICES,
-        default=GREENWICH,  # You can set a default value if needed
+        default=CHELSEA,  # You can set a default value if needed
     )
     
     USERNAME_FIELD = 'email'
@@ -188,7 +188,7 @@ class Piece(models.Model):
     piece_location = models.CharField(
         max_length=10,
         choices=LOCATION_CHOICES,
-        default=GREENWICH,  # You can set a default value if needed
+        default=CHELSEA,  # You can set a default value if needed
     )
     # glaze_temp_help_text = """
     # Glaze firing temperature. Cone 10 is the 'standard'. 

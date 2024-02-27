@@ -339,7 +339,7 @@ def create_checkout_session(request):
 #@login_required(login_url='measure:login')
 class StripeSuccessView(TemplateView):
     template_name = 'measure/stripe_success.html'
-
+    
 #@login_required(login_url='measure:login')
 class StripeCancelledView(TemplateView):
     template_name = 'measure/stripe_cancelled.html'
@@ -416,7 +416,8 @@ def handle_checkout_session(session):
                 print(session)
                 print("Canceling attempt to add credit to user account.")
                 print("ERROR: STAFF WILL HAVE TO MANUALLY ADD CREDIT TO USER ACCOUNT.")
-                return
+                return HttpResponse(status=400,
+                                    content="Could not find customer by account or email! Stripe payment was not processed by website!")
     # Customer was logged in we can now fetch the Django user and make changes to our models
     try:
         ghp_user = GHPUser.objects.get(pk=client_reference_id)#get_object_or_404(GHPUser, pk=client_reference_id)
@@ -440,12 +441,16 @@ def handle_checkout_session(session):
                 print("Ledgers: ", ledgers)
                 if ledgers.count() > 0:
                     print("Duplicate transaction detected")
+                    print("Already processed this transaction.")
                     print("Canceling attempt to add credit to user account.")
-                    print("ERROR: STAFF WILL HAVE TO MANUALLY ADD CREDIT TO USER ACCOUNT.")
-                    return
+                    #print("ERROR: STAFF WILL HAVE TO MANUALLY ADD CREDIT TO USER ACCOUNT.")
+                    return HttpResponse(status=200) # return OK for this so Stripe will not try to resend the webhook
+
         except Exception as e:
             print("Error checking for duplicate transaction: ", e)
-            pass
+            return HttpResponse(status=400,
+                                content="Error when checking for duplicate transaction. This does not indicate a duplicate transaction.")
+
         try:
             print("Creating ledger entry")
             print("ghp_user: ", ghp_user)
@@ -463,17 +468,23 @@ def handle_checkout_session(session):
             print("Saving ledger entry")
             user_payment.save()
             print("Finished creating ledger entry")
+            return HttpResponse(status=200)
         except Exception as e:
             print("Error creating ledger entry: ", e)
-            pass
+            return HttpResponse(status=400,
+                                content="Error creating a ledger entry for this transaction.")
+
         # TODO: make changes to our models.
 
     except GHPUser.DoesNotExist:
         print("Webhook error: GHPUser does not exist")
-        pass
+        return HttpResponse(status=400,
+                            content="Could not find customer by account or email! Stripe payment was not processed by website!")
     except Exception as e:
         print("Error: ", e)
-        pass
+        return HttpResponse(status=400,
+                            content="Error processing Stripe payment.")
+
 
 
 @csrf_exempt
