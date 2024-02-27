@@ -122,7 +122,8 @@ try:
         print("Trying to print jobs: ", jobs)
         printed_jobs = []
         PRINTER_IP = '10.186.3.27'
-        for job in print_jobs:
+        print("trying to iterate through print jobs")
+        for job in jobs:
             print_text = job['print_string']
             #print_text = job_to_printer_text(job)
             try:
@@ -158,7 +159,7 @@ try:
             print("Trying to return print job status")
             params = {'secret_key': print_server_secret_key,
                     'receipt_ids': printed_jobs}
-            response = requests.post('http://{}}/api/printjobs/'.format(domain), params=params)
+            response = requests.post('http://{}/api/printjobs/'.format(domain), params=params)
             print("Response: ", response)
             response.raise_for_status()  # Raises an error for bad responses
             #print_jobs = response.json()  # Assuming the response is JSON

@@ -836,7 +836,7 @@ class PieceAdmin(admin.ModelAdmin):
 
 class PieceReciptAdmin(admin.ModelAdmin):
 
-    list_display = ['ghp_user_name', 'piece', 'receipt_type', 'bisque_temp', 'glaze_temp', 'piece_location', 'piece_date', 'length', 'width', 'height', 'printed', 'price']
+    list_display = ['ghp_user_name', 'piece', 'piece_number', 'receipt_type', 'bisque_temp', 'glaze_temp', 'piece_location', 'piece_date', 'length', 'width', 'height', 'printed', 'price']
 
 
     #         unprinted_receipts = PieceReceipt.objects.filter(printed=False).filter(piece_location='Chelsea').all()

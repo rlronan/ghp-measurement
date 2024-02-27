@@ -363,7 +363,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
-                        piece_number = self.id,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -386,7 +386,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
-                        piece_number = self.id,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -497,7 +497,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
-                    piece_number = self.id,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -530,7 +530,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
-                    piece_number = self.id,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -574,7 +574,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
-                    piece_number = self.id,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -616,7 +616,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
-                    piece_number = self.id,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -696,7 +696,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
-                        piece_number = self.id,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -740,7 +740,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
-                        piece_number = self.id,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -782,7 +782,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
-                        piece_number = self.id,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -812,7 +812,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
-                        piece_number = self.id,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,

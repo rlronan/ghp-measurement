@@ -513,6 +513,7 @@ Bisque Temp: {}
 
 Piece #: {}
 
+
 """.format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['course_number'], job['bisque_temp'], job['piece_number'])
 
     elif job['receipt_type'] == 'Glaze':
@@ -540,6 +541,8 @@ Course Number: {}
 Glaze Temp: {}
 
 Piece #: {}
+
+
     """.format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['course_number'], job['glaze_temp'], job['piece_number'])
 
     return {'id': job['id'], 'print_string': print_string}
@@ -582,7 +585,7 @@ def get_print_jobs_chelsea(request):
             print("Invalid secret key")
             return JsonResponse({'error': 'Invalid secret key'}, status=403)
     elif request.method == 'POST':
-        print("In get print jobs view POST")
+        #print("In get print jobs view POST")
 
         print_server_key = request.POST.get('secret_key', '')
         #print("Provided secret key: ", print_server_key)
