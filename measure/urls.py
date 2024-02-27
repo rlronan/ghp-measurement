@@ -75,7 +75,7 @@ urlpatterns = [
     path('cancelled/', views.StripeCancelledView.as_view()), # new
     path('webhook/', views.stripe_webhook), # new
 
-    path('api/printjobs/', views.get_print_jobs, name='get_print_jobs'),
+    path('api/printjobs/', views.get_print_jobs_chelsea, name='get_print_jobs_chelsea'),
 
 
 

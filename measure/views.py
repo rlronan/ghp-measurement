@@ -485,31 +485,93 @@ def handle_checkout_session(session):
         return HttpResponse(status=400,
                             content="Error processing Stripe payment.")
 
+def job_to_printer_text(job):
+    # Process the job and return the text to be printed
+    if job['receipt_type'] == 'Bisque':
+        print_string = """
+BISQUE FIRING SLIP
+
+DO NOT THROW AWAY
+
+PLACE THIS SLIP WITH 
+
+YOUR PIECE & CLASS CHIP
+
+ON BISQUE FIRING SHELF
+
+Name: {}
+
+Date: {}
+
+LxWxH: {} x {} x {}
+
+Handles: {}
+
+Course Number: {}
+
+Bisque Temp: {}
+
+Piece #: {}
+
+""".format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['course_number'], job['bisque_temp'], job['piece_number'])
+
+    elif job['receipt_type'] == 'Glaze':
+        print_string = """
+GLAZE FIRING SLIP
+
+DO NOT THROW AWAY
+
+PLACE THIS SLIP WITH 
+
+YOUR PIECE ON THE
+
+GLAZE FIRING SHELF
+
+Name: {}
+
+Date: {}
+
+LxWxH: {} x {} x {}
+
+Handles: {}
+
+Course Number: {}
+
+Glaze Temp: {}
+
+Piece #: {}
+    """.format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['course_number'], job['glaze_temp'], job['piece_number'])
+
+    return {'id': job['id'], 'print_string': print_string}
 
 
 @csrf_exempt
-def get_print_jobs(request):
+def get_print_jobs_chelsea(request):
     if request.method == 'GET':
-        print("In get print jobs view GET")
+        #print("In get print jobs view GET")
         print_server_key = request.GET.get('secret_key', '')
-        print("Provided secret key: ", print_server_key)
+        #print("Provided secret key: ", print_server_key)
         print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
         if print_server_secret_key == '':
             print("Print server secret key not set")
             #raise ValueError("PRINT_SERVER_SECRET_KEY is not set")
             return JsonResponse({'error': 'Print server secret key not set'}, status=500)
         elif print_server_key == print_server_secret_key:  # Replace 'YOUR_SECRET_KEY' with your actual secret key
-            print("Valid secret key, getting unprinted receipts")
-            all_receipts = PieceReceipt.objects.all()
+            #print("Valid secret key, getting unprinted receipts")
+            #all_receipts = PieceReceipt.objects.all()
             #print("All receipts: ", all_receipts)
             unprinted_receipts = PieceReceipt.objects.filter(printed=False).filter(piece_location='Chelsea').all()
-            print("Unprinted Receipts: ", unprinted_receipts)
-            data = {
-                'unprinted_receipts': list(unprinted_receipts.values())
-            }
-            # Mark the receipts as printed since we are sending to the printer, and I cannot get the local server to respond..
+            if unprinted_receipts.count() > 0:
+                print("Unprinted Receipts: ", unprinted_receipts)
+                unprinted_receipts = list(unprinted_receipts.values())
+                data = {
+                    'unprinted_receipts': [job_to_printer_text(job) for job in unprinted_receipts]
+                }
+            else:
+                data = {'unprinted_receipts': None}
+            # # Mark the receipts as printed since we are sending to the printer, and I cannot get the local server to respond..
             for receipt_obj in unprinted_receipts:
-                print("Marking receipt as printed")
+                print("pre-Marking receipt as printed")
                 receipt = get_object_or_404(PieceReceipt, pk=receipt_obj.id)
                 receipt.printed = True
                 receipt.save()
@@ -522,7 +584,7 @@ def get_print_jobs(request):
         print("In get print jobs view POST")
 
         print_server_key = request.POST.get('secret_key', '')
-        print("Provided secret key: ", print_server_key)
+        #print("Provided secret key: ", print_server_key)
         print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
         if print_server_secret_key == '':
             print("Print server secret key not set")

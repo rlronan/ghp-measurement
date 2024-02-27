@@ -363,6 +363,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -385,6 +386,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -495,6 +497,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -527,6 +530,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -570,6 +574,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -611,6 +616,7 @@ class Piece(models.Model):
                 PieceReceipt.objects.create(
                     ghp_user_name=str(self.ghp_user),
                     piece = self,
+                    piece_number = self.ghp_user_piece_id,
                     piece_date=self.date,
                     length=self.length,
                     width=self.width,
@@ -690,6 +696,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -733,6 +740,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -774,6 +782,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -803,6 +812,7 @@ class Piece(models.Model):
                     PieceReceipt.objects.create(
                         ghp_user_name=str(self.ghp_user),
                         piece = self,
+                        piece_number = self.ghp_user_piece_id,
                         piece_date=self.date,
                         length=self.length,
                         width=self.width,
@@ -837,7 +847,7 @@ class PieceReceipt(models.Model):
     # id = models.AutoField(primary_key=True)
     ghp_user_name = models.CharField(max_length=100, blank=True)
     piece = models.ForeignKey(Piece, models.CASCADE, null=False)
-    #ghp_user_piece_id = models.IntegerField(default= 1 )
+    piece_number = models.IntegerField(default= 1 )
     piece_date = models.DateField(blank=True, null=True)
     length = models.DecimalField(max_digits=5, decimal_places=1)
     width = models.DecimalField(max_digits=5, decimal_places=1)

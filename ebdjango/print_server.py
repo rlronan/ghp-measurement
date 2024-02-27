@@ -38,29 +38,43 @@ try:
         # Process the job and return the text to be printed
         if job['receipt_type'] == 'Bisque':
             print_string = """
-BISQUE FIRING SLIP - DO NOT THROW AWAY
-PLACE THIS SLIP WITH YOUR PIECE ON THE
-APPROPRIATE BISQUE FIRING SHELF
+BISQUE FIRING SLIP
+
+DO NOT THROW AWAY
+
+PLACE THIS SLIP WITH 
+
+YOUR PIECE ON THE
+
+BISQUE FIRING SHELF
+
 Name: {}
 
 Date: {}
 
 LxWxH: {} x {} x {}
 
-Handles: {}  Size: {}
+Handles: {}
 
 Course Number: {}
 
 Bisque Temp: {}
 
+Piece #: {}
 
-""".format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['size'], job['course_number'], job['glaze_temp'])
+""".format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['course_number'], job['bisque_temp'], job['piece_number'])
 
         elif job['receipt_type'] == 'Glaze':
             print_string = """
-GLAZE FIRING SLIP - DO NOT THROW AWAY
-PLACE THIS SLIP WITH YOUR PIECE ON THE
-APPROPRIATE GLAZE FIRING SHELF
+GLAZE FIRING SLIP
+
+DO NOT THROW AWAY
+
+PLACE THIS SLIP WITH 
+
+YOUR PIECE ON THE
+
+GLAZE FIRING SHELF
 
 Name: {}
 
@@ -68,14 +82,14 @@ Date: {}
 
 LxWxH: {} x {} x {}
 
-Handles: {}  Size: {}
+Handles: {}
 
 Course Number: {}
 
 Glaze Temp: {}
 
-
-    """.format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['size'], job['course_number'], job['glaze_temp'])
+Piece #: {}
+    """.format(job['ghp_user_name'], job['piece_date'], job['length'], job['width'], job['height'], job['handles'], job['course_number'], job['glaze_temp'], job['piece_number'])
 
         return print_string
 except Exception as e:
@@ -109,7 +123,8 @@ try:
         printed_jobs = []
         PRINTER_IP = '10.186.3.27'
         for job in print_jobs:
-            print_text = job_to_printer_text(job)
+            print_text = job['print_string']
+            #print_text = job_to_printer_text(job)
             try:
                 # Initialize the printer
                 try:
@@ -182,6 +197,11 @@ try:
             try: 
                 print_success_ids = print_to_receipt_printer(print_jobs)
                 print("successfull print ids: ", print_success_ids)
+                try:
+                    return_print_job_results(print_success_ids)
+                except Exception as e:
+                    print(f"Error returning print job status: {e}")
+
             except Exception as e:
                 print(f"Error printing jobs: {e}")
                 print_success_ids = []
