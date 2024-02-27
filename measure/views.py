@@ -572,7 +572,8 @@ def get_print_jobs_chelsea(request):
             # # Mark the receipts as printed since we are sending to the printer, and I cannot get the local server to respond..
             for receipt_obj in unprinted_receipts:
                 print("pre-Marking receipt as printed")
-                receipt = get_object_or_404(PieceReceipt, pk=receipt_obj.id)
+                receipt = get_object_or_404(PieceReceipt, pk=receipt_obj['id'])
+                print("Marked receipt as printed")
                 receipt.printed = True
                 receipt.save()
 
