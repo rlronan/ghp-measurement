@@ -99,6 +99,25 @@
 
     <form enctype="multipart/form-data" class="MeasureForm" method="POST">
         {% csrf_token %}
+        {% if form.user_balance >= 25 %}
+            <h2>Firing Account Balance: ${{form.user_balance}}</h2>
+        {% elif form.user_balance >= 0 %}
+            <h2>Firing Account Balance: ${{form.user_balance}}<h2>
+            <p>Your account balance is getting low.</p>
+            <p><a href="{% url 'measure:user'%}">Please consider adding funds here</a></p>
+        {% elif form.user_balance >= -25 %}
+            <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
+            <h3>(Warning: Your account balance is negative. You will not be able to fire anything that brings it too negative)</h3>
+            <h3><a href="{% url 'measure:user'%}">Please consider adding funds here</a></h3>
+        {% else %}
+            <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
+            <h3>(WARNING: YOU CANNOT MEASURE OR FIRE ADDITIONAL PIECES UNTIL YOU ADD FUNDS TO YOUR ACCOUNT BALANCE)</h3>
+            <h3><a href="{% url 'measure:user'%}">Please consider adding funds here<a></h3>
+
+        <h3>Please note all measurement values will be rounded up to the nearest half inch, and the minimum firing fee is $1.</h3>
+
+        <!-- <th colspan="6">Balance: -${{user_balance|mult:-1}}</th> -->
+        {% endif %}
         {{ form.non_field_errors }}
         {{ form.field_errors }}
         {% for hidden in form.hidden_fields %}
