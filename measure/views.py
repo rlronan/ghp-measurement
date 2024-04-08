@@ -325,8 +325,14 @@ def create_checkout_session(request):
                             line_items=[
                 {
                     # Provide the exact Price ID (for example, pr_1234) of the product you want to sell
-                    'price': 'price_1OmmODKNzblAdhbySMe4YoN7', # moving price to production 'price_1OiMoHKNzblAdhbyq93B7xrG', # moving price to ghp_account 'price_1NykHQE1Tl2FOfocAeJNrJKN',
-                    'quantity': 1,
+                    'price': 'price_1P37XFKNzblAdhbyy6uIvXj6', # moving price to $1 and quantity to 5, and enabling adjustable quantity
+                      #'price_1OmmODKNzblAdhbySMe4YoN7', # moving price to production 'price_1OiMoHKNzblAdhbyq93B7xrG', # moving price to ghp_account 'price_1NykHQE1Tl2FOfocAeJNrJKN',
+                    'quantity': 5,
+                    'adjustable_quantity': {
+                        'enabled': True,
+                        'minimum': 5,
+                        'maximum': 250,
+                    }
                 },
             ],
             )
