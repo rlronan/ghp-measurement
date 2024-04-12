@@ -150,10 +150,11 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
 
     piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
     piece_image = piece.image
+    user_balance = ghp_user.account.balance
     print("Found user: " + str(ghp_user))
     print("Found piece: {} with pk: {}".format(str(piece), piece.pk))
     if request.method == 'POST':
-        form = ModifyPieceForm(request.POST, request.FILES, ghp_user=ghp_user, piece=piece)# piece_image=piece_image)
+        form = ModifyPieceForm(request.POST, request.FILES, ghp_user=ghp_user, piece=piece, user_balance=user_balance)# piece_image=piece_image)
         if form.is_valid():
             form.instance.pk = piece.id
             form.instance.date = piece.date
@@ -164,7 +165,7 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
         else:
             print("Modify piece form is not valid")
             print(form.errors)
-            return render(request, 'measure/modify_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece})
+            return render(request, 'measure/modify_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece, 'user_balance': user_balance})
 
     else:
         form = ModifyPieceForm(ghp_user=ghp_user, piece=piece)
