@@ -240,6 +240,7 @@ class ModifyPieceForm(forms.ModelForm):
         self.ghp_user = kwargs.pop('ghp_user', None)
         self.piece = kwargs.pop('piece', None)
         self.ghp_user_location = self.ghp_user.get_location()
+        self.user_balance = kwargs.pop('user_balance', None)
 
         ##self.piece_image = kwargs.pop('piece_image', None)
         super().__init__(*args, **kwargs)
