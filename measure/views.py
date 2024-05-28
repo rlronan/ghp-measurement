@@ -564,17 +564,38 @@ def get_print_jobs_chelsea(request):
         print_server_key = request.GET.get('secret_key', '')
         #print("Provided secret key: ", print_server_key)
         print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
+        greenwich_print_server_secret_key = settings.GREENWICH_PRINT_SERVER_SECRET_KEY
         if print_server_secret_key == '':
             print("Print server secret key not set")
             #raise ValueError("PRINT_SERVER_SECRET_KEY is not set")
             return JsonResponse({'error': 'Print server secret key not set'}, status=500)
-        elif print_server_key == print_server_secret_key:  # Replace 'YOUR_SECRET_KEY' with your actual secret key
-            #print("Valid secret key, getting unprinted receipts")
-            #all_receipts = PieceReceipt.objects.all()
-            #print("All receipts: ", all_receipts)
+        if greenwich_print_server_secret_key == '':
+            print("Greenwich print server secret key not set")
+            #raise ValueError("PRINT_SERVER_SECRET_KEY is not set")
+            return JsonResponse({'error': 'Greenwich print server secret key not set'}, status=500)
+        if print_server_key == print_server_secret_key:  # Replace 'YOUR_SECRET_KEY' with your actual secret key
             unprinted_receipts = PieceReceipt.objects.filter(printed=False).filter(piece_location='Chelsea').all()
             if unprinted_receipts.count() > 0:
-                print("Unprinted Receipts: ", unprinted_receipts)
+                print("Chelsea Unprinted Receipts: ", unprinted_receipts)
+                unprinted_receipts = list(unprinted_receipts.values())
+                data = {
+                    'unprinted_receipts': [job_to_printer_text(job) for job in unprinted_receipts]
+                }
+            else:
+                data = {'unprinted_receipts': None}
+            # # Mark the receipts as printed since we are sending to the printer, and I cannot get the local server to respond..
+            for receipt_obj in unprinted_receipts:
+                print("pre-Marking receipt as printed")
+                receipt = get_object_or_404(PieceReceipt, pk=receipt_obj['id'])
+                print("Marked receipt as printed")
+                receipt.printed = True
+                receipt.save()
+
+            return JsonResponse(data)   
+        elif print_server_key == greenwich_print_server_secret_key:  # Replace 'YOUR_SECRET_KEY' with your actual secret key
+            unprinted_receipts = PieceReceipt.objects.filter(printed=False).filter(piece_location='Greenwich').all()
+            if unprinted_receipts.count() > 0:
+                print("Greenwich Unprinted Receipts: ", unprinted_receipts)
                 unprinted_receipts = list(unprinted_receipts.values())
                 data = {
                     'unprinted_receipts': [job_to_printer_text(job) for job in unprinted_receipts]
@@ -599,11 +620,21 @@ def get_print_jobs_chelsea(request):
         print_server_key = request.POST.get('secret_key', '')
         #print("Provided secret key: ", print_server_key)
         print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
+        greenwich_print_server_secret_key = settings.GREENWICH_PRINT_SERVER_SECRET_KEY
         if print_server_secret_key == '':
             print("Print server secret key not set")
             #raise ValueError("PRINT_SERVER_SECRET_KEY is not set")
             return JsonResponse({'error': 'Print server secret key not set'}, status=500)
         elif print_server_key == print_server_secret_key:
+            print("Valid secret key, marking receipt as printed")
+            receipt_ids = request.POST.get('receipt_ids', '')
+            print("Receipt ids: ", receipt_ids)
+            for receipt_id in receipt_ids:
+                receipt = get_object_or_404(PieceReceipt, pk=receipt_id)
+                receipt.printed = True
+                receipt.save()
+            return HttpResponse(status=200)
+        elif print_server_key == greenwich_print_server_secret_key:
             print("Valid secret key, marking receipt as printed")
             receipt_ids = request.POST.get('receipt_ids', '')
             print("Receipt ids: ", receipt_ids)
