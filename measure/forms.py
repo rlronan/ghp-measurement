@@ -57,10 +57,10 @@ class PieceForm(forms.ModelForm):
         
         if self.fields['piece_location'].initial == 'Greenwich':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='06')
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial='10')
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial='10')
         elif self.fields['piece_location'].initial == 'Chelsea':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial='06')
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial='6')
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial='6')
     
 
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
@@ -250,15 +250,15 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['ghp_user'].initial = self.ghp_user
         self.fields['ghp_user_piece_id'].initial = self.piece.ghp_user_piece_id
 
-        self.fields['piece_location'].initial  = self.piece.piece_location
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
-        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial="Chelsea")
+        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.piece.piece_location)
         if self.fields['piece_location'].initial == 'Greenwich':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=self.piece.bisque_temp)
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=self.piece.glaze_temp)
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial=self.piece.glaze_temp)
         elif self.fields['piece_location'].initial == 'Chelsea':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=self.piece.bisque_temp)
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=self.piece.glaze_temp)
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial=self.piece.glaze_temp)
+
         # self.fields['bisque_temp'].initial = self.piece.bisque_temp
         # self.fields['glaze_temp'].initial = self.piece.glaze_temp
 
@@ -746,4 +746,21 @@ class AddCreditForm(forms.ModelForm):
         elif cleaned_data.get('amount') > 0:
             cleaned_data['transaction_type'] = 'manual_gh_add_misc_credit'
 
+        return cleaned_data
+    
+class ModifyLocationForm(forms.ModelForm):
+
+    class Meta:
+        model = GHPUser
+        fields = ['current_location']
+
+    def __init__(self, *args, **kwargs):
+        ghp_user = kwargs.pop('ghp_user')
+        super().__init__(*args, **kwargs)
+        
+        self.fields['current_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=ghp_user.current_location)
+
+    def clean(self):
+        # Get the cleaned data
+        cleaned_data = super().clean()
         return cleaned_data

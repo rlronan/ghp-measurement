@@ -3,7 +3,8 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
-from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm, RefundPieceForm, AddCreditForm
+from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm, \
+    RefundPieceForm, AddCreditForm, ModifyLocationForm
 from .models import GHPUser, Account, Piece, Ledger, PieceReceipt
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, PasswordChangeForm, \
     PasswordResetForm, SetPasswordForm, AuthenticationForm
@@ -175,6 +176,36 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
         form = ModifyPieceForm(ghp_user=ghp_user, piece=piece, user_balance=user_balance)
     return render(request, 'measure/modify_piece.html', {'form': form})
 
+@login_required(login_url='measure:login')
+def ModifyLocationView(request, ghp_user_id):
+    ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
+    print("Checking if user has permission to view modify location page")
+    if not (user_owns_object_check(request.user, ghp_user) 
+            or user_is_staff_check(request.user)):
+        # if the user is not the correct user, redirect to the login page
+        print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
+        return redirect(reverse("measure:login_view/?next=%s" % request.path))
+
+    print("Found user: " + str(ghp_user))
+    if request.method == 'POST':
+        print("POST request")
+        form = ModifyLocationForm(request.POST, ghp_user=ghp_user)
+        if form.is_valid():
+            print("Form is valid")
+            instance = form.save(commit=False)
+            # process the data in form.cleaned_data as required
+            ghp_user.current_location = instance.current_location
+            ghp_user.save()
+            return HttpResponseRedirect(reverse('measure:user'))
+        else:
+            print("Modify Location Form is not valid")
+            print(form.errors)
+            return render(request, 'measure/modify_location.html', {'form': form, 'ghp_user': ghp_user})
+
+    else:
+        print("GET request")
+        form = ModifyLocationForm(ghp_user=ghp_user)
+    return render(request, 'measure/modify_location.html', {'form': form})
 
 
 #@unauthenticated_user

@@ -1,0 +1,151 @@
+{% include "measure/base.html" %}
+
+{% load static %}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Modify Location Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{% static 'measure/style.css' %}">
+
+    <style>
+        p.error {
+            color: red;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        p {
+            font: 20px "Open Sans", Helvetica, Arial, sans-serif;
+            margin-bottom: 2px;
+            font-family: "Franklin Gothic Demi", "Franklin Gothic", "Franklin Gothic Book", Arial, Helvetica, sans-serif;;
+
+        }
+        h1 {
+            font: 24px ;
+            margin-bottom: 4px;
+            font-family: "Franklin Gothic Demi", "Franklin Gothic", "Franklin Gothic Book", Arial, Helvetica, sans-serif;;
+
+        }
+
+        table.center td.centertext {
+            text-align: center;
+        }
+
+        th,
+        td {
+            padding: 0px 0px;
+            text-align: center;
+            vertical-align: center;
+        }
+
+        table {
+            /* border: 1px solid black; */
+            font: 16px "Open Sans", Helvetica, Arial, sans-serif;
+            border-spacing: 0;
+            border-collapse: collapse;
+            /* width: 150px; */
+        }
+
+        th,
+        td {
+            /* border: 1px solid black; */
+            padding: 4px 6px;
+            text-align: center;
+            vertical-align: center;
+        }
+
+        button {
+            background-color: #655F79;
+            display: block;
+            margin: 0 auto; /* Add this line to center the button */
+            margin-top: 10px; /* Add this line to create space between the table and the button */
+        }
+
+        /* Mobile-friendly styles */
+        @media only screen and (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+
+            th,
+            td {
+                padding: 2px 4px;
+            }
+
+            input {
+                width: 90%;
+                padding: 4px;
+                margin-bottom: 8px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 4px;
+            }
+
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                font-size: 18px;
+                margin-bottom: 2px;
+            }
+
+            p {
+                font-size: 18px;
+                margin-bottom: 8px;
+            }
+
+            select {
+                width: 90%;
+                padding: 4px;
+                margin-bottom: 8px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <form enctype="form-data" class="LocationForm" method="POST">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {{ form.field_errors }}
+        {% for hidden in form.hidden_fields %}
+            {% if hidden.errors %}
+                <p>{{hidden.label_tag}}  {{hidden.errors}}</p>
+            {% endif %}
+            {{ hidden }}
+        {% endfor %}
+        <h1>Set the default location for your pieces.</h1>
+        <p>'Greenwich' refers to the studio at 16 Jones St.</p>
+        <p>'Chelsea' refers to the studio at 80 8th Ave near 14th St.</p>
+        <p>If you are taking classes at both locations,
+            you can set the location for each piece at the top of the measuring form.</p>
+        <p class="centertext">{{ form.current_location }}</p>
+        {% if form.current_location.errors %}
+            <p class="error">{{ form.current_location.errors }}</p>
+        {% endif %}
+        <button type="submit">Submit</button>
+    </form>
+
+
+    <script>
+        // prevent the enter key from submitting the form unless the user is on the submit button
+        $(document).on("keydown", ":input:not(textarea):not(:submit)", function (event) {
+            if (event.key == "Enter") {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+
+</html>

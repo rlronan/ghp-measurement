@@ -48,6 +48,7 @@
         <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
         <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account Log</a>
         <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
+        <a href="{% url 'measure:modify_location' user.id %}">Change Your Default Measuring Location</a>
         <button class="button is-primary" id="submitBtn">Add Firing Credit</button>
         <a href="{% url 'measure:logout' %}">Log Out</a>
 

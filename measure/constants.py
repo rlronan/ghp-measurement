@@ -39,6 +39,17 @@ GLAZE_TEMPS_CHELSEA  = [
 
 
 
+GLAZE_TEMPS_ALL = [
+    
+        ("10",   "Δ 10 (Cone 10)"),
+        ("6",    "Δ 6 (Cone 6)"),
+        ("Lust",  "Luster"),
+        ("04",   "Δ 04 (Cone 04)"),
+        ("None", "None"),
+
+]
+
+
 BISQUE_TEMPS = [
         ("06",   "Δ 06 (Cone 06)"),
         ("None", "None"),
