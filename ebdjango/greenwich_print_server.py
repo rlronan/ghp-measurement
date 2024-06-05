@@ -5,6 +5,12 @@ except ImportError as e:
     for k in range(1000000):
         pass    
 try:
+    import sys
+except ImportError as e:
+    print(f"Error importing module: {e}")
+    for k in range(1000000):
+        pass    
+try:
     import requests
     import os
     from escpos.printer import Network
@@ -23,7 +29,7 @@ try:
         print("Will try to read from a file : ./greenwich_print_server_secret_key.txt")
         if os.path.exists('./greenwich_print_server_secret_key.txt'):
             with open('./greenwich_print_server_secret_key.txt', 'r') as f:
-                print_server_secret_key = f.read().strip()
+                greenwich_print_server_secret_key = f.read().strip()
         else:
             print("Could not find the greenwich_print_server_secret_key.txt file in the local directory.")
         print("Please set the GREENWICH_PRINT_SERVER_SECRET_KEY environment variable")
@@ -95,7 +101,7 @@ Piece #: {}
 except Exception as e:
     print(f"Error defining job_to_printer_text: {e}")
     time.sleep(60)
-    exit(1)
+    sys.exit(1)
 
 try:
     def fetch_print_jobs():
@@ -114,7 +120,7 @@ try:
 except Exception as e:
     print(f"Error defining fetch_print_jobs: {e}")
     time.sleep(60)
-    exit(1)
+    sys.exit(1)
 
 try:
     def print_to_receipt_printer(jobs):
@@ -152,7 +158,7 @@ try:
 except Exception as e:
     print(f"Error defining print_to_receipt_printer: {e}")
     time.sleep(60)
-    exit(1)
+    sys.exit(1)
 try:
     def return_print_job_results(printed_jobs):
         try:
@@ -170,7 +176,7 @@ try:
 except Exception as e:
     print(f"Error defining return_print_job_results: {e}")
     time.sleep(60)
-    exit(1)
+    sys.exit(1)
 
 #return_print_job_results(printed_jobs)
 try:
@@ -193,7 +199,7 @@ try:
             print("No print jobs found")
             time.sleep(60)
             continue
-        print_jobs = print_jobs['unprinted_receipts']
+        print_jobs = print_jobs.get('unprinted_receipts', None)
         if print_jobs:
             try: 
                 print_success_ids = print_to_receipt_printer(print_jobs)
@@ -215,4 +221,4 @@ try:
 except Exception as e:
     print(f"Error in main loop: {e}")
     time.sleep(60)
-    exit(1)
+    sys.exit(1)
