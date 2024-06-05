@@ -52,8 +52,8 @@ class PieceForm(forms.ModelForm):
         # self.fields['glaze_temp'].initial = 'Cone 10'
 
 
-        # self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
-        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
+        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
+        #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
         if self.fields['piece_location'].initial == 'Greenwich':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='06')
@@ -251,7 +251,8 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['ghp_user_piece_id'].initial = self.piece.ghp_user_piece_id
 
         self.fields['piece_location'].initial  = self.piece.piece_location
-        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
+        #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
+        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial="Chelsea")
         if self.fields['piece_location'].initial == 'Greenwich':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=self.piece.bisque_temp)
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=self.piece.glaze_temp)
