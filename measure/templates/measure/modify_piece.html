@@ -216,8 +216,10 @@
             var pieceLocationField = document.getElementById('id_piece_location');
             var glazeTempField = document.getElementById('id_glaze_temp');
             
-            pieceLocationField.addEventListener('change', function() {
+            // Function to update glaze temperature options
+            function updateGlazeTempOptions() {
                 var selectedLocation = pieceLocationField.value;
+                var selectedGlazeTemp = glazeTempField.value; // Get the initially selected glaze temp value
                 var options = glazeTempField.options;
                 
                 // Clear existing options
@@ -236,7 +238,18 @@
                     glazeTempField.add(new Option("Δ 6 (Cone 6)", "6"));
                     glazeTempField.add(new Option("None", "None"));
                 }
-            });
+
+                // Set the initially selected glaze temp value if the location is not changed
+                if (selectedLocation === pieceLocationField.dataset.initialValue) {
+                    glazeTempField.value = selectedGlazeTemp;
+                }
+            }
+
+            // Run the function initially
+            updateGlazeTempOptions();
+
+            // Listen for changes in the piece location field
+            pieceLocationField.addEventListener('change', updateGlazeTempOptions);
         });
         $(document).ready(function () {
             // listen for changes in the length, width, and height, handles, and glaze_temp, and bisque_temp fields
