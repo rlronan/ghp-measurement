@@ -473,22 +473,22 @@ class GHPUserResource(resources.ModelResource):
 
 class GHPUserAdmin(ImportExportModelAdmin):
     resource_class = GHPUserResource
-    list_display = ['first_name', 'last_name', 'email', 'current_location',
+    list_display = ['first_name', 'last_name', 'email','username', 'date_joined', 'last_measure_date', 'current_location',
                      'current_student', 'current_ghp_staff', 'current_faculty', 
-                     'last_measure_date', 'consent', 'consent_date', 'current']
+                      'consent', 'current']
 
     list_filter = ['current_student', 'current_ghp_staff', 'current_faculty', CurrentUserFilter, 'current_location',]
 
-    search_fields = ['first_name', 'last_name', 'email']
+    search_fields = ['first_name', 'last_name', 'email', 'username']
 
-    ordering = ['last_name', 'first_name', 'email',  'last_measure_date', 'consent_date']
+    ordering = ['last_name', 'first_name', 'email',  'last_measure_date', 'date_joined', 'consent_date']
 
     actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'export_as_csv', 'import_users_from_csv']
 
-    list_display_links = ["first_name", "last_name", 'email']
+    list_display_links = ["first_name", "last_name", 'email', 'username', 'date_joined']
 
     exclude = ['password', 'last_login', 'is_superuser', 
-                'is_staff', 'is_active', 'date_joined', 'groups', 
+                'is_staff', 'is_active', 'groups', 
                 'user_permissions', 'current']
 
     fieldsets = [
@@ -499,7 +499,7 @@ class GHPUserAdmin(ImportExportModelAdmin):
                 #             'is_staff', 'is_active', 'date_joined', 'groups', 
                 #             'user_permissions', 'current_student', 'current_ghp_staff', 
                 #             'current_faculty', 'last_measure_date', 'consent', 'consent_date', 'current'],
-                "fields": ['first_name', 'last_name', 'email', 'current_location',
+                "fields": ['first_name', 'last_name', 'email', 'username', 'date_joined',  'last_measure_date', 'current_location',
                      'current_student', 'current_ghp_staff', 'current_faculty', 
                      ],
             },
