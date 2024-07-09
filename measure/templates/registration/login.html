@@ -4,6 +4,7 @@
 <html>
 <head>
 <meta charset="utf-8">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="{% static 'measure/style.css' %}">
 <style>
@@ -126,11 +127,11 @@
 {% endif %}
 {% endif %}
 
-<form method="post" action="{% url 'measure:login' %}">
+<form method="post" action="{% url 'measure:login' %}" id="loginform">
     {% csrf_token %}
     <table class="center">
         <tr>
-             <td>Email Address</td> <!--{{ form.username.label_tag }} -->
+            <td>Email Address</td> <!--{{ form.username.label_tag }} -->
             <td>{{ form.username }}</td>
         </tr>
         <tr>
@@ -149,4 +150,13 @@
 
 {% endblock %}
 </body>
+<script>
+    $(document).ready(function() {
+        $('#loginform').on('submit', function(e) {
+            var usernameField = $('[name="username"]');
+            var username = usernameField.val();
+            usernameField.val(username.toLowerCase());
+        });
+    });
+</script>
 </html>
