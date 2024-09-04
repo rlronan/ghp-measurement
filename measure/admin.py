@@ -865,8 +865,28 @@ class PieceReciptAdmin(admin.ModelAdmin):
             obj.piece_location = 'Greenwich'
             obj.printed = False
             obj.save()
+    
+    @admin.action(description="Export selected objects as csv")
+    def export_as_csv(self, request, queryset):
+        print("Model: ", self.model)
+        print("Queryset: ", queryset)
+        meta = self.model._meta
+        #field_names = [field.name for field in meta.fields]
+        #print("field names: ", field_names)
+        field_names =  ['piece_location', 'receipt_type', 'price', 'piece_date', 'bisque_temp', 'glaze_temp' ]
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+        writer = csv.writer(response)
 
-    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich']
+        writer.writerow(field_names + ['user_email'])
+        for obj in queryset:
+            obj_piece = Piece.objects.filter(id=obj.piece.id).first()
+            row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_piece.ghp_user.email])
+        return response
+
+    export_as_csv.short_description = "Export Selected"
+
+    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich', 'export_as_csv']
 
     def get_actions(self, request):
         actions = super().get_actions(request)
