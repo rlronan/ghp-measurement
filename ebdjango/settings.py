@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'measure.apps.MeasureConfig',
     'import_export',
+    'rangefilter',
 ]
 IMPORT_EXPORT_USE_TRANSACTIONS = True
 MIDDLEWARE = [

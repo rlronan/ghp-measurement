@@ -17,6 +17,13 @@ import csv
 from django.http import HttpResponse
 from import_export import resources, fields
 from import_export.admin import ImportExportModelAdmin
+from rangefilter.filters import (
+    DateRangeFilterBuilder,
+    DateTimeRangeFilterBuilder,
+    NumericRangeFilterBuilder,
+    DateRangeQuickSelectListFilterBuilder,
+)
+
 # Register your models here.
 
 
@@ -394,55 +401,45 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
             return queryset.filter(
                 Q(ghp_user__current_student=False) & Q(ghp_user__current_ghp_staff=False) & Q(ghp_user__current_faculty=False))
 
+class PieceLocationFilter(admin.SimpleListFilter):
+    title = 'Piece Location'  # This will appear as the filter title in the admin
+    parameter_name = 'piece_location'  # This is the URL query parameter for the filter
 
-# # class ExportCsvMixin:
-#     # from: 
-#     # https://books.agiliq.com/projects/django-admin-cookbook/en/latest/export.html
-# @admin.action(description="Export selected objects as csv")
-# def export_as_csv(self, request, queryset):
+    def lookups(self, request, model_admin):
+        # This function returns a list of tuples representing the options for the filter
+        # (value, display_name)
+        piece_locations = PieceReceipt.objects.values_list('piece_location', flat=True).distinct()
+        return [(location, location) for location in piece_locations if location]
+
+    def queryset(self, request, queryset):
+        # This function is responsible for filtering the queryset based on the selected value
+        if self.value():
+            return queryset.filter(piece__in=PieceReceipt.objects.filter(piece_location=self.value()).values_list('piece', flat=True)).distinct()
+        return queryset
 
 
+class PieceLocationFilter_piece(admin.SimpleListFilter):
+    title = 'Piece Location'  # This will appear as the filter title in the admin
+    parameter_name = 'piece_location'  # This is the URL query parameter for the filter
 
-#     meta = self.model._meta
-    
-#     field_names = [field.name for field in meta.fields]
+    def lookups(self, request, model_admin):
+        # This function returns a list of tuples representing the options for the filter
+        # (value, display_name)
+        piece_locations = PieceReceipt.objects.values_list('piece_location', flat=True).distinct()
+        return [(location, location) for location in piece_locations if location]
 
-#     response = HttpResponse(content_type='text/csv')
-#     response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-#     writer = csv.writer(response)
+    def queryset(self, request, queryset):
+        # This function is responsible for filtering the queryset based on the selected value
+        if self.value():
+            return queryset.filter(piecereceipt__in=PieceReceipt.objects.filter(piece_location=self.value())).distinct()
+        return queryset
 
-#     writer.writerow(field_names)
-#     for obj in queryset:
-#         row = writer.writerow([getattr(obj, field) for field in field_names])
-
-#     return response
 
 # export_as_csv.short_description = "Export Selected"
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 
-# class GHPUserResource(resources.ModelResource):
-#     class Meta:
-#         model = GHPUser
-#         import_id_fields = ('username',) 
-#         fields = ('first_name', 'last_name', 'username', 'current_location', 'balance')
-#         exclude = ('id', 'password', 'last_login', 'is_superuser', 'is_staff', 'is_active', 'date_joined', 'groups', 'user_permissions', 'current_student', 'current_ghp_staff', 'current_faculty', 'last_measure_date', 'consent', 'consent_date', 'current')
-#         skip_unchanged = True
-#         report_skipped = True
-#         clean_model_instances = True
-#         use_transactions = True
 
-#     def after_import_row(self, row, row_result, **kwargs):
-#         username = row.get('username')
-#         balance = row.get('balance')
-#         if username and balance is not None:
-#             try:
-#                 user = GHPUser.objects.get(username=username)
-#                 if user.account.balance == 0.0:
-#                     user.account.balance = balance
-#                     user.account.save()
-#             except GHPUser.DoesNotExist:
-#                 pass
 class GHPUserResource(resources.ModelResource):
     first_name = fields.Field(attribute='first_name', column_name='first_name')
     last_name = fields.Field(attribute='last_name', column_name='last_name')
@@ -753,7 +750,7 @@ class PieceAdmin(admin.ModelAdmin):
         (
             None,
             {
-                "fields": ['name', 'email', 'length', 'width', 'height', 'size', 'price', 'bisque_temp', 'glaze_temp', 'date', 'image', 'refund_link'],
+                "fields": ['name', 'email', 'length', 'width', 'height', 'size', 'price', 'bisque_temp', 'glaze_temp', 'date', 'refund_link'],
             },
         ),
         # (
@@ -766,9 +763,25 @@ class PieceAdmin(admin.ModelAdmin):
     ]
 
     list_display = ['ghp_user', 'ghp_user_piece_id', 'glaze_temp', 'date', 'price',
-                    'length', 'width', 'height', 'size', 'bisque_temp', 'email', 'image',  ]
+                    'length', 'width', 'height', 'size', 'bisque_temp','piece_location',  'email', ]
 
     list_display_links = ['ghp_user', 'ghp_user_piece_id']
+
+
+    readonly_fields = ['ghp_user_piece_id', 'date', 'ghp_user', 'name', 
+                       'email', 'length', 'width', 'height', 'size', 
+                       'price','bisque_temp', 'refund_link']
+
+    list_filter = ['glaze_temp', 'bisque_temp', 'date', PieceLocationFilter_piece, CurrentUserFilterFromOther,
+                   PriceFilter, LengthORWidthFilter, LengthANDWidthFilter, HeightFilter,
+                   'ghp_user__current_student', 'ghp_user__current_ghp_staff', 'ghp_user__current_faculty']
+    
+    search_fields = ['ghp_user__first_name', 'ghp_user__last_name', 'ghp_user__email']
+    
+    ordering = ['-date', 'ghp_user__last_name', 'ghp_user__first_name']
+
+    actions = ['export_as_csv']
+
 
     @admin.display(ordering="ghp_user__last_name")
     def name(self, obj):
@@ -779,19 +792,18 @@ class PieceAdmin(admin.ModelAdmin):
     def email(self, obj):
         return str(obj.ghp_user.email)
 
-    readonly_fields = ['ghp_user_piece_id', 'date', 'ghp_user', 'name', 
-                       'email', 'length', 'width', 'height', 'size', 
-                       'price','bisque_temp', 'refund_link']
 
-    list_filter = ['glaze_temp', 'bisque_temp', 'date', CurrentUserFilterFromOther,
-                   PriceFilter, LengthORWidthFilter, LengthANDWidthFilter, HeightFilter,
-                   'ghp_user__current_student', 'ghp_user__current_ghp_staff', 'ghp_user__current_faculty']
-    
-    search_fields = ['ghp_user__first_name', 'ghp_user__last_name', 'ghp_user__email']
-    
-    ordering = ['-date', 'ghp_user__last_name', 'ghp_user__first_name']
+    @admin.display(description="piece_location")
+    def piece_location(self, obj):
+        #print(obj)
+        #print(obj.piece)
+        receipt = PieceReceipt.objects.filter(piece=obj).first()
+        if receipt is None:
+            return None
+        #print(PieceReceipt.objects.filter(piece=obj).first().piece_location)
+        return str(receipt.piece_location)
 
-    actions = ['export_as_csv']
+
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -800,7 +812,7 @@ class PieceAdmin(admin.ModelAdmin):
         return actions
 
     @admin.display(description="Refund Piece")
-    def refund_link(self, obj):
+    def refund_link(self, obj): 
         """ This is a custom link to the refund piece page,, 
         and passes the piece.ghp_user, piece.ghp_user_piece_id as parameters"""
         print("obj: ", obj)
@@ -825,10 +837,20 @@ class PieceAdmin(admin.ModelAdmin):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
         writer = csv.writer(response)
+        field_names = field_names[:-3] # remove note, image and email
 
-        writer.writerow(field_names)
+        # re-add email after piece location
+        writer.writerow(field_names + ['piece_location', 'user_email'])
         for obj in queryset:
-            row = writer.writerow([getattr(obj, field) for field in field_names])
+                #     writer.writerow(field_names + ['user_email'])
+    #     for obj in queryset:
+    #         obj_piece = Piece.objects.filter(id=obj.piece.id).first()
+    #         row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_piece.ghp_user.email])
+            receipt = PieceReceipt.objects.filter(piece=obj).first()
+            if receipt is None:
+                row = writer.writerow([getattr(obj, field) for field in field_names] + [None, obj.ghp_user.email])
+            else:
+                row = writer.writerow([getattr(obj, field) for field in field_names] + [receipt.piece_location, obj.ghp_user.email])
 
         return response
 
@@ -845,7 +867,11 @@ class PieceReciptAdmin(admin.ModelAdmin):
     #             'unprinted_receipts': list(unprinted_receipts.values())
     #         }
 
-
+    list_filter = ['ghp_user_name', 'receipt_type',  'bisque_temp', 'glaze_temp', 'piece_location',  'piece_date', 
+                   PriceFilter, LengthORWidthFilter, LengthANDWidthFilter, HeightFilter,
+                   'piece__ghp_user__current_student', 'piece__ghp_user__current_ghp_staff', 'piece__ghp_user__current_faculty']
+    
+    
     @admin.action(description="Reprint the receipt")
     def reprint_receipt(self, request, queryset):
         for obj in queryset:
@@ -866,27 +892,27 @@ class PieceReciptAdmin(admin.ModelAdmin):
             obj.printed = False
             obj.save()
     
-    @admin.action(description="Export selected objects as csv")
-    def export_as_csv(self, request, queryset):
-        print("Model: ", self.model)
-        print("Queryset: ", queryset)
-        meta = self.model._meta
-        #field_names = [field.name for field in meta.fields]
-        #print("field names: ", field_names)
-        field_names =  ['piece_location', 'receipt_type', 'price', 'piece_date', 'bisque_temp', 'glaze_temp' ]
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-        writer = csv.writer(response)
+    # @admin.action(description="Export selected objects as csv")
+    # def export_as_csv(self, request, queryset):
+    #     print("Model: ", self.model)
+    #     print("Queryset: ", queryset)
+    #     meta = self.model._meta
+    #     #field_names = [field.name for field in meta.fields]
+    #     #print("field names: ", field_names)
+    #     field_names =  ['piece_location', 'receipt_type', 'price', 'piece_date', 'bisque_temp', 'glaze_temp' ]
+    #     response = HttpResponse(content_type='text/csv')
+    #     response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
+    #     writer = csv.writer(response)
 
-        writer.writerow(field_names + ['user_email'])
-        for obj in queryset:
-            obj_piece = Piece.objects.filter(id=obj.piece.id).first()
-            row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_piece.ghp_user.email])
-        return response
+    #     writer.writerow(field_names + ['user_email'])
+    #     for obj in queryset:
+    #         obj_piece = Piece.objects.filter(id=obj.piece.id).first()
+    #         row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_piece.ghp_user.email])
+    #     return response
 
-    export_as_csv.short_description = "Export Selected"
+    # export_as_csv.short_description = "Export Selected"
 
-    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich', 'export_as_csv']
+    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich']#, 'export_as_csv']
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -894,12 +920,24 @@ class PieceReciptAdmin(admin.ModelAdmin):
             del actions['delete_selected']
         return actions
 
+
+
+
+
+
+
+
+
+
 class LedgerAdmin(admin.ModelAdmin):
 
-    list_display = [ 'transaction_type', 'date', 'amount', 'ghp_user', 'piece', 
-                    'note', 'transaction_id', 'stripe_session_id']
     
-    list_filter = ['transaction_type', 'date', AmountFilter, CurrentUserFilterFromOther, 'ghp_user__current_student', 'ghp_user__current_ghp_staff', 'ghp_user__current_faculty']
+    list_display = [ 'transaction_type', 'date', 'amount', 'ghp_user', 'piece', 
+                    'note', 'transaction_id', 'stripe_session_id', 'piece_location']
+    
+    list_filter = ['transaction_type', 
+                    ('date', DateRangeFilterBuilder()), PieceLocationFilter,
+                    AmountFilter, CurrentUserFilterFromOther, 'ghp_user__current_student', 'ghp_user__current_ghp_staff', 'ghp_user__current_faculty']
     
     search_fields = ['ghp_user__first_name', 'ghp_user__last_name', 'ghp_user__email', 
                      'transaction_type', 'date', 'note']
@@ -921,6 +959,18 @@ class LedgerAdmin(admin.ModelAdmin):
 
     actions = ['export_as_csv']
 
+
+    @admin.display(description="piece_location")
+    def piece_location(self, obj):
+        print(obj)
+        print(obj.piece)
+        receipt = PieceReceipt.objects.filter(piece=obj.piece).first()
+        if receipt is None:
+            return None
+        print(PieceReceipt.objects.filter(piece=obj.piece).first().piece_location)
+        return str(PieceReceipt.objects.filter(piece=obj.piece).first().piece_location)
+
+
     # changes all fields to be read only when editing an existing object
     def get_readonly_fields(self, request, obj=None):
         # from
@@ -937,21 +987,7 @@ class LedgerAdmin(admin.ModelAdmin):
             del actions['delete_selected']
         return actions
     
-#     def get_changeform_initial_data(self, request):
-#         print("request:", request)
-#         if request.
-#         return {"ghp_user": request.id}
-# #        return {"amount": 50}
-    
-    # def get_formset_kwargs(self, request, obj, inline, prefix):
-    #     return {
-    #         **super().get_formset_kwargs(request, obj, inline, prefix),
-    #         "form_kwargs": {"request": request},
-    #     }
 
-    # def get_changeform_initial_data(self, request):
-    #     print("request:", request)
-    #     return {"ghp_user": request.id}
     @admin.action(description="Export selected objects as csv")
     def export_as_csv(self, request, queryset):
 
@@ -962,25 +998,17 @@ class LedgerAdmin(admin.ModelAdmin):
         response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
         writer = csv.writer(response)
 
-        writer.writerow(field_names)
+        writer.writerow(field_names + ['piece_location'])
         for obj in queryset:
-            row = writer.writerow([getattr(obj, field) for field in field_names])
 
+            receipt = PieceReceipt.objects.filter(piece=obj.piece).first()
+            if receipt is None:
+                row = writer.writerow([getattr(obj, field) for field in field_names] + [None])
+            else:
+                row = writer.writerow([getattr(obj, field) for field in field_names] + [receipt.piece_location])
         return response
 
     export_as_csv.short_description = "Export Selected"
-
-
-# from django.contrib import admin
-# from django.shortcuts import redirect
-# from django.shortcuts import render
-
-
-# @admin.site.admin_view
-# def my_custom_view(request):
-#     # perform some custom action
-#     # ...
-#     return render(request, 'my_custom_template.html')
 
 # Unregister the old User model admin
 admin.site.unregister(Group)
