@@ -431,7 +431,8 @@ class PieceLocationFilter_piece(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         # This function is responsible for filtering the queryset based on the selected value
         if self.value():
-            return queryset.filter(piecereceipt__in=PieceReceipt.objects.filter(piece_location=self.value())).distinct()
+            return queryset.filter(piecereceipt__in=PieceReceipt.objects.filter(piece_location=self.value())).distinct() 
+            #return queryset.filter(piecereceipt__in=PieceReceipt.objects.filter(piece_location=self.value()).last()).distinct() 
         return queryset
 
 
@@ -797,7 +798,7 @@ class PieceAdmin(admin.ModelAdmin):
     def piece_location(self, obj):
         #print(obj)
         #print(obj.piece)
-        receipt = PieceReceipt.objects.filter(piece=obj).first()
+        receipt = PieceReceipt.objects.filter(piece=obj).last()
         if receipt is None:
             return None
         #print(PieceReceipt.objects.filter(piece=obj).first().piece_location)
@@ -871,6 +872,8 @@ class PieceReciptAdmin(admin.ModelAdmin):
                    PriceFilter, LengthORWidthFilter, LengthANDWidthFilter, HeightFilter,
                    'piece__ghp_user__current_student', 'piece__ghp_user__current_ghp_staff', 'piece__ghp_user__current_faculty']
     
+    search_fields = ['piece__ghp_user__first_name', 'piece__ghp_user__last_name', 'piece__ghp_user__email']
+
     
     @admin.action(description="Reprint the receipt")
     def reprint_receipt(self, request, queryset):
@@ -962,12 +965,12 @@ class LedgerAdmin(admin.ModelAdmin):
 
     @admin.display(description="piece_location")
     def piece_location(self, obj):
-        print(obj)
-        print(obj.piece)
-        receipt = PieceReceipt.objects.filter(piece=obj.piece).first()
+        #print(obj)
+        #print(obj.piece)
+        receipt = PieceReceipt.objects.filter(piece=obj.piece).last()
         if receipt is None:
             return None
-        print(PieceReceipt.objects.filter(piece=obj.piece).first().piece_location)
+        #print(PieceReceipt.objects.filter(piece=obj.piece).first().piece_location)
         return str(PieceReceipt.objects.filter(piece=obj.piece).first().piece_location)
 
 
@@ -1001,7 +1004,7 @@ class LedgerAdmin(admin.ModelAdmin):
         writer.writerow(field_names + ['piece_location'])
         for obj in queryset:
 
-            receipt = PieceReceipt.objects.filter(piece=obj.piece).first()
+            receipt = PieceReceipt.objects.filter(piece=obj.piece).last()
             if receipt is None:
                 row = writer.writerow([getattr(obj, field) for field in field_names] + [None])
             else:
