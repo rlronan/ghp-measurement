@@ -649,32 +649,28 @@ class AccountAdmin(admin.ModelAdmin):
         (
             None,
             {   "classes": ["pretty"],
-                "fields": ['ghp_user', 'balance_link', 'piece_link', 'ledger_credit_link', 'last_update']
+                "fields": ['ghp_user', 'balance_link', 'piece_link', 'ledger_credit_link', 'last_update', 'current_location']
             }
         ),
-
     ]
 
-
-    list_display = ['name', 'email',  'balance', 'last_update', "ghp_user", 'balance_link', 'piece_link', 'ledger_credit_link']
+    list_display = ['name', 'email',  'balance', 'last_update', "ghp_user", 'balance_link', 'piece_link', 'ledger_credit_link', 'current_location']
 
     list_filter = [ BalanceFilter, 'last_update', CurrentUserFilterFromOther]
 
-    search_fields = ['ghp_user__first_name', 'ghp_user__last_name', 'ghp_user__email']
+    search_fields = ['ghp_user__first_name', 'ghp_user__last_name', 'ghp_user__email', 'ghp_user__current_location']
 
     ordering = ['balance', 'last_update']
 
-    readonly_fields = ["ghp_user", 'balance', 'balance_link', 'piece_link', 'ledger_credit_link', 'last_update']
+    readonly_fields = ["ghp_user", 'balance', 'balance_link', 'piece_link', 'ledger_credit_link', 'last_update', 'current_location']
 
     list_display_links = ['name', 'email', "ghp_user", 'balance', 'last_update']
 
     actions = ['export_as_csv']
 
-
     @admin.display(ordering="ghp_user__last_name")
     def name(self, obj):
         return str(obj.ghp_user.first_name) + ' ' + str(obj.ghp_user.last_name)
-
 
     @admin.display(ordering="ghp_user__email")
     def email(self, obj):
@@ -699,7 +695,6 @@ class AccountAdmin(admin.ModelAdmin):
         )
         return format_html('<a href="{}">User Measuring Log</a>', url)
 
-
     @admin.display(description="Add Credit")
     def ledger_credit_link(self, obj):
         """ This is a custom column that links to the add credit page, 
@@ -708,6 +703,10 @@ class AccountAdmin(admin.ModelAdmin):
             reverse("measure:add_credit", args=[obj.ghp_user.id])
         )
         return format_html('<a href="{}">Add Credit</a>', url)
+
+    @admin.display(description="Current Location")
+    def current_location(self, obj):
+        return str(obj.ghp_user.current_location)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
