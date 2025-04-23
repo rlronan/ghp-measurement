@@ -338,17 +338,18 @@ def create_checkout_session(request):
     if request.method == 'GET':
         print("Request method is get")
 
-        domain_url = settings.DOMAIN ##'http://localhost:8000/'#'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
+        domain_url = settings.DOMAIN
         print("Domain url: {}".format(domain_url))
         stripe.api_key = settings.STRIPE_SECRET_KEY
         print("Trying to get user and current location...")
         try:
-            ghp_user = request.user
+            ghp_user_id = request.user.id
+            ghp_user = get_object_or_404(GHPUser, pk=ghp_user_id)
             print("User: {}".format(ghp_user))
             current_location = ghp_user.get_location()
             ghp_user_name = ghp_user.first_name + ' ' + ghp_user.last_name
             ghp_user_email = ghp_user.email
-            ghp_user_id = ghp_user.id
+            ghp_user_id_str = str(ghp_user.id) # Ensure ID is a string for metadata
 
             print("Current location: {}".format(current_location))
             print("Successfully got user and current location!")
@@ -357,29 +358,27 @@ def create_checkout_session(request):
             current_location = 'Greenwich'
             ghp_user_name = 'Unknown User'
             ghp_user_email = 'Unknown Email'
-            ghp_user_id = 'Unknown ID'
+            ghp_user_id_str = 'Unknown ID' # Ensure consistency
+
+        # Prepare metadata dictionary
+        # Ensure all values are strings as required by Stripe metadata
+        checkout_metadata = {
+            'user_location': str(current_location),
+            'django_user_id': ghp_user_id_str,
+            'ghp_user_name': str(ghp_user_name),
+            'ghp_user_email': str(ghp_user_email),
+        }
+        print(f"Prepared Metadata: {checkout_metadata}")
 
         print("Trying to create checkout session...")
         try:
-            # Create new Checkout Session for the order
-            # Other optional params include:
-            # [billing_address_collection] - to display billing address details on the page
-            # [customer] - if you have an existing Stripe Customer ID
-            # [payment_intent_data] - capture the payment later
-            # [customer_email] - prefill the email input in the form
-            # For full details see https://stripe.com/docs/api/checkout/sessions/create
-
-            # ?session_id={CHECKOUT_SESSION_ID} means the redirect will have the session ID set as a query param
             checkout_session = stripe.checkout.Session.create(
                 client_reference_id=request.user.id if request.user.is_authenticated else None,
                 success_url=domain_url + 'success?session_id={CHECKOUT_SESSION_ID}',
                 cancel_url=domain_url + 'cancelled/',
-                #payment_method_types=['card'],
                 mode='payment',
                 line_items=[{
-                    # Provide the exact Price ID (for example, pr_1234) of the product you want to sell
-                    'price': 'price_1P37XFKNzblAdhbyy6uIvXj6', # moving price to $1 and quantity to 5, and enabling adjustable quantity
-                      #'price_1OmmODKNzblAdhbySMe4YoN7', # moving price to production 'price_1OiMoHKNzblAdhbyq93B7xrG', # moving price to ghp_account 'price_1NykHQE1Tl2FOfocAeJNrJKN',
+                    'price': 'price_1P37XFKNzblAdhbyy6uIvXj6',
                     'quantity': 5,
                     'adjustable_quantity': {
                         'enabled': True,
@@ -387,19 +386,24 @@ def create_checkout_session(request):
                         'maximum': 250,
                     }
                 }],
-                # Adding metadata so that we can assess the user's current location in stripe.
-                metadata={
-                    'user_location': current_location,
-                    'django_user_id': str(ghp_user_id), # Good practice to include user ID too
-                    'ghp_user_name': ghp_user_name,
-                    'ghp_user_email': ghp_user_email,
+                # Metadata attached directly to the Session object
+                metadata=checkout_metadata,
+
+                # --- START CHANGE ---
+                # Pass metadata to the underlying Payment Intent
+                payment_intent_data={
+                    'metadata': checkout_metadata
                 },
+                # --- END CHANGE ---
             )
             print("Created checkout session")
             return JsonResponse({'sessionId': checkout_session['id']})
         except Exception as e:
-            print("Error creating checkout session")
-            return JsonResponse({'error': str(e)})
+            print(f"Error creating checkout session: {e}")
+            # Consider logging the full traceback here for better debugging
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500) # Return appropriate error status
 
 #@login_required(login_url='measure:login')
 class StripeSuccessView(TemplateView):
