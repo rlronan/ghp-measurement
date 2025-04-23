@@ -337,10 +337,28 @@ def create_checkout_session(request):
     print("In Create checkout session view...")
     if request.method == 'GET':
         print("Request method is get")
-        #TODO: need to change the following line to the correct domain
+
         domain_url = settings.DOMAIN ##'http://localhost:8000/'#'https://ghp-measurement-d2e329f35d3b.herokuapp.com/'
         print("Domain url: {}".format(domain_url))
         stripe.api_key = settings.STRIPE_SECRET_KEY
+        print("Trying to get user and current location...")
+        try:
+            ghp_user = request.user
+            print("User: {}".format(ghp_user))
+            current_location = ghp_user.get_location()
+            ghp_user_name = ghp_user.first_name + ' ' + ghp_user.last_name
+            ghp_user_email = ghp_user.email
+            ghp_user_id = ghp_user.id
+
+            print("Current location: {}".format(current_location))
+            print("Successfully got user and current location!")
+        except Exception as e:
+            print("Error getting user or current location: {}".format(e))
+            current_location = 'Greenwich'
+            ghp_user_name = 'Unknown User'
+            ghp_user_email = 'Unknown Email'
+            ghp_user_id = 'Unknown ID'
+
         print("Trying to create checkout session...")
         try:
             # Create new Checkout Session for the order
@@ -358,8 +376,7 @@ def create_checkout_session(request):
                 cancel_url=domain_url + 'cancelled/',
                 #payment_method_types=['card'],
                 mode='payment',
-                            line_items=[
-                {
+                line_items=[{
                     # Provide the exact Price ID (for example, pr_1234) of the product you want to sell
                     'price': 'price_1P37XFKNzblAdhbyy6uIvXj6', # moving price to $1 and quantity to 5, and enabling adjustable quantity
                       #'price_1OmmODKNzblAdhbySMe4YoN7', # moving price to production 'price_1OiMoHKNzblAdhbyq93B7xrG', # moving price to ghp_account 'price_1NykHQE1Tl2FOfocAeJNrJKN',
@@ -369,8 +386,14 @@ def create_checkout_session(request):
                         'minimum': 5,
                         'maximum': 250,
                     }
+                }],
+                # Adding metadata so that we can assess the user's current location in stripe.
+                metadata={
+                    'user_location': current_location,
+                    'django_user_id': str(ghp_user_id), # Good practice to include user ID too
+                    'ghp_user_name': ghp_user_name,
+                    'ghp_user_email': ghp_user_email,
                 },
-            ],
             )
             print("Created checkout session")
             return JsonResponse({'sessionId': checkout_session['id']})
@@ -424,9 +447,19 @@ def stripe_webhook(request):
         print("Payment was successful.")
         # This method will be called when user successfully purchases something.
         print("Calling handle_checkout_session")
-        handle_checkout_session(session)
-        print("Handled checkout session. Redirecting to user account page")
-        return HttpResponseRedirect(reverse('measure:ghp_user_account_view', args=(session.get("client_reference_id"),)))
+        response = handle_checkout_session(session)
+        
+        # Return success response to Stripe first
+        if response.status_code == 200:
+            # If successful, trigger redirect but still return 200 to Stripe
+            client_reference_id = session.get("client_reference_id")
+            if client_reference_id:
+                redirect_url = reverse('measure:ghp_user_account_view', args=(client_reference_id,))
+                response['HX-Redirect'] = redirect_url
+            return response
+        else:
+            # If there was an error, return the error response
+            return response
 
     return HttpResponse(status=200)
 
@@ -532,7 +565,6 @@ def job_to_printer_text(job):
     if job['receipt_type'] == 'Bisque':
         print_string = """
 BISQUE FIRING SLIP
-
 DO NOT THROW AWAY
 
 PLACE THIS SLIP WITH 
