@@ -44,11 +44,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="{% static 'measure/style.css' %}">
-
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body>
-  <form method="post">
+  <form method="post" id="registerform">
     <h2>Welcome to the Greenwich House Pottery Measuring App</h2>
     <h2>Please register with the email you used to register for class</h2>
 
@@ -97,5 +97,16 @@
       <p>Already have an account? <a href="{% url 'measure:login'%}">Log in</a>.</p>
     </div>
   </form>
+  
 </body>
+<script>
+  $(document).ready(function() {
+      $('#registerform').on('submit', function(e) {
+          var emailField = $('[name="email"]');
+          var email = emailField.val();
+          emailField.val(email.toLowerCase());
+      });
+  });
+</script>
+
 <!-- </html> -->

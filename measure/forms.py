@@ -494,7 +494,7 @@ class CreateGHPUserForm(UserCreationForm):
         # Check that the password and confirm password match
         if cleaned_data.get('password1') != cleaned_data.get('password2'):
             self.add_error('password2', 'Passwords do not match')
-        # cleaned_data['email'] = str.lower(cleaned_data['email'])
+        cleaned_data['email'] = str.lower(cleaned_data['email']) # convert email to lowercase since username is lowercase
         # cleaned_data['username'] = str.lower(cleaned_data['username'])
         cleaned_data['username'] = cleaned_data['email']
         # Return the cleaned data
