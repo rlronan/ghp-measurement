@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+import sys
 import django_on_heroku
 import dj_database_url
 from pathlib import Path
@@ -241,6 +242,7 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             # Use verbose formatter if DEBUG is True, otherwise simple for production.
             'formatter': 'verbose' if DEBUG else 'simple',
+            'stream': sys.stdout, # Explicitly send to stdout
         },
         'django_server_handler': { # Handler specifically for django.server logger
             'level': 'INFO',
