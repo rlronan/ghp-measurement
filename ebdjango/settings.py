@@ -172,27 +172,28 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.1/howto/static-files/
+if IS_HEROKU_APP:
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
-STATIC_URL = "static/"
-# STATIC_ROOT = BASE_DIR / "/measure/static/" #'./static/'
-# STATIC_URL = '/staticfiles/'
-# for django >= 3.1
-##STATICFILES_DIRS = [os.path.join(BASE_DIR, 'measure/static')]  # new
+    STORAGES = {
+        # Enable WhiteNoise's GZip and Brotli compression of static assets:
+        # https://whitenoise.readthedocs.io/en/latest/django.html#add-compression-and-caching-support
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    # Don't store the original (un-hashed filename) version of static files, to reduce slug size:
+    # https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_KEEP_ONLY_HASHED_FILES
+    WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+else:
+    # Static files (CSS, JavaScript, Images)
+    # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
-STORAGES = {
-    # Enable WhiteNoise's GZip and Brotli compression of static assets:
-    # https://whitenoise.readthedocs.io/en/latest/django.html#add-compression-and-caching-support
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
-# Don't store the original (un-hashed filename) version of static files, to reduce slug size:
-# https://whitenoise.readthedocs.io/en/latest/django.html#WHITENOISE_KEEP_ONLY_HASHED_FILES
-WHITENOISE_KEEP_ONLY_HASHED_FILES = True
-
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+    STATIC_URL = "static/"
+    # STATIC_ROOT = BASE_DIR / "/measure/static/" #'./static/'
+    # STATIC_URL = '/staticfiles/'
+    # for django >= 3.1
+    ##STATICFILES_DIRS = [os.path.join(BASE_DIR, 'measure/static')]  # new
 
 MEDIA_ROOT =  BASE_DIR / 'media'
 MEDIA_URL = 'media/'
@@ -213,18 +214,94 @@ if IS_HEROKU_APP or (not DEBUG):
     SECURE_HSTS_SECONDS = 3600 # 2/10/24: enabling HSTS with initial 1 hour duration for testing
 
 
+# This logging configuration assumes that a `DEBUG` variable (boolean) is defined
+# in your settings.py before this dictionary. For example:
+# DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
+# Or, if using IS_HEROKU_APP:
+# DEBUG = not IS_HEROKU_APP
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(name)s %(module)s L%(lineno)d P%(process)d T%(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(asctime)s %(name)s %(message)s'
+        },
+        'django.server': { # Specific formatter for runserver output
+            '()': 'django.utils.log.ServerFormatter',
+            'format': '[%(server_time)s] %(name)s: %(message)s',
+        }
+    },
     'handlers': {
         'console': {
-            'class': 'logging.StreamHandler'
+            'level': 'DEBUG',  # Base level for the handler; loggers control actual output.
+            'class': 'logging.StreamHandler',
+            # Use verbose formatter if DEBUG is True, otherwise simple for production.
+            'formatter': 'verbose' if DEBUG else 'simple',
         },
+        'django_server_handler': { # Handler specifically for django.server logger
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'django.server',
+        },
+        # Optional: mail_admins for sending critical errors to site admins.
+        # Requires ADMINS setting and email backend to be configured.
+        # 'mail_admins': {
+        #     'level': 'ERROR',
+        #     'class': 'django.utils.log.AdminEmailHandler',
+        #     'filters': ['require_debug_false'] # Only active if DEBUG = False
+        # }
+    },
+    # 'filters': { # Define filters if used (e.g., for mail_admins)
+    #     'require_debug_false': {
+    #         '()': 'django.utils.log.RequireDebugFalse',
+    #     },
+    #     'require_debug_true': {
+    #         '()': 'django.utils.log.RequireDebugTrue',
+    #     },
+    # },
+    'root': {  # Root logger: catch-all for loggers not explicitly configured.
+        'handlers': ['console'],
+        'level': 'DEBUG' if DEBUG else 'INFO', # More verbose in DEBUG mode.
     },
     'loggers': {
-        '': {  # 'catch all' loggers by referencing it with the empty string
+        'django': { # General Django framework logs.
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False, # Do not pass to the root logger.
+        },
+        'django.request': { # Logs for HTTP requests, especially errors.
+            # 'handlers': ['mail_admins', 'console'] if not DEBUG else ['console'],
+            'handlers': ['console'],
+            'level': 'ERROR', # Log 4XX and 5XX errors.
+            'propagate': False,
+        },
+        'django.server': { # Logs for the `runserver` command.
+            'handlers': ['django_server_handler'], # Use the specific server handler.
+            'level': 'INFO', # Standard level for server operational messages.
+            'propagate': False,
+        },
+        'django.db.backends': { # Logs SQL queries.
+            'handlers': ['console'],
+            # Set to 'DEBUG' to see all SQL queries when DEBUG is True.
+            # 'WARNING' in production to reduce noise (e.g., logs slow queries if configured).
+            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'propagate': False,
+        },
+        'django.security': { # Logs for security-related events (e.g., SuspiciousOperation).
+            # 'handlers': ['mail_admins', 'console'] if not DEBUG else ['console'],
+            'handlers': ['console'],
+            'level': 'WARNING', # Or 'ERROR' for higher prominence.
+            'propagate': False,
+        },
+        # Example for your application's loggers:
+        'measure': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO', # App-specific verbosity.
+            'propagate': False, # Or True if you want root logger to also handle its messages.
         },
     },
 }
