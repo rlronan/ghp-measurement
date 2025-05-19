@@ -303,7 +303,7 @@ LOGGING = {
         'measure': {
             'handlers': ['console'],
             'level': 'DEBUG' if DEBUG else 'INFO', # App-specific verbosity.
-            'propagate': False, # Or True if you want root logger to also handle its messages.
+            'propagate': True, # Or True if you want root logger to also handle its messages.
         },
     },
 }
