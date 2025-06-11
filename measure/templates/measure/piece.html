@@ -157,63 +157,63 @@
                 <th>Piece Location</th>
                 <td class="centertext">{{ form.piece_location }}</td>
                 {% if form.piece_location.errors %}
-                    <td class="error">{{ form.piece_location.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.piece_location.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Length (Min 0.5")</th>
                 <td>{{ form.length}} </td>
                 {% if form.length.errors %}
-                    <td class="error">{{ form.length.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.length.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Width (Min 0.5")</th>
                 <td>{{ form.width}}</td>
                 {% if form.width.errors %}
-                    <td class="error">{{ form.width.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.width.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Height (Min 3")</th>
                 <td>{{ form.height}}</td>
                 {% if form.height.errors %}
-                    <td class="error">{{ form.height.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.height.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Number Of Handles</th>
                 <td>{{ form.handles}}</td>
                 {% if form.handles.errors %}
-                    <td class="error">{{ form.handles.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.handles.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Bisque Temp</th>
                 <td class="centertext">{{ form.bisque_temp }}</td>
                 {% if form.bisque_temp.errors %}
-                    <td class="error">{{ form.bisque_temp.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.bisque_temp.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Glaze Temp</th>
                 <td class="centertext">{{ form.glaze_temp }}</td>
                 {% if form.glaze_temp.errors %}
-                    <td class="error">{{ form.glaze_temp.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.glaze_temp.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Price</th>
                 <td>{{ form.price }}</td>
                 {% if form.price.errors %}
-                    <td class="error">{{ form.price.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.price.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
                 <th>Course Number</th>
                 <td>{{ form.course_number }}</td>
                 {% if form.course_number.errors %}
-                    <td class="error">{{ form.course_number.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.course_number.errors }}</td></tr>
                 {% endif %}
             </tr>
 
@@ -221,7 +221,7 @@
                 <th>Note (Optional)</th>
                 <td>{{ form.note }}</td>
                 {% if form.note.errors %}
-                    <td class="error">{{ form.note.errors }}</td>
+                    <tr><td colspan="2" class="error">{{ form.note.errors }}</td></tr>
                 {% endif %}
             </tr>
 
@@ -250,14 +250,14 @@
 
                 // Add new options based on the selected location
                 if (selectedLocation === 'Greenwich') {
+                    glazeTempField.add(new Option("None", "None"));
                     glazeTempField.add(new Option("Δ 10 (Cone 10)", "10"));
                     glazeTempField.add(new Option("Δ 6 (Cone 6)", "6"));
                     glazeTempField.add(new Option("Luster", "Lust"));
                     glazeTempField.add(new Option("Δ 04 (Cone 04)", "04"));
-                    glazeTempField.add(new Option("None", "None"));
                 } else if (selectedLocation === 'Chelsea') {
-                    glazeTempField.add(new Option("Δ 6 (Cone 6)", "6"));
                     glazeTempField.add(new Option("None", "None"));
+                    glazeTempField.add(new Option("Δ 6 (Cone 6)", "6"));
                 }
             }
 

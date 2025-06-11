@@ -345,6 +345,8 @@ class Piece(models.Model):
         if PIECE_UPDATING:
             previously_paid_for_firing = False
             previously_paid_for_glazing = False
+            new_price = decimal.Decimal(0.00)
+            new_price = new_price.quantize(decimal.Decimal('0.01'))
 
             # We are updating a piece. A user could have added glazing temp or bisque temp to a piece that did not have it before, 
             # or they could have removed it. We need to check for both cases.
@@ -352,8 +354,6 @@ class Piece(models.Model):
                 previously_paid_for_firing = True
                 previously_paid_for_glazing = True
 
-                new_price = decimal.Decimal(0.00)
-                new_price = new_price.quantize(decimal.Decimal('0.01'))
                 previous_price = previous_piece.paid_price
 
                 # since there are conditonals below that prevent the user from being charged twice for the same thing,

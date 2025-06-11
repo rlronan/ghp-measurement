@@ -56,11 +56,11 @@ class PieceForm(forms.ModelForm):
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
         if self.fields['piece_location'].initial == 'Greenwich':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=None)
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=None)
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial="None")
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial="None")
         elif self.fields['piece_location'].initial == 'Chelsea':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=None)
-        self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=None)
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial="None")
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial="None")
 
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
         self.fields['length'].widget.attrs['min'] = 0.5
