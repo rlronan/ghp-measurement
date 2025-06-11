@@ -45,6 +45,12 @@ def user_can_add_credit_check(user):
     print("User groups filter: {}".format(user.groups.filter(name='can_add_credit').exists()))
     return user.groups.filter(name='can_add_credit').exists()
 
+def robots_txt(request):
+    return render(request, 'measure/robots.txt', {})
+
+
+
+
 
 # @user_passes_test(email_check)
 
@@ -649,7 +655,7 @@ def handle_checkout_session(session):
             )
             print("Saving ledger entry")
             user_payment.save()
-            logger.info(f"Ledger entry created successfully for GHPUser: {ghp_user.username}. Ledger ID: {user_payment.id}")
+            logger.info(f"Ledger entry created successfully for GHPUser: {ghp_user.username}. Ledger ID: {user_payment.transaction_id}")
             print("Finished creating ledger entry")
             return HttpResponse(status=200)
         except Exception as e:
