@@ -56,12 +56,11 @@ class PieceForm(forms.ModelForm):
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
         if self.fields['piece_location'].initial == 'Greenwich':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial='06')
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial='10')
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=None)
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=None)
         elif self.fields['piece_location'].initial == 'Chelsea':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial='06')
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial='6')
-    
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=None)
+        self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=None)
 
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
         self.fields['length'].widget.attrs['min'] = 0.5
@@ -130,6 +129,13 @@ class PieceForm(forms.ModelForm):
             self.add_error('width', 'Width must be positive')
         if height < 0:
             self.add_error('height', 'Height must be positive')
+
+        if length > 21:
+            self.add_error('length', 'Length must be less than or equal to 21 inches')
+        if width > 21:
+            self.add_error('width', 'Width must be less than or equal to 21 inches')
+        if height > 22:
+            self.add_error('height', 'Height must be less than or equal to 22 inches')
         
         # Round each of the length, width, and height to the nearest 1/2 inch upwards
         length = (decimal.Decimal(2) * length).quantize(decimal.Decimal(1), rounding=decimal.ROUND_UP) / decimal.Decimal(2)
@@ -149,6 +155,8 @@ class PieceForm(forms.ModelForm):
         cleaned_data['size'] = size
 
         # Calculate the price
+
+
 
         # Get the bisque temperature
         bisque_temp = cleaned_data.get('bisque_temp')
@@ -254,10 +262,10 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.piece.piece_location)
         if self.fields['piece_location'].initial == 'Greenwich':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=self.piece.bisque_temp)
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial=self.piece.glaze_temp)
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=self.piece.glaze_temp)
         elif self.fields['piece_location'].initial == 'Chelsea':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=self.piece.bisque_temp)
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial=self.piece.glaze_temp)
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=self.piece.glaze_temp)
 
         # self.fields['bisque_temp'].initial = self.piece.bisque_temp
         # self.fields['glaze_temp'].initial = self.piece.glaze_temp
@@ -333,6 +341,13 @@ class ModifyPieceForm(forms.ModelForm):
         if height < 0:
             self.add_error('height', 'Height must be positive')
         
+        if length > 21:
+            self.add_error('length', 'Length must be less than or equal to 21 inches')
+        if width > 21:
+            self.add_error('width', 'Width must be less than or equal to 21 inches')
+        if height > 22:
+            self.add_error('height', 'Height must be less than or equal to 22 inches')
+
         # Round each of the length, width, and height to the nearest 1/2 inch upwards
         length = (decimal.Decimal(2) * length).quantize(decimal.Decimal(1), rounding=decimal.ROUND_UP) / decimal.Decimal(2)
         width = (decimal.Decimal(2) * width).quantize(decimal.Decimal(1), rounding=decimal.ROUND_UP) / decimal.Decimal(2)
@@ -343,6 +358,7 @@ class ModifyPieceForm(forms.ModelForm):
         cleaned_data['width'] = width
         cleaned_data['height'] = height
 
+        
         # Calculate the size
         size = decimal.Decimal(length * width * height)
         # set to 2 decimal places

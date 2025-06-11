@@ -54,7 +54,7 @@ class GHPUser(User):
     current_ghp_staff = models.BooleanField(default=False)
     current_faculty = models.BooleanField(default=False)  
 
-    last_measure_date = models.DateField(null=True)
+    last_measure_date = models.DateField(null=True, blank=True)
 
     consent = models.BooleanField(default=False)
     consent_date = models.DateField(null=True)
@@ -168,9 +168,9 @@ class Piece(models.Model):
     glazing_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     paid_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     course_number = models.CharField(max_length=4, blank=True)
-    bisque_temp = models.CharField(max_length=4, choices=BISQUE_TEMPS, default="06") # imported from constants.py
+    bisque_temp = models.CharField(max_length=4, choices=BISQUE_TEMPS, default="None") # imported from constants.py
 
-    glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="10") # imported from constants.py
+    glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="None") # imported from constants.py
 
     note = models.CharField(max_length=1000, blank=True)
     #TODO: FIX IMAGE FIELD FOR HEROKU
@@ -206,7 +206,7 @@ class Piece(models.Model):
             models.CheckConstraint(check=models.Q(width__gte=0.5), name='width_gte_0.5', violation_error_message="Width must be at least 0.5 inches"),
             models.CheckConstraint(check=models.Q(height__gte=3.0), name='height_gte_3.0', violation_error_message="Height must be at least 3 inches"),
 
-            models.CheckConstraint(check=models.Q(length__lte=21.0)  & models.Q(width__lte=21.0), name='length_and_width_lte_21.0', violation_error_message="Length amd width must be less than or equal to 21 inches"),
+            models.CheckConstraint(check=models.Q(length__lte=21.0)  & models.Q(width__lte=21.0), name='length_and_width_lte_21.0', violation_error_message="Length and width must be less than or equal to 21 inches"),
             models.CheckConstraint(check=models.Q(height__lte=22.0), name='height_lte_22.0', violation_error_message="Height must be less than or equal to 22 inches"),
 
         ]

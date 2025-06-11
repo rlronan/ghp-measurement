@@ -102,6 +102,7 @@
         {% csrf_token %}
         {% if form.user_balance >= 25 %}
             <h2>Firing Account Balance: ${{form.user_balance}}</h2>
+            <p><a href="{% url 'measure:user'%}">You can add funds here</a></p>
         {% elif form.user_balance >= 0 %}
             <h2>Firing Account Balance: ${{form.user_balance}}<h2>
             <p>Your account balance is getting low.</p>

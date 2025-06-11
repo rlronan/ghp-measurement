@@ -52,8 +52,11 @@
         }
         button {
             background-color: #655F79;
-
+            display: block;
+            margin: 0 auto; /* Add this line to center the button */
+            margin-top: 10px; /* Add this line to create space between the table and the button */
         }
+
     </style>
 </head>
 
@@ -115,7 +118,7 @@
                 <td>{{form.amount}} {{form.amount.errors}}</td>
             </tr>
         </table>
-        <input type="submit" value="Refund Piece">
+        <button type="submit">Refund Piece</button>
     </form>
     <script>
         // this script doesn't work for some reason. When both checkboxes are checked the amount is not set to the sum of the two refunds
