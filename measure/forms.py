@@ -156,10 +156,16 @@ class PieceForm(forms.ModelForm):
 
         # Calculate the price
 
-
-
         # Get the bisque temperature
         bisque_temp = cleaned_data.get('bisque_temp')
+
+        # Get the glaze temperatures
+        glaze_temp = cleaned_data.get('glaze_temp')
+
+        if bisque_temp == 'None' and glaze_temp == 'None':
+            self.add_error('bisque_temp', 'You must select a Bisque or Glaze temperature')
+            self.add_error('glaze_temp', 'You must select a Bisque or Glaze temperature')
+
         if bisque_temp != 'None':
             # get the price scaling based on the user is a current_ghp_staff or current_faculty or not
             if self.ghp_user.current_ghp_staff:
@@ -171,12 +177,12 @@ class PieceForm(forms.ModelForm):
             # set to 2 decimal places
             firing_price = firing_price.quantize(decimal.Decimal('0.01'))
         else:
+
             firing_price = decimal.Decimal(0.00)
         # Set the cleaned data for price
         cleaned_data['firing_price'] = firing_price
 
-        # Get the glaze temperatures
-        glaze_temp = cleaned_data.get('glaze_temp')
+
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
             # Get the price scaling based on the user is a current_ghp_staff or current_faculty or not
@@ -370,6 +376,14 @@ class ModifyPieceForm(forms.ModelForm):
 
         # Get the bisque temperature
         bisque_temp = cleaned_data.get('bisque_temp')
+        # Get the glaze temperatures
+        glaze_temp = cleaned_data.get('glaze_temp')
+
+        if bisque_temp == 'None' and glaze_temp == 'None':
+            self.add_error('bisque_temp', 'You must select a Bisque or Glaze temperature')
+            self.add_error('glaze_temp', 'You must select a Bisque or Glaze temperature')
+
+
         if bisque_temp != 'None':
             # get the price scaling based on the user is a current_ghp_staff or current_faculty or not
             if self.ghp_user.current_ghp_staff:
@@ -385,8 +399,6 @@ class ModifyPieceForm(forms.ModelForm):
         # Set the cleaned data for price
         cleaned_data['firing_price'] = firing_price
 
-        # Get the glaze temperatures
-        glaze_temp = cleaned_data.get('glaze_temp')
         # Check that the glaze temperature is not None
         if glaze_temp != 'None':
             # Get the price scaling based on the user is a current_ghp_staff or current_faculty or not
