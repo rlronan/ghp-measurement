@@ -1,5 +1,3 @@
-
-
 .center {
   margin-left: auto;
   margin-right: auto;
@@ -36,6 +34,67 @@ input {
   font-size: 20px;
   font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
 } 
+
+/* Temperature checkbox styling */
+input[name="bisque_temp_checkboxes"], 
+input[name="glaze_temp_checkboxes"] {
+  width: auto;
+  height: auto;
+  margin: 0 0.5em 0 0;
+  background-color: transparent;
+  transform: scale(1.1);
+  flex-shrink: 0;
+}
+
+.temp-checkbox-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5em;
+  text-align: left;
+  width: 100%;
+  max-width: 230px;
+  margin: 0;
+  padding: 0.5em;
+  box-sizing: border-box;
+}
+
+/* Override Django's default div wrapper styling */
+.temp-checkbox-container > div {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.3em !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.temp-checkbox-container > div > div {
+  display: flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0.1em 0 !important;
+  width: 100% !important;
+}
+
+/* Override Django's default label styling */
+.temp-checkbox-container label {
+  display: flex !important;
+  align-items: center !important;
+  font-size: 16px !important;
+  font-family: "Franklin Gothic Book", "Franklin Gothic", Arial, Helvetica, sans-serif !important;
+  cursor: pointer !important;
+  padding: 0.1em 0.2em !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 1.8em !important;
+}
+
+.temp-checkbox-container label:hover {
+  background-color: rgba(41, 4, 164, 0.1) !important;
+  border-radius: 0.25em !important;
+}
 
 button {
   font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;

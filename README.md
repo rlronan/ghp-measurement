@@ -17,12 +17,8 @@ Total___
 temperature
 [remove class #]
 add text  “Don’t forget your class chip.”
-5. red font the message when something is messed up upon submission (like “measurement cannot exceed 22”)
+5. DONE: ~red font the message when something is messed up upon submission (like “measurement cannot exceed 22”)~
 6. on web app add the “add firing” to the drop down.
 7. DONE: ~back end: can we fix the button on the "add credit" page that only shows the top half?~
 8. If we have the Menu, we sort of don't need the homepage. Homepage could be the measuring form, and then you push Menu for everything else?If homepage is the measure a piece page, we have him change the top to "this is you balance__. add fundshere".  regardless of if you are under 25
-9. Add Robots.txt
-
-
-Time log: 
-6/9/25: 1 hour 
+9. DONE: ~Add Robots.txt~

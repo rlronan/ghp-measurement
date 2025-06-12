@@ -24,6 +24,22 @@ class PieceForm(forms.ModelForm):
     firing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
     glazing_price_per_cubic_inch = forms.DecimalField(label="glazing_price_per_cubic_inch" , max_digits=5, decimal_places=3, initial=0.00)
     glazing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
+    
+    # Add checkbox fields for temperatures
+    bisque_temp_checkboxes = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        choices=[],  # Will be set in __init__
+        label="Bisque Temperatures"
+    )
+    
+    glaze_temp_checkboxes = forms.MultipleChoiceField(
+        required=False, 
+        widget=forms.CheckboxSelectMultiple,
+        choices=[],  # Will be set in __init__
+        label="Glaze Temperatures"
+    )
+    
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'piece_location',
@@ -55,12 +71,26 @@ class PieceForm(forms.ModelForm):
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
+        # Set up checkbox choices based on location
         if self.fields['piece_location'].initial == 'Greenwich':
+            # Remove 'None' option for checkboxes and set available choices
+            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_GREENWICH if choice[0] != 'None']
+            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_GREENWICH if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial="None")
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial="None")
         elif self.fields['piece_location'].initial == 'Chelsea':
+            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_CHELSEA if choice[0] != 'None']
+            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_CHELSEA if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial="None")
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial="None")
+        
+        # Set the checkbox choices
+        self.fields['bisque_temp_checkboxes'].choices = bisque_choices
+        self.fields['glaze_temp_checkboxes'].choices = glaze_choices
+        
+        # Hide the original dropdown fields
+        self.fields['bisque_temp'].widget = forms.HiddenInput()
+        self.fields['glaze_temp'].widget = forms.HiddenInput()
 
         self.fields['length'] = forms.DecimalField(max_digits=5, decimal_places=1)#, initial=0.0)
         self.fields['length'].widget.attrs['min'] = 0.5
@@ -117,6 +147,21 @@ class PieceForm(forms.ModelForm):
         # Get the cleaned data
         cleaned_data = super().clean()
         
+        # Convert checkbox selections to single values for compatibility
+        bisque_checkboxes = cleaned_data.get('bisque_temp_checkboxes', [])
+        glaze_checkboxes = cleaned_data.get('glaze_temp_checkboxes', [])
+        
+        # Convert multiple selections to single value (take first selection)
+        if bisque_checkboxes:
+            cleaned_data['bisque_temp'] = bisque_checkboxes[0]  # Take first selected
+        else:
+            cleaned_data['bisque_temp'] = 'None'
+            
+        if glaze_checkboxes:
+            cleaned_data['glaze_temp'] = glaze_checkboxes[0]  # Take first selected
+        else:
+            cleaned_data['glaze_temp'] = 'None'
+        
         # Get the length, width, and height
         length = cleaned_data.get('length')
         width = cleaned_data.get('width')
@@ -163,8 +208,8 @@ class PieceForm(forms.ModelForm):
         glaze_temp = cleaned_data.get('glaze_temp')
 
         if bisque_temp == 'None' and glaze_temp == 'None':
-            self.add_error('bisque_temp', 'You must select a Bisque or Glaze temperature')
-            self.add_error('glaze_temp', 'You must select a Bisque or Glaze temperature')
+            self.add_error('bisque_temp_checkboxes', 'You must select at least one Bisque or Glaze temperature')
+            self.add_error('glaze_temp_checkboxes', 'You must select at least one Bisque or Glaze temperature')
 
         if bisque_temp != 'None':
             # get the price scaling based on the user is a current_ghp_staff or current_faculty or not
@@ -217,13 +262,14 @@ class PieceForm(forms.ModelForm):
         if cleaned_data['price'] < 0:
             self.add_error('price', 'Price cannot be negative')
         
-        if cleaned_data['price'] < MINIMUM_PRICE:
+        # Check that the price is at least the minimum
+        if price < decimal.Decimal(MINIMUM_PRICE):
             if self.ghp_user.current_ghp_staff:
                 pass
             else:
                 cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
-        print(self.user_balance, cleaned_data['price'], self.user_balance - cleaned_data['price'])
+        #print(self.user_balance, cleaned_data['price'], self.user_balance - cleaned_data['price'])
         if self.user_balance - cleaned_data['price'] < -25:
             raise ValidationError(
                 _("You cannot measure a piece that will bring your account balance below -$25.00. Please add money to your account before measuring."),
@@ -243,6 +289,22 @@ class ModifyPieceForm(forms.ModelForm):
     glazing_price_per_cubic_inch.widget.attrs.update({'class': 'form-control'})
     # piece_id = forms.IntegerField(label="piece_id", initial=0) 
     # piece_id.widget.attrs.update({'class': 'form-control'})
+    
+    # Add checkbox fields for temperatures
+    bisque_temp_checkboxes = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        choices=[],  # Will be set in __init__
+        label="Bisque Temperatures"
+    )
+    
+    glaze_temp_checkboxes = forms.MultipleChoiceField(
+        required=False, 
+        widget=forms.CheckboxSelectMultiple,
+        choices=[],  # Will be set in __init__
+        label="Glaze Temperatures"
+    )
+    
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'piece_location', 'length', 'width', 'height', 
@@ -266,12 +328,33 @@ class ModifyPieceForm(forms.ModelForm):
 
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.piece.piece_location)
+        
+        # Set up checkbox choices based on location
         if self.fields['piece_location'].initial == 'Greenwich':
+            # Remove 'None' option for checkboxes and set available choices
+            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_GREENWICH if choice[0] != 'None']
+            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_GREENWICH if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=self.piece.bisque_temp)
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=self.piece.glaze_temp)
         elif self.fields['piece_location'].initial == 'Chelsea':
+            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_CHELSEA if choice[0] != 'None']
+            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_CHELSEA if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=self.piece.bisque_temp)
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=self.piece.glaze_temp)
+        
+        # Set the checkbox choices
+        self.fields['bisque_temp_checkboxes'].choices = bisque_choices
+        self.fields['glaze_temp_checkboxes'].choices = glaze_choices
+        
+        # Set initial values for checkboxes based on existing piece
+        if self.piece.bisque_temp != 'None':
+            self.fields['bisque_temp_checkboxes'].initial = [self.piece.bisque_temp]
+        if self.piece.glaze_temp != 'None':
+            self.fields['glaze_temp_checkboxes'].initial = [self.piece.glaze_temp]
+        
+        # Hide the original dropdown fields
+        self.fields['bisque_temp'].widget = forms.HiddenInput()
+        self.fields['glaze_temp'].widget = forms.HiddenInput()
 
         # self.fields['bisque_temp'].initial = self.piece.bisque_temp
         # self.fields['glaze_temp'].initial = self.piece.glaze_temp
@@ -334,6 +417,21 @@ class ModifyPieceForm(forms.ModelForm):
         print("Cleaning modify piece form")
         cleaned_data = super().clean()
         
+        # Convert checkbox selections to single values for compatibility
+        bisque_checkboxes = cleaned_data.get('bisque_temp_checkboxes', [])
+        glaze_checkboxes = cleaned_data.get('glaze_temp_checkboxes', [])
+        
+        # Convert multiple selections to single value (take first selection)
+        if bisque_checkboxes:
+            cleaned_data['bisque_temp'] = bisque_checkboxes[0]  # Take first selected
+        else:
+            cleaned_data['bisque_temp'] = 'None'
+            
+        if glaze_checkboxes:
+            cleaned_data['glaze_temp'] = glaze_checkboxes[0]  # Take first selected
+        else:
+            cleaned_data['glaze_temp'] = 'None'
+        
         # Get the length, width, and height
         length = cleaned_data.get('length')
         width = cleaned_data.get('width')
@@ -380,8 +478,8 @@ class ModifyPieceForm(forms.ModelForm):
         glaze_temp = cleaned_data.get('glaze_temp')
 
         if bisque_temp == 'None' and glaze_temp == 'None':
-            self.add_error('bisque_temp', 'You must select a Bisque or Glaze temperature')
-            self.add_error('glaze_temp', 'You must select a Bisque or Glaze temperature')
+            self.add_error('bisque_temp_checkboxes', 'You must select at least one Bisque or Glaze temperature')
+            self.add_error('glaze_temp_checkboxes', 'You must select at least one Bisque or Glaze temperature')
 
 
         if bisque_temp != 'None':
@@ -439,6 +537,10 @@ class ModifyPieceForm(forms.ModelForm):
             else:
                 cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
+        if self.user_balance - cleaned_data['price'] < -25:
+            raise ValidationError(
+                _("You cannot measure a piece that will bring your account balance below -$25.00. Please add money to your account before measuring."),
+                code="balance_too_low")
 
         # Return the cleaned data
         return cleaned_data

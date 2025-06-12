@@ -11,6 +11,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="{% static 'measure/style.css' %}">
     <style>
+        input {
+            padding: 0.4em;
+        }
         table.center td.centertext {
             text-align: center;
         }
@@ -48,6 +51,65 @@
         td.error {
             color: red;
         }
+        table{
+            table-layout: fixed;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        /* Ensure consistent column widths */
+        table.center th {
+            width: 40%;
+            text-align: right;
+            padding-right: 1em;
+            vertical-align: top;
+        }
+
+        table.center td {
+            width: 60%;
+            vertical-align: top;
+            padding-left: 0.5em;
+        }
+
+        /* Special alignment for temperature rows */
+        .temp-row th,
+        .temp-row td {
+        vertical-align: top !important;
+        }
+
+        /* Consistent form input styling */
+        table.center input[type="text"],
+        table.center input[type="number"],
+        table.center select,
+        table.center textarea {
+            width: 100%;
+            max-width: 200px;
+            /* box-sizing: border-box; */
+        }
+
+        /* Ensure consistent padding for all table rows */
+        table.center tr {
+            height: auto;
+            min-height: 1.5em;
+        }
+
+                 table.center th,
+         table.center td {
+             padding: 0.25em;
+         }
+
+         /* Align checkboxes with other form inputs */
+         .temp-checkbox-container {
+             display: flex !important;
+             flex-direction: column !important;
+             align-items: flex-start !important;
+             justify-content: flex-start !important;
+             width: 100% !important;
+             max-width: 230px !important;
+             margin: 0.25em auto !important;
+             padding: 0.4em !important;
+             box-sizing: border-box !important;
+         }
 
         /* Mobile-friendly styles */
         @media only screen and (max-width: 600px) {
@@ -132,26 +194,6 @@
             {{ hidden }}
         {% endfor %}
         <table class="center">
-                <!-- <tr>
-                    <th colspan="6">Measure A New Piece</th>
-                </tr>
-                <tr>
-                    <th>Length {{form.length.errors}} </th>
-                    <th>Width {{form.width.errors}}</th>
-                    <th>Height {{form.height.errors}}</th>
-                    <th>Glaze Temp {{form.glaze_temp.errors}}</th>
-                    <th>Size {{form.size.errors}}</th>
-                    <th>Price {{form.price.errors}}</th>
-                </tr>
-                <tr>
-                    <td>{{ form.length}} </td>
-                    <td>{{ form.width}}</td>
-                    <td>{{ form.height}}</td>
-                    <td class="centertext">{{ form.glaze_temp }}</td>
-                    <td>{{ form.size }}</td>
-                    <td>{{ form.price }}</td>
-                </tr>
-            </table> -->
 
             <tr>
                 <th>Piece Location</th>
@@ -188,18 +230,28 @@
                     <tr><td colspan="2" class="error">{{ form.handles.errors }}</td></tr>
                 {% endif %}
             </tr>
-            <tr>
+            <tr class="temp-row">
                 <th>Bisque Temp</th>
-                <td class="centertext">{{ form.bisque_temp }}</td>
-                {% if form.bisque_temp.errors %}
-                    <tr><td colspan="2" class="error">{{ form.bisque_temp.errors }}</td></tr>
+                <td>
+                    {{ form.bisque_temp }}
+                    <div class="temp-checkbox-container">
+                        {{ form.bisque_temp_checkboxes }}
+                    </div>
+                </td>
+                {% if form.bisque_temp_checkboxes.errors %}
+                    <tr><td colspan="2" class="error">{{ form.bisque_temp_checkboxes.errors }}</td></tr>
                 {% endif %}
             </tr>
-            <tr>
+            <tr class="temp-row">
                 <th>Glaze Temp</th>
-                <td class="centertext">{{ form.glaze_temp }}</td>
-                {% if form.glaze_temp.errors %}
-                    <tr><td colspan="2" class="error">{{ form.glaze_temp.errors }}</td></tr>
+                <td>
+                    {{ form.glaze_temp }}
+                    <div class="temp-checkbox-container">
+                        {{ form.glaze_temp_checkboxes }}
+                    </div>
+                </td>
+                {% if form.glaze_temp_checkboxes.errors %}
+                    <tr><td colspan="2" class="error">{{ form.glaze_temp_checkboxes.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
@@ -210,14 +262,6 @@
                 {% endif %}
             </tr>
             <tr>
-                <th>Course Number</th>
-                <td>{{ form.course_number }}</td>
-                {% if form.course_number.errors %}
-                    <tr><td colspan="2" class="error">{{ form.course_number.errors }}</td></tr>
-                {% endif %}
-            </tr>
-
-            <tr>
                 <th>Note (Optional)</th>
                 <td>{{ form.note }}</td>
                 {% if form.note.errors %}
@@ -225,10 +269,6 @@
                 {% endif %}
             </tr>
 
-            <!-- <tr>
-                <th>Image {{form.image.errors}}</th>
-                <td>{{ form.image }}</td>
-            </tr> -->
         </table>
         <button type="submit">Submit</button>
     </form>
@@ -236,41 +276,89 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var pieceLocationField = document.getElementById('id_piece_location');
-            var glazeTempField = document.getElementById('id_glaze_temp');
             
-            // Function to update glaze temperature options
-            function updateGlazeTempOptions() {
+            // Function to update temperature checkbox options based on location
+            function updateTempOptions() {
                 var selectedLocation = pieceLocationField.value;
-                var options = glazeTempField.options;
+                var bisqueCheckboxes = document.querySelectorAll('input[name=bisque_temp_checkboxes]');
+                var glazeCheckboxes = document.querySelectorAll('input[name=glaze_temp_checkboxes]');
                 
-                // Clear existing options
-                for (var i = options.length - 1; i >= 0; i--) {
-                    glazeTempField.remove(i);
+                // Hide all checkboxes first
+                bisqueCheckboxes.forEach(function(checkbox) {
+                    checkbox.closest('div').style.display = 'none';
+                });
+                glazeCheckboxes.forEach(function(checkbox) {
+                    checkbox.closest('div').style.display = 'none';
+                });
+                
+                // Show checkboxes based on location
+                if (selectedLocation === 'Greenwich') {
+                    // Show Greenwich temperature options
+                    bisqueCheckboxes.forEach(function(checkbox) {
+                        if (['06'].includes(checkbox.value)) {
+                            checkbox.closest('div').style.display = 'flex';
+                        }
+                    });
+                    glazeCheckboxes.forEach(function(checkbox) {
+                        if (['10', '6', 'Lust', '04'].includes(checkbox.value)) {
+                            checkbox.closest('div').style.display = 'flex';
+                        }
+                    });
+                } else if (selectedLocation === 'Chelsea') {
+                    // Show Chelsea temperature options
+                    bisqueCheckboxes.forEach(function(checkbox) {
+                        if (['06'].includes(checkbox.value)) {
+                            checkbox.closest('div').style.display = 'flex';
+                        }
+                    });
+                    glazeCheckboxes.forEach(function(checkbox) {
+                        if (['6'].includes(checkbox.value)) {
+                            checkbox.closest('div').style.display = 'flex';
+                        }
+                    });
                 }
 
-                // Add new options based on the selected location
-                if (selectedLocation === 'Greenwich') {
-                    glazeTempField.add(new Option("None", "None"));
-                    glazeTempField.add(new Option("Δ 10 (Cone 10)", "10"));
-                    glazeTempField.add(new Option("Δ 6 (Cone 6)", "6"));
-                    glazeTempField.add(new Option("Luster", "Lust"));
-                    glazeTempField.add(new Option("Δ 04 (Cone 04)", "04"));
-                } else if (selectedLocation === 'Chelsea') {
-                    glazeTempField.add(new Option("None", "None"));
-                    glazeTempField.add(new Option("Δ 6 (Cone 6)", "6"));
-                }
+                // Uncheck all checkboxes when location changes
+                bisqueCheckboxes.forEach(function(checkbox) {
+                    checkbox.checked = false;
+                });
+                glazeCheckboxes.forEach(function(checkbox) {
+                    checkbox.checked = false;
+                });
+
+                // Trigger price calculation after location change
+                $('input[name=length]').trigger('change');
             }
 
             // Run the function initially
-            updateGlazeTempOptions();
+            updateTempOptions();
 
             // Listen for changes in the piece location field
-            pieceLocationField.addEventListener('change', updateGlazeTempOptions);
+            pieceLocationField.addEventListener('change', updateTempOptions);
+            
+            // Add logic to ensure only one checkbox per category is selected
+            function setupSingleSelectCheckboxes(name) {
+                document.querySelectorAll('input[name=' + name + ']').forEach(function(checkbox) {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            // Uncheck all other checkboxes in this group
+                            document.querySelectorAll('input[name=' + name + ']:not([value="' + this.value + '"])').forEach(function(other) {
+                                other.checked = false;
+                            });
+                        }
+                        // Trigger the price calculation
+                        $(this).trigger('change');
+                    });
+                });
+            }
+            
+            setupSingleSelectCheckboxes('bisque_temp_checkboxes');
+            setupSingleSelectCheckboxes('glaze_temp_checkboxes');
         });
         $(document).ready(function () {
             // listen for changes in the length, width, and height, handles, and glaze_temp, and bisque_temp fields
-            // glaze_temp is a choice field, so it is a select element
-            $('input[name=length], input[name=width], input[name=height], input[name=handles], select[name=glaze_temp], select[name=bisque_temp]').change(function () {
+            // temperature fields are now checkboxes
+            $('input[name=length], input[name=width], input[name=height], input[name=handles], input[name=bisque_temp_checkboxes], input[name=glaze_temp_checkboxes]').change(function () {
 
                 // get the current values of length, width, and height
                 var length = parseFloat($('input[name=length]').val());
@@ -280,19 +368,15 @@
                 // if any of the values are NaN, return without continuing.
                 if (isNaN(length)) {
                     return;
-                    //length = 0.5;
                 }
                 if (isNaN(width)) {
                     return;
-                    //width = 0.5;
                 }
                 if (isNaN(height)) {
                     return;
-                    //height = 3.0;
                 }
                 if (isNaN(handles)) {
                     handles = 0;
-                    //height = 3.0;
                 }
 
                 // round the values UP the minimum values 
@@ -316,11 +400,17 @@
                 $('input[name=width]').val(width);
                 $('input[name=height]').val(height);
 
-                // get the current values of bisque_temp selection and convert it to a string
-                var bisque_temp = $('select[name=bisque_temp]').val();
+                // get the current values of bisque_temp checkbox selections
+                var bisque_temp_checked = $('input[name=bisque_temp_checkboxes]:checked');
+                var bisque_temp = bisque_temp_checked.length > 0 ? bisque_temp_checked.first().val() : 'None';
 
-                // get the current values of glaze_temp selection and convert it to a string
-                var glaze_temp = $('select[name=glaze_temp]').val();
+                // get the current values of glaze_temp checkbox selections
+                var glaze_temp_checked = $('input[name=glaze_temp_checkboxes]:checked');
+                var glaze_temp = glaze_temp_checked.length > 0 ? glaze_temp_checked.first().val() : 'None';
+                
+                // Update hidden fields for form submission
+                $('input[name=bisque_temp]').val(bisque_temp);
+                $('input[name=glaze_temp]').val(glaze_temp);
 
                 // calculate the new value of size
                 var size = length * width * height;
@@ -345,8 +435,15 @@
                 var glazing_price_per_cubic_inch = $('input[name=glazing_price_per_cubic_inch]').val();
 
                 // calculate the new value of price
-                var price = firing_price_per_cubic_inch * size * bisque_temp_scalar + glazing_price_per_cubic_inch * size * glaze_temp_scalar + handles*0.10;
 
+                // If the user has selected neither a bisque temperature nor a glaze temperature, set the price to be as it would be if they had selected a bisque temperature
+                if (bisque_temp == 'None' && glaze_temp == 'None') {
+                    bisque_temp_scalar = 1;
+                }
+
+                // if the user has selected a bisque temperature, add the firing price per cubic inch to the price
+                var price = firing_price_per_cubic_inch * size * bisque_temp_scalar + glazing_price_per_cubic_inch * size * glaze_temp_scalar + handles*0.10;
+                
                 // if price is less than 1.00, set it to 1.00
                 if (price < 1.00) {
                     price = 1.00;
