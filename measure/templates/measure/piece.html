@@ -253,6 +253,13 @@
                 {% endif %}
             </tr>
             <tr>
+                <th>Quantity</th>
+                <td>{{ form.quantity }}</td>
+                {% if form.quantity.errors %}
+                    <tr><td colspan="2" class="error">{{ form.quantity.errors }}</td></tr>
+                {% endif %}
+            </tr>
+            <tr>
                 <th>Price</th>
                 <td>{{ form.price }}</td>
                 {% if form.price.errors %}

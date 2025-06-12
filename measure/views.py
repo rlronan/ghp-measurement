@@ -146,13 +146,29 @@ def PieceView(request, ghp_user_id):
     if request.method == 'POST':
         form = PieceForm(request.POST, request.FILES, ghp_user=ghp_user, user_balance=user_balance)
         if form.is_valid():
-            logger.info(f"PieceForm is valid for user {request.user.username}, ghp_user: {ghp_user.get_username()}.")
-            print("Measuring piece form is valid")
-            instance = form.save(commit=False)
+            quantity = form.cleaned_data.get('quantity', 1) # Use .get for safety, default to 1
+            logger.info(f"Piece Quantity: {quantity}")
+
+            # Create a template instance from the form without saving it to the database.
+            piece_template = form.save(commit=False)
             
-            instance.save()
-            logger.info(f"Piece saved for user {request.user.username}, ghp_user: {ghp_user.get_username()}. Piece ID: {instance.id}")
-            # process the data in form.cleaned_data as required
+            # Loop 'quantity' times to create that many copies.
+            for i in range(quantity):
+                # By setting pk to None, you are telling Django that this is a new object.
+                # On the first loop (i=0), the pk is already None. This line ensures
+                # it's also None for all subsequent loops (i=1, i=2, etc.).
+                piece_template.pk = None
+                
+                # Set _state.adding to True to be explicit that this is a new object.
+                piece_template._state.adding = True
+                
+                # Save the new instance to the database.
+                # Your custom Piece.save() method will be called here, which correctly
+                # calculates the ghp_user_piece_id for each new piece.
+                piece_template.save()
+                
+                logger.info(f"Saved piece copy {i + 1} of {quantity} for user {ghp_user.get_username()}.")
+
             return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
         else:
             logger.warning(f"PieceForm is invalid for user {request.user.username}, ghp_user: {ghp_user.get_username()}. Errors: {form.errors}")

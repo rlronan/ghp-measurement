@@ -39,6 +39,9 @@ class PieceForm(forms.ModelForm):
         choices=[],  # Will be set in __init__
         label="Glaze Temperatures"
     )
+
+    # Add a quantity field for the number of pieces with the same location, bisque temperature, and glaze temperature
+    quantity = forms.IntegerField(initial=1, min_value=1, max_value=20, label="Quantity")
     
     class Meta:
         model = Piece
@@ -132,6 +135,9 @@ class PieceForm(forms.ModelForm):
 
         self.fields['firing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
         self.fields['glazing_price_per_cubic_inch'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
+
+        self.fields['quantity'].widget = forms.NumberInput(attrs={'min': 1, 'max': 20})
+
 
         self.fields['image'] = forms.ImageField(required=False)
         ###self.fields['image'].widget.attrs['accept'] = 'image/*'
@@ -269,12 +275,26 @@ class PieceForm(forms.ModelForm):
                 pass
             else:
                 cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
-            #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
-        #print(self.user_balance, cleaned_data['price'], self.user_balance - cleaned_data['price'])
+
+
+        # Check that the quantity is not negative
+        if cleaned_data['quantity'] < 0:
+            self.add_error('quantity', 'Quantity must be positive')
+        if cleaned_data['quantity'] > 20:
+            self.add_error('quantity', 'Quantity must be less than or equal to 20')
+
         if self.user_balance - cleaned_data['price'] < -25:
             raise ValidationError(
                 _("You cannot measure a piece that will bring your account balance below -$25.00. Please add money to your account before measuring."),
                 code="balance_too_low")
+
+
+        # check that the price times the quantity does not bring the user's balance below -25
+        if self.user_balance - cleaned_data['price']*cleaned_data['quantity'] < -25:
+            raise ValidationError(
+                _("You cannot pay for multiple pieces if it will bring your account balance below -$25.00. Please add money to your account before measuring."),
+                code="balance_too_low_multiple_pieces")
+
 
         # Return the cleaned data
         return cleaned_data
@@ -306,6 +326,9 @@ class ModifyPieceForm(forms.ModelForm):
         label="Glaze Temperatures"
     )
     
+    # Add a quantity field for the number of pieces with the same location, bisque temperature, and glaze temperature
+    quantity = forms.IntegerField(initial=1, min_value=1, max_value=20, label="Quantity")
+    
     class Meta:
         model = Piece
         fields = ['ghp_user', 'ghp_user_piece_id', 'piece_location', 'length', 'width', 'height', 
@@ -329,14 +352,10 @@ class ModifyPieceForm(forms.ModelForm):
 
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.piece.piece_location)
-        
+
         # Set up checkbox choices based on location
-        if self.fields['piece_location'].initial == 'Greenwich':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=self.piece.bisque_temp)
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=self.piece.glaze_temp)
-        elif self.fields['piece_location'].initial == 'Chelsea':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=self.piece.bisque_temp)
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=self.piece.glaze_temp)
+        self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS, initial=self.piece.bisque_temp)
+        self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS, initial=self.piece.glaze_temp)
         
         # This is the critical part: Populate the CHECKBOXES with ALL possible options
         # so that your JavaScript can toggle them. This uses the master lists 
@@ -413,6 +432,9 @@ class ModifyPieceForm(forms.ModelForm):
         else:
             self.fields['image'] = forms.ImageField(required=False)
 
+        #self.fields['quantity'].initial = 1
+        self.fields['quantity'].widget.attrs['readonly'] = 'readonly'
+        
     def clean(self):
         # Get the cleaned data
         print("Cleaning modify piece form")

@@ -315,12 +315,10 @@ class Piece(models.Model):
             print("Updating piece")
             # Get the previous piece object
             previous_piece = Piece.objects.get(pk=self.id)
-            print("Previous piece image: ", previous_piece.image)
         # if we are not updating, we should get the current date, and increment the ghp_user_piece_id
         # if we are updating, the size should not, and cannot change
         if not PIECE_UPDATING:
             print("Creating a new piece")
-            print("Current image: ", self.image)
             self.ghp_user_piece_id = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
             self.date = timezone.now()
 
@@ -944,7 +942,18 @@ class Ledger(models.Model):
             if self.ghp_user.last_measure_date is None:
                 self.ghp_user.last_measure_date = self.date.date()
                 self.ghp_user.save()
-            elif self.ghp_user.last_measure_date < self.date.date():
-                self.ghp_user.last_measure_date = self.date.date()
-                self.ghp_user.save()
+            else:
+                try:
+                    if self.ghp_user.last_measure_date < self.date.date():
+                        self.ghp_user.last_measure_date = self.date.date()
+                        self.ghp_user.save()
+                except TypeError as e:
+                    try:
+                        if self.ghp_user.last_measure_date.date() < self.date.date():
+                            self.ghp_user.last_measure_date = self.date.date()
+                            self.ghp_user.save()
+                    except TypeError as e:
+                        print("Error updating last measure date")
+                        #logger.error(f"Error updating last measure date: {e}")
+                        pass
 
