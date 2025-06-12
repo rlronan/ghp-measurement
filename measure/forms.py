@@ -71,20 +71,21 @@ class PieceForm(forms.ModelForm):
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
-        # Set up checkbox choices based on location
+        # Set up choices for the hidden select dropdowns based on initial location
+         # This part sets the initial values for the hidden select fields
         if self.fields['piece_location'].initial == 'Greenwich':
-            # Remove 'None' option for checkboxes and set available choices
-            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_GREENWICH if choice[0] != 'None']
-            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_GREENWICH if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial="None")
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial="None")
         elif self.fields['piece_location'].initial == 'Chelsea':
-            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_CHELSEA if choice[0] != 'None']
-            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_CHELSEA if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial="None")
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial="None")
         
-        # Set the checkbox choices
+        # This is the critical part: Populate the CHECKBOXES with ALL possible options
+        # so that your JavaScript can toggle them. This uses the master lists 
+        # from your constants.py file.
+        bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS if choice[0] != 'None']
+        glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_ALL if choice[0] != 'None']
+
         self.fields['bisque_temp_checkboxes'].choices = bisque_choices
         self.fields['glaze_temp_checkboxes'].choices = glaze_choices
         
@@ -331,18 +332,18 @@ class ModifyPieceForm(forms.ModelForm):
         
         # Set up checkbox choices based on location
         if self.fields['piece_location'].initial == 'Greenwich':
-            # Remove 'None' option for checkboxes and set available choices
-            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_GREENWICH if choice[0] != 'None']
-            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_GREENWICH if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial=self.piece.bisque_temp)
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial=self.piece.glaze_temp)
         elif self.fields['piece_location'].initial == 'Chelsea':
-            bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS_CHELSEA if choice[0] != 'None']
-            glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_CHELSEA if choice[0] != 'None']
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial=self.piece.bisque_temp)
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial=self.piece.glaze_temp)
         
-        # Set the checkbox choices
+        # This is the critical part: Populate the CHECKBOXES with ALL possible options
+        # so that your JavaScript can toggle them. This uses the master lists 
+        # from your constants.py file.
+        bisque_choices = [(choice[0], choice[1]) for choice in BISQUE_TEMPS if choice[0] != 'None']
+        glaze_choices = [(choice[0], choice[1]) for choice in GLAZE_TEMPS_ALL if choice[0] != 'None']
+
         self.fields['bisque_temp_checkboxes'].choices = bisque_choices
         self.fields['glaze_temp_checkboxes'].choices = glaze_choices
         

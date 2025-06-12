@@ -233,7 +233,6 @@
             <tr class="temp-row">
                 <th>Bisque Temp</th>
                 <td>
-                    {{ form.bisque_temp }}
                     <div class="temp-checkbox-container">
                         {{ form.bisque_temp_checkboxes }}
                     </div>
@@ -245,7 +244,6 @@
             <tr class="temp-row">
                 <th>Glaze Temp</th>
                 <td>
-                    {{ form.glaze_temp }}
                     <div class="temp-checkbox-container">
                         {{ form.glaze_temp_checkboxes }}
                     </div>
@@ -275,85 +273,78 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var pieceLocationField = document.getElementById('id_piece_location');
-            
-            // Function to update temperature checkbox options based on location
+            const pieceLocationField = document.getElementById('id_piece_location');
+            const bisqueCheckboxes = document.querySelectorAll('input[name=bisque_temp_checkboxes]');
+            const glazeCheckboxes = document.querySelectorAll('input[name=glaze_temp_checkboxes]');
+
+            // Define the valid temperatures for each location
+            const validTemps = {
+                'Greenwich': {
+                    bisque: ['06'],
+                    glaze: ['10', '6', 'Lust', '04']
+                },
+                'Chelsea': {
+                    bisque: ['06'],
+                    glaze: ['6']
+                }
+            };
+
             function updateTempOptions() {
-                var selectedLocation = pieceLocationField.value;
-                var bisqueCheckboxes = document.querySelectorAll('input[name=bisque_temp_checkboxes]');
-                var glazeCheckboxes = document.querySelectorAll('input[name=glaze_temp_checkboxes]');
-                
-                // Hide all checkboxes first
-                bisqueCheckboxes.forEach(function(checkbox) {
-                    checkbox.closest('div').style.display = 'none';
-                });
-                glazeCheckboxes.forEach(function(checkbox) {
-                    checkbox.closest('div').style.display = 'none';
-                });
-                
-                // Show checkboxes based on location
-                if (selectedLocation === 'Greenwich') {
-                    // Show Greenwich temperature options
-                    bisqueCheckboxes.forEach(function(checkbox) {
-                        if (['06'].includes(checkbox.value)) {
-                            checkbox.closest('div').style.display = 'flex';
-                        }
-                    });
-                    glazeCheckboxes.forEach(function(checkbox) {
-                        if (['10', '6', 'Lust', '04'].includes(checkbox.value)) {
-                            checkbox.closest('div').style.display = 'flex';
-                        }
-                    });
-                } else if (selectedLocation === 'Chelsea') {
-                    // Show Chelsea temperature options
-                    bisqueCheckboxes.forEach(function(checkbox) {
-                        if (['06'].includes(checkbox.value)) {
-                            checkbox.closest('div').style.display = 'flex';
-                        }
-                    });
-                    glazeCheckboxes.forEach(function(checkbox) {
-                        if (['6'].includes(checkbox.value)) {
-                            checkbox.closest('div').style.display = 'flex';
+                const selectedLocation = pieceLocationField.value;
+                const allowedBisque = validTemps[selectedLocation]?.bisque || [];
+                const allowedGlaze = validTemps[selectedLocation]?.glaze || [];
+
+                // Helper function to show/hide checkboxes
+                function toggleCheckboxGroup(checkboxes, allowedValues) {
+                    checkboxes.forEach(function(checkbox) {
+                        // Django wraps each checkbox in a label, then a div. We target that div.
+                        const wrapper = checkbox.parentElement.parentElement;
+                        if (allowedValues.includes(checkbox.value)) {
+                            wrapper.style.display = 'flex';
+                        } else {
+                            wrapper.style.display = 'none';
+                            checkbox.checked = false; // Uncheck options that are being hidden
                         }
                     });
                 }
+                
+                // When location changes, uncheck everything first
+                bisqueCheckboxes.forEach(c => c.checked = false);
+                glazeCheckboxes.forEach(c => c.checked = false);
 
-                // Uncheck all checkboxes when location changes
-                bisqueCheckboxes.forEach(function(checkbox) {
-                    checkbox.checked = false;
-                });
-                glazeCheckboxes.forEach(function(checkbox) {
-                    checkbox.checked = false;
-                });
+                // Now, show/hide the relevant options
+                toggleCheckboxGroup(bisqueCheckboxes, allowedBisque);
+                toggleCheckboxGroup(glazeCheckboxes, allowedGlaze);
 
-                // Trigger price calculation after location change
+                // Trigger price calculation after any change
                 $('input[name=length]').trigger('change');
             }
 
-            // Run the function initially
-            updateTempOptions();
-
-            // Listen for changes in the piece location field
-            pieceLocationField.addEventListener('change', updateTempOptions);
-            
             // Add logic to ensure only one checkbox per category is selected
             function setupSingleSelectCheckboxes(name) {
                 document.querySelectorAll('input[name=' + name + ']').forEach(function(checkbox) {
                     checkbox.addEventListener('change', function() {
                         if (this.checked) {
                             // Uncheck all other checkboxes in this group
-                            document.querySelectorAll('input[name=' + name + ']:not([value="' + this.value + '"])').forEach(function(other) {
-                                other.checked = false;
+                            document.querySelectorAll('input[name=' + name + ']').forEach(function(other) {
+                                if (other !== checkbox) {
+                                    other.checked = false;
+                                }
                             });
                         }
                         // Trigger the price calculation
-                        $(this).trigger('change');
+                        $('input[name=length]').trigger('change');
                     });
                 });
             }
-            
+
+            // Initial setup
+            updateTempOptions();
             setupSingleSelectCheckboxes('bisque_temp_checkboxes');
             setupSingleSelectCheckboxes('glaze_temp_checkboxes');
+
+            // Listen for changes
+            pieceLocationField.addEventListener('change', updateTempOptions);
         });
         $(document).ready(function () {
             // listen for changes in the length, width, and height, handles, and glaze_temp, and bisque_temp fields
@@ -402,16 +393,20 @@
 
                 // get the current values of bisque_temp checkbox selections
                 var bisque_temp_checked = $('input[name=bisque_temp_checkboxes]:checked');
+                console.log("bisque_temp_checked", bisque_temp_checked);
                 var bisque_temp = bisque_temp_checked.length > 0 ? bisque_temp_checked.first().val() : 'None';
-
+                console.log("bisque_temp", bisque_temp);
                 // get the current values of glaze_temp checkbox selections
                 var glaze_temp_checked = $('input[name=glaze_temp_checkboxes]:checked');
+                console.log("glaze_temp_checked", glaze_temp_checked);
                 var glaze_temp = glaze_temp_checked.length > 0 ? glaze_temp_checked.first().val() : 'None';
-                
+                console.log("glaze_temp", glaze_temp);
+
                 // Update hidden fields for form submission
                 $('input[name=bisque_temp]').val(bisque_temp);
                 $('input[name=glaze_temp]').val(glaze_temp);
-
+                console.log("bisque_temp", bisque_temp);
+                console.log("glaze_temp", glaze_temp);
                 // calculate the new value of size
                 var size = length * width * height;
 

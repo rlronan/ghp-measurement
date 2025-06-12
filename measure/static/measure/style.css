@@ -61,39 +61,39 @@ input[name="glaze_temp_checkboxes"] {
 
 /* Override Django's default div wrapper styling */
 .temp-checkbox-container > div {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0.3em !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  display: flex ;
+  flex-direction: column ;
+  gap: 0.3em ;
+  width: 100% ;
+  margin: 0 ;
+  padding: 0 ;
 }
 
 .temp-checkbox-container > div > div {
-  display: flex !important;
-  align-items: center !important;
-  margin: 0 !important;
-  padding: 0.1em 0 !important;
-  width: 100% !important;
+  display: flex ;
+  align-items: center ;
+  margin: 0 ;
+  padding: 0.1em 0 ;
+  width: 100% ;
 }
 
 /* Override Django's default label styling */
 .temp-checkbox-container label {
-  display: flex !important;
-  align-items: center !important;
-  font-size: 16px !important;
-  font-family: "Franklin Gothic Book", "Franklin Gothic", Arial, Helvetica, sans-serif !important;
-  cursor: pointer !important;
-  padding: 0.1em 0.2em !important;
-  margin: 0 !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  min-height: 1.8em !important;
+  display: flex ;
+  align-items: center ;
+  font-size: 16px ;
+  font-family: "Franklin Gothic Book", "Franklin Gothic", Arial, Helvetica, sans-serif ;
+  cursor: pointer ;
+  padding: 0.1em 0.2em ;
+  margin: 0 ;
+  width: 100% ;
+  box-sizing: border-box ;
+  min-height: 1.8em ;
 }
 
 .temp-checkbox-container label:hover {
-  background-color: rgba(41, 4, 164, 0.1) !important;
-  border-radius: 0.25em !important;
+  background-color: rgba(41, 4, 164, 0.1) ;
+  border-radius: 0.25em ;
 }
 
 button {
