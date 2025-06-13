@@ -165,26 +165,22 @@
         <h1>Measure A New Piece</h1>
         {% if form.user_balance >= 25 %}
             <h2>Firing Account Balance: ${{form.user_balance}}</h2>
-            <p><a href="{% url 'measure:user'%}">You can add funds here</a></p>
-
+            <button id="submit-measure-button">You can add funds here</button>
         {% elif form.user_balance >= 0 %}
             <h2>Firing Account Balance: ${{form.user_balance}}<h2>
             <p>Your account balance is getting low.</p>
-            <p><a href="{% url 'measure:user'%}">Please consider adding funds here</a></p>
+            <button id="submit-measure-button">Please consider adding funds here</button>
             
         {% elif form.user_balance >= -25 %}
             <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
             <h3>(Warning: Your account balance is negative. You will not be able to fire anything that brings it too negative)</h3>
-            <h3><a href="{% url 'measure:user'%}">Please consider adding funds here</a></h3>
+            <button id="submit-measure-button">Please consider adding funds here</button>
         {% else %}
             <h2>Firing Account Balance: -${{form.user_balance|mult:-1}}</h2>
             <h3>(WARNING: YOU CANNOT MEASURE OR FIRE ADDITIONAL PIECES UNTIL YOU ADD FUNDS TO YOUR ACCOUNT BALANCE)</h3>
-            <h3><a href="{% url 'measure:user'%}">Please consider adding funds here<a></h3>
-
-        <h3>Please note all measurement values will be rounded up to the nearest half inch, and the minimum firing fee is $1.</h3>
-
-        <!-- <th colspan="6">Balance: -${{user_balance|mult:-1}}</th> -->
+            <button id="submit-measure-button">Please consider adding funds here<a></button>
         {% endif %}
+
         {{ form.non_field_errors }}
         {{ form.field_errors }}
         {% for hidden in form.hidden_fields %}
@@ -196,7 +192,7 @@
         <table class="center">
 
             <tr>
-                <th>Piece Location</th>
+                <th>Firing Location</th>
                 <td class="centertext">{{ form.piece_location }}</td>
                 {% if form.piece_location.errors %}
                     <tr><td colspan="2" class="error">{{ form.piece_location.errors }}</td></tr>
@@ -231,7 +227,7 @@
                 {% endif %}
             </tr>
             <tr class="temp-row">
-                <th>Bisque Temp</th>
+                <th>Pay For Bisque Firing</th>
                 <td>
                     <div class="temp-checkbox-container">
                         {{ form.bisque_temp_checkboxes }}
@@ -242,7 +238,7 @@
                 {% endif %}
             </tr>
             <tr class="temp-row">
-                <th>Glaze Temp</th>
+                <th>Pay For Glaze Firing</th>
                 <td>
                     <div class="temp-checkbox-container">
                         {{ form.glaze_temp_checkboxes }}
@@ -253,14 +249,14 @@
                 {% endif %}
             </tr>
             <tr>
-                <th>Quantity</th>
+                <th># Of Identical Pieces To Pay For</th>
                 <td>{{ form.quantity }}</td>
                 {% if form.quantity.errors %}
                     <tr><td colspan="2" class="error">{{ form.quantity.errors }}</td></tr>
                 {% endif %}
             </tr>
             <tr>
-                <th>Price</th>
+                <th>Total Price (Per Piece)</th>
                 <td>{{ form.price }}</td>
                 {% if form.price.errors %}
                     <tr><td colspan="2" class="error">{{ form.price.errors }}</td></tr>
@@ -275,6 +271,7 @@
             </tr>
 
         </table>
+        <h3>Don't forget your class chip!</h3>
         <button type="submit">Submit</button>
     </form>
 
