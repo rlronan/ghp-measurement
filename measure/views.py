@@ -316,7 +316,8 @@ def base_view(request):
 @login_required(login_url='measure:login')
 def user_view(request):
     logger.info(f"User {request.user.username} accessing user_view.")
-    return render(request, 'measure/base_user.html', {})
+    # redirect to the ghp_user_piece_view for the user
+    return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(request.user.id,)))
 
 
 
