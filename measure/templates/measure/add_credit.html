@@ -46,6 +46,12 @@
         p {
             font-size: 20px;
         }
+        button {
+            background-color: #655F79;
+            display: block;
+            margin: 0 auto; /* Add this line to center the button */
+            margin-top: 10px; /* Add this line to create space between the table and the button */
+        }
     </style>
 </head>
 
@@ -77,7 +83,7 @@
 
         <p>Credit/Charge Note: {{form.note}} {{form.note.errors}}</p>
 
-        <input type="submit" value="Add Credit or Charge">
+        <button type="submit">Add Credit or Charge</button>
     </form>
 </body>
 

@@ -15,6 +15,8 @@ import sys
 import django_on_heroku
 import dj_database_url
 from pathlib import Path
+import logging
+from logging.handlers import SysLogHandler
 
  
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -221,6 +223,8 @@ if IS_HEROKU_APP or (not DEBUG):
 # Or, if using IS_HEROKU_APP:
 # DEBUG = not IS_HEROKU_APP
 
+# ... other Django settings ...
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -249,6 +253,13 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'django.server',
         },
+        'papertrail': {
+            'level': 'DEBUG',  # <--- THIS IS IMPORTANT
+            'class': 'logging.handlers.SysLogHandler',
+            #'address': ('logsN.papertrailapp.com', 514), # Replace with your Papertrail host and port
+            'formatter': 'verbose',
+        },
+
         # Optional: mail_admins for sending critical errors to site admins.
         # Requires ADMINS setting and email backend to be configured.
         # 'mail_admins': {
@@ -266,18 +277,18 @@ LOGGING = {
     #     },
     # },
     'root': {  # Root logger: catch-all for loggers not explicitly configured.
-        'handlers': ['console'],
+        'handlers': ['console', 'papertrail'],
         'level': 'DEBUG' if DEBUG else 'INFO', # More verbose in DEBUG mode.
     },
     'loggers': {
         'django': { # General Django framework logs.
-            'handlers': ['console'],
+            'handlers': ['console', 'papertrail'],
             'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False, # Do not pass to the root logger.
         },
         'django.request': { # Logs for HTTP requests, especially errors.
             # 'handlers': ['mail_admins', 'console'] if not DEBUG else ['console'],
-            'handlers': ['console'],
+            'handlers': ['console', 'papertrail'],
             'level': 'ERROR', # Log 4XX and 5XX errors.
             'propagate': False,
         },
@@ -287,7 +298,7 @@ LOGGING = {
             'propagate': False,
         },
         'django.db.backends': { # Logs SQL queries.
-            'handlers': ['console'],
+            'handlers': ['console', 'papertrail'],
             # Set to 'DEBUG' to see all SQL queries when DEBUG is True.
             # 'WARNING' in production to reduce noise (e.g., logs slow queries if configured).
             'level': 'DEBUG' if DEBUG else 'WARNING',
@@ -295,15 +306,15 @@ LOGGING = {
         },
         'django.security': { # Logs for security-related events (e.g., SuspiciousOperation).
             # 'handlers': ['mail_admins', 'console'] if not DEBUG else ['console'],
-            'handlers': ['console'],
+            'handlers': ['console', 'papertrail'],
             'level': 'WARNING', # Or 'ERROR' for higher prominence.
             'propagate': False,
         },
         # Example for your application's loggers:
         'measure': {
-            'handlers': ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO', # App-specific verbosity.
-            'propagate': True, # Or True if you want root logger to also handle its messages.
+            'handlers': ['console', 'papertrail'],
+            'level': 'DEBUG', # App-specific verbosity.
+            'propagate': False, # Or True if you want root logger to also handle its messages.
         },
     },
 }

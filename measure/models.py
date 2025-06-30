@@ -54,7 +54,7 @@ class GHPUser(User):
     current_ghp_staff = models.BooleanField(default=False)
     current_faculty = models.BooleanField(default=False)  
 
-    last_measure_date = models.DateField(null=True)
+    last_measure_date = models.DateField(null=True, blank=True)
 
     consent = models.BooleanField(default=False)
     consent_date = models.DateField(null=True)
@@ -168,9 +168,9 @@ class Piece(models.Model):
     glazing_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     paid_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
     course_number = models.CharField(max_length=4, blank=True)
-    bisque_temp = models.CharField(max_length=4, choices=BISQUE_TEMPS, default="06") # imported from constants.py
+    bisque_temp = models.CharField(max_length=4, choices=BISQUE_TEMPS, default="None") # imported from constants.py
 
-    glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="10") # imported from constants.py
+    glaze_temp = models.CharField(max_length=4, choices=GLAZE_TEMPS, default="None") # imported from constants.py
 
     note = models.CharField(max_length=1000, blank=True)
     #TODO: FIX IMAGE FIELD FOR HEROKU
@@ -206,7 +206,7 @@ class Piece(models.Model):
             models.CheckConstraint(check=models.Q(width__gte=0.5), name='width_gte_0.5', violation_error_message="Width must be at least 0.5 inches"),
             models.CheckConstraint(check=models.Q(height__gte=3.0), name='height_gte_3.0', violation_error_message="Height must be at least 3 inches"),
 
-            models.CheckConstraint(check=models.Q(length__lte=21.0)  & models.Q(width__lte=21.0), name='length_and_width_lte_21.0', violation_error_message="Length amd width must be less than or equal to 21 inches"),
+            models.CheckConstraint(check=models.Q(length__lte=21.0)  & models.Q(width__lte=21.0), name='length_and_width_lte_21.0', violation_error_message="Length and width must be less than or equal to 21 inches"),
             models.CheckConstraint(check=models.Q(height__lte=22.0), name='height_lte_22.0', violation_error_message="Height must be less than or equal to 22 inches"),
 
         ]
@@ -315,12 +315,10 @@ class Piece(models.Model):
             print("Updating piece")
             # Get the previous piece object
             previous_piece = Piece.objects.get(pk=self.id)
-            print("Previous piece image: ", previous_piece.image)
         # if we are not updating, we should get the current date, and increment the ghp_user_piece_id
         # if we are updating, the size should not, and cannot change
         if not PIECE_UPDATING:
             print("Creating a new piece")
-            print("Current image: ", self.image)
             self.ghp_user_piece_id = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
             self.date = timezone.now()
 
@@ -345,6 +343,8 @@ class Piece(models.Model):
         if PIECE_UPDATING:
             previously_paid_for_firing = False
             previously_paid_for_glazing = False
+            new_price = decimal.Decimal(0.00)
+            new_price = new_price.quantize(decimal.Decimal('0.01'))
 
             # We are updating a piece. A user could have added glazing temp or bisque temp to a piece that did not have it before, 
             # or they could have removed it. We need to check for both cases.
@@ -352,8 +352,6 @@ class Piece(models.Model):
                 previously_paid_for_firing = True
                 previously_paid_for_glazing = True
 
-                new_price = decimal.Decimal(0.00)
-                new_price = new_price.quantize(decimal.Decimal('0.01'))
                 previous_price = previous_piece.paid_price
 
                 # since there are conditonals below that prevent the user from being charged twice for the same thing,
@@ -944,7 +942,18 @@ class Ledger(models.Model):
             if self.ghp_user.last_measure_date is None:
                 self.ghp_user.last_measure_date = self.date.date()
                 self.ghp_user.save()
-            elif self.ghp_user.last_measure_date < self.date.date():
-                self.ghp_user.last_measure_date = self.date.date()
-                self.ghp_user.save()
+            else:
+                try:
+                    if self.ghp_user.last_measure_date < self.date.date():
+                        self.ghp_user.last_measure_date = self.date.date()
+                        self.ghp_user.save()
+                except TypeError as e:
+                    try:
+                        if self.ghp_user.last_measure_date.date() < self.date.date():
+                            self.ghp_user.last_measure_date = self.date.date()
+                            self.ghp_user.save()
+                    except TypeError as e:
+                        print("Error updating last measure date")
+                        #logger.error(f"Error updating last measure date: {e}")
+                        pass
 

@@ -1,5 +1,3 @@
-
-
 .center {
   margin-left: auto;
   margin-right: auto;
@@ -36,6 +34,67 @@ input {
   font-size: 20px;
   font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
 } 
+
+/* Temperature checkbox styling */
+input[name="bisque_temp_checkboxes"], 
+input[name="glaze_temp_checkboxes"] {
+  width: auto;
+  height: auto;
+  margin: 0 0.5em 0 0;
+  background-color: transparent;
+  transform: scale(1.1);
+  flex-shrink: 0;
+}
+
+.temp-checkbox-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5em;
+  text-align: left;
+  width: 100%;
+  max-width: 230px;
+  margin: 0;
+  padding: 0.5em;
+  box-sizing: border-box;
+}
+
+/* Override Django's default div wrapper styling */
+.temp-checkbox-container > div {
+  display: flex ;
+  flex-direction: column ;
+  gap: 0.3em ;
+  width: 100% ;
+  margin: 0 ;
+  padding: 0 ;
+}
+
+.temp-checkbox-container > div > div {
+  display: flex ;
+  align-items: center ;
+  margin: 0 ;
+  padding: 0.1em 0 ;
+  width: 100% ;
+}
+
+/* Override Django's default label styling */
+.temp-checkbox-container label {
+  display: flex ;
+  align-items: center ;
+  font-size: 16px ;
+  font-family: "Franklin Gothic Book", "Franklin Gothic", Arial, Helvetica, sans-serif ;
+  cursor: pointer ;
+  padding: 0.1em 0.2em ;
+  margin: 0 ;
+  width: 100% ;
+  box-sizing: border-box ;
+  min-height: 1.8em ;
+}
+
+.temp-checkbox-container label:hover {
+  background-color: rgba(41, 4, 164, 0.1) ;
+  border-radius: 0.25em ;
+}
 
 button {
   font-family: "Franklin Gothic Book", "Franklin Gothic", "Franklin Gothic Light", "Franklin Gothic Medium", "ITC Franklin Gothic", "Franklin Gothic Demi",  Helvetica, Arial, sans-serif;
@@ -87,6 +146,13 @@ select {
 
 }
 
+td.error {
+  color: red;
+}
+
+error {
+  color: red;
+}
 /* Mobile-friendly styles
 @media only screen and (max-width: 600px) {
   table {

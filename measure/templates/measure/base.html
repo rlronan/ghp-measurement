@@ -80,7 +80,7 @@
                 margin-left: 10px;
                 margin-right: 10px;
                 padding: 0.25em 0.75em;
-                color: #fff;
+                color:black;
                 text-decoration: none;
                 font-size: 18px;
                 font-weight: 600;
@@ -155,8 +155,8 @@
                     display: block;
                     text-align: left;
                     }
-                    .dropdown-content button {
-                    font-family: "Franklin Gothic Demi", "Franklin Gothic", "Franklin Gothic Book", Arial, Helvetica, sans-serif;;
+
+                    .dropdown-content-button {
                     float: none;
                     color: black;
                     padding: 12px 16px;
@@ -165,9 +165,14 @@
                     text-align: left;
                     background: none!important;
                     outline: none;
-
                     border: none;
+                    font-size: 18px !important;
+                    font-weight: 600 !important;
+                    text-transform: uppercase !important;
+                    border-radius: 0.0em !important;
                     }
+
+
 
                     .dropdown-content a:hover {
                     background-color: #ddd;
@@ -179,24 +184,12 @@
                     
                     /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
                     .show {display:block;} 
-                        /* a {
-                display: inline-block;
-                background: None;
-                color: #fff;
-                padding: 5px 10px;
-                font-size: 20px;
-                text-decoration: none;
-                } */
-            /* a {
-                display: inline-block;
-                background: None;
-                color: #fff;
-                padding: 5px 10px;
-                font-size: 20px;
-                text-decoration: none;
-                } */
 
+                        
     </style>
+    <script src="https://js.stripe.com/v3/"></script> 
+    <script src="{% static 'measure/main.js' %}"></script> 
+    <script defer src="https://use.fontawesome.com/releases/v6.4.0/js/all.js"></script>
 
     <title>{% block title %}Greenwich House Pottery Measuring Site{% endblock %}</title>
 </head>
@@ -204,8 +197,7 @@
 
 <body>
     <div class="banner">
-        <!-- <div> -->
-        <!-- </div> -->
+
         <div class="menu">
           {% if user.is_authenticated %}
           <div class="dropdown">
@@ -213,12 +205,12 @@
                 <i class="fa fa-caret-down"></i>
               </button>
               <div id="menuDropdown" class="dropdown-content">
-                <a href="{% url 'measure:user'%}">Home</a>
+                <!-- <a href="{% url 'measure:user'%}">Home</a> -->
                 <a href="{% url 'measure:ghp_user_piece_view' user.id %}">Firing Log</a>
                 <a href="{% url 'measure:ghp_user_account_view' user.id %}">Account</a>
                 <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
-                <!-- Removed this button since it doesn't work from all pages right now.-->
-                <!-- <button class="button is-primary" id="submitBtn2">Add Firing Credit</button> -->
+                <a href="{% url 'measure:modify_location' user.id %}">Change Default<br>Firing Location</a>
+                <button class = "dropdown-content-button" id="submit-menu-button">Add Firing Credit</button>
                 <a href="{% url 'measure:logout' %}">Log Out</a>
             </div>
           </div> 
@@ -234,20 +226,20 @@
           </div> 
           {% endif %}
         </div>
-        <!-- <div class="mini"> -->
-            {% if user.is_authenticated %}
+
+        {% if user.is_authenticated %}
                 <h class="mini">Hello, {{ user.username }}</h>
                 <a class="banner-url" href="{% url 'measure:logout' %}">Logout</a>
             {% else %}
                 <a class="banner-url" href="{% url 'measure:user' %}">Log In</a>
                 <a class="banner-url" href="{% url 'measure:register' %}">Register</a>
             {% endif %}
-        <!-- </div> -->
 
+            
         <div class="icon">
                 <img src="{% static 'measure/banner.jpg' %}" alt="Icon">
-                <!-- <h>GHP User Site</h> -->
-        </div>
+
+            </div>
   
     </div>
     <div class="content">
@@ -275,7 +267,5 @@
         }
     }
     } 
-
 </script>
-
 </html>
