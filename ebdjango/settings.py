@@ -60,6 +60,7 @@ STRIPE_ENDPOINT_SECRET = os.environ.get('STRIPE_ENDPOINT_SECRET', '')
 # print server secret key 
 PRINT_SERVER_SECRET_KEY = os.environ.get('PRINT_SERVER_SECRET_KEY', '')
 GREENWICH_PRINT_SERVER_SECRET_KEY = os.environ.get('GREENWICH_PRINT_SERVER_SECRET_KEY', '')
+BARROW_PRINT_SERVER_SECRET_KEY = os.environ.get('BARROW_PRINT_SERVER_SECRET_KEY', '')
 
 # Application definition
 

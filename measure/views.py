@@ -25,10 +25,6 @@ import logging
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-# Create your views here.
-
-
-
 def user_owns_object_check(user, ghp_user):
     return user.get_username() == ghp_user.get_username()
 
@@ -768,6 +764,7 @@ def get_print_jobs_chelsea(request):
 
             print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
             greenwich_print_server_secret_key = settings.GREENWICH_PRINT_SERVER_SECRET_KEY
+            barrow_print_server_secret_key = settings.BARROW_PRINT_SERVER_SECRET_KEY
 
             if not print_server_secret_key:
                 logger.error("PRINT_SERVER_SECRET_KEY is not set in settings.")
@@ -775,6 +772,9 @@ def get_print_jobs_chelsea(request):
             if not greenwich_print_server_secret_key:
                 logger.error("GREENWICH_PRINT_SERVER_SECRET_KEY is not set in settings.")
                 return JsonResponse({'error': 'Greenwich print server secret key not configured'}, status=500)
+            if not barrow_print_server_secret_key:
+                logger.error("BARROW_PRINT_SERVER_SECRET_KEY is not set in settings.")
+                return JsonResponse({'error': 'Barrow print server secret key not configured'}, status=500)
 
             data = {'unprinted_receipts': None}
             location_processed = None
@@ -787,6 +787,10 @@ def get_print_jobs_chelsea(request):
                 location_processed = "Greenwich"
                 logger.info("Valid secret key for Greenwich print server.")
                 unprinted_receipts_qs = PieceReceipt.objects.filter(printed=False, piece_location='Greenwich').all()
+            elif print_server_key == barrow_print_server_secret_key:
+                location_processed = "Barrow"
+                logger.info("Valid secret key for Barrow print server.")
+                unprinted_receipts_qs = PieceReceipt.objects.filter(printed=False, piece_location='Barrow').all()
             else:
                 logger.warning(f"Invalid secret key provided for get_print_jobs. Key (first 5 chars): {print_server_key[:5]}")
                 return JsonResponse({'error': 'Invalid secret key'}, status=403)
@@ -817,6 +821,7 @@ def get_print_jobs_chelsea(request):
 
             print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
             greenwich_print_server_secret_key = settings.GREENWICH_PRINT_SERVER_SECRET_KEY
+            barrow_print_server_secret_key = settings.BARROW_PRINT_SERVER_SECRET_KEY
             
             valid_key_used = False
             location_processed = None
@@ -827,6 +832,9 @@ def get_print_jobs_chelsea(request):
             if not greenwich_print_server_secret_key:
                 logger.error("GREENWICH_PRINT_SERVER_SECRET_KEY is not set in settings for POST.")
                  # Fall through to invalid key check, or return early if preferred
+            if not barrow_print_server_secret_key:
+                logger.error("BARROW_PRINT_SERVER_SECRET_KEY is not set in settings for POST.")
+                 # Fall through to invalid key check, or return early if preferred
 
             if print_server_key == print_server_secret_key:
                 valid_key_used = True
@@ -836,6 +844,10 @@ def get_print_jobs_chelsea(request):
                 valid_key_used = True
                 location_processed = "Greenwich"
                 logger.info("Valid secret key for Greenwich (POST to mark printed).")
+            elif print_server_key == barrow_print_server_secret_key:
+                valid_key_used = True
+                location_processed = "Barrow"
+                logger.info("Valid secret key for Barrow (POST to mark printed).")
             
             if valid_key_used:
                 receipt_ids_str = request.POST.get('receipt_ids', '')
@@ -870,3 +882,214 @@ def get_print_jobs_chelsea(request):
         logger.warning(f"Unsupported method {request.method} for get_print_jobs_chelsea.")
         return HttpResponse(status=405) # Method Not Allowed
 
+
+
+@csrf_exempt
+def get_print_jobs_optimized(request):
+    """
+    Optimized endpoint that handles all locations efficiently
+    Reduces database queries and provides batch processing
+    """
+    logger.info(f"get_print_jobs_optimized called. Method: {request.method}")
+    
+    if request.method == 'GET':
+        try:
+            print_server_key = request.GET.get('secret_key', '')
+            location = request.GET.get('location', '')  # Optional: specify location
+            
+            # Validate secret key and determine location
+            location_mapping = {
+                settings.PRINT_SERVER_SECRET_KEY: "Chelsea",
+                settings.GREENWICH_PRINT_SERVER_SECRET_KEY: "Greenwich", 
+                settings.BARROW_PRINT_SERVER_SECRET_KEY: "Barrow"
+            }
+            
+            # Check if key is valid
+            if print_server_key not in location_mapping:
+                logger.warning(f"Invalid secret key provided. Key (first 5 chars): {print_server_key[:5]}")
+                return JsonResponse({'error': 'Invalid secret key'}, status=403)
+            
+            authorized_location = location_mapping[print_server_key]
+            logger.info(f"Valid secret key for {authorized_location} print server.")
+            
+            # Build query - either specific location or all locations for batch
+            query_filter = {'printed': False}
+            if location and location == authorized_location:
+                query_filter['piece_location'] = location
+            elif not location:
+                # For batch requests, only return jobs for the authorized location
+                query_filter['piece_location'] = authorized_location
+            
+            # Single optimized query with only needed fields
+            unprinted_receipts = PieceReceipt.objects.filter(**query_filter).values(
+                'id', 'receipt_type', 'ghp_user_name', 'piece_date', 
+                'length', 'width', 'height', 'handles', 'course_number', 
+                'bisque_temp', 'glaze_temp', 'piece_number', 'piece_location'
+            )
+            
+            if unprinted_receipts:
+                logger.info(f"{len(unprinted_receipts)} unprinted receipts found for {authorized_location}.")
+                
+                # Process jobs and group by location (useful for future multi-location support)
+                processed_jobs = []
+                receipt_ids_to_mark = []
+                
+                for receipt in unprinted_receipts:
+                    processed_job = job_to_printer_text_v2(receipt)
+                    processed_jobs.append(processed_job)
+                    receipt_ids_to_mark.append(receipt['id'])
+                
+                # Mark as printed in batch
+                PieceReceipt.objects.filter(id__in=receipt_ids_to_mark).update(printed=True)
+                logger.info(f"Marked {len(receipt_ids_to_mark)} receipts as printed for {authorized_location}.")
+                
+                return JsonResponse({
+                    'unprinted_receipts': processed_jobs,
+                    'location': authorized_location,
+                    'count': len(processed_jobs)
+                })
+            else:
+                logger.info(f"No unprinted receipts found for {authorized_location}.")
+                return JsonResponse({
+                    'unprinted_receipts': [],
+                    'location': authorized_location,
+                    'count': 0
+                })
+                
+        except Exception as e:
+            logger.error(f"Error in GET get_print_jobs_optimized: {e}", exc_info=True)
+            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    
+    elif request.method == 'POST':
+        # Handle status updates from print servers
+        try:
+            print_server_key = request.POST.get('secret_key', '')
+            
+            # Validate key
+            location_mapping = {
+                settings.PRINT_SERVER_SECRET_KEY: "Chelsea",
+                settings.GREENWICH_PRINT_SERVER_SECRET_KEY: "Greenwich",
+                settings.BARROW_PRINT_SERVER_SECRET_KEY: "Barrow"
+            }
+            
+            if print_server_key not in location_mapping:
+                logger.warning(f"Invalid secret key for POST. Key (first 5 chars): {print_server_key[:5]}")
+                return JsonResponse({'error': 'Invalid secret key'}, status=403)
+            
+            authorized_location = location_mapping[print_server_key]
+            
+            # Handle different POST operations
+            operation = request.POST.get('operation', 'mark_printed')
+            
+            if operation == 'mark_printed':
+                receipt_ids_str = request.POST.get('receipt_ids', '')
+                if not receipt_ids_str:
+                    return JsonResponse({'error': 'receipt_ids required'}, status=400)
+                
+                try:
+                    receipt_ids = [int(rid.strip()) for rid in receipt_ids_str.split(',') if rid.strip()]
+                except ValueError:
+                    return JsonResponse({'error': 'Invalid receipt_ids format'}, status=400)
+                
+                # Only update receipts for the authorized location
+                updated_count = PieceReceipt.objects.filter(
+                    id__in=receipt_ids, 
+                    piece_location=authorized_location
+                ).update(printed=True)
+                
+                logger.info(f"Marked {updated_count} receipts as printed for {authorized_location}.")
+                return JsonResponse({'updated': updated_count})
+            
+            elif operation == 'report_failure':
+                # Handle print failures for retry logic
+                receipt_ids_str = request.POST.get('receipt_ids', '')
+                error_message = request.POST.get('error', 'Unknown error')
+                
+                logger.error(f"Print failure reported for {authorized_location}: {error_message}")
+                # Could implement retry logic here
+                return JsonResponse({'status': 'failure_logged'})
+            
+            else:
+                return JsonResponse({'error': 'Unknown operation'}, status=400)
+                
+        except Exception as e:
+            logger.error(f"Error in POST get_print_jobs_optimized: {e}", exc_info=True)
+            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+def job_to_printer_text_v2(job):
+    """
+    Convert job data to printer-ready text format
+    """
+    if job['receipt_type'] == 'Bisque':
+        print_string = f"""
+BISQUE FIRING SLIP
+
+DO NOT THROW AWAY
+
+PLACE THIS SLIP WITH 
+
+YOUR PIECE ON THE
+
+BISQUE FIRING SHELF
+
+Name: {job['ghp_user_name']}
+
+Date: {job['piece_date']}
+
+LxWxH: {job['length']} x {job['width']} x {job['height']}
+
+Handles: {job['handles']}
+
+Course Number: {job['course_number']}
+
+Bisque Temp: {job['bisque_temp']}
+
+Piece #: {job['piece_number']}
+
+"""
+    elif job['receipt_type'] == 'Glaze':
+        print_string = f"""
+GLAZE FIRING SLIP
+
+DO NOT THROW AWAY
+
+PLACE THIS SLIP WITH 
+
+YOUR PIECE ON THE
+
+GLAZE FIRING SHELF
+
+Name: {job['ghp_user_name']}
+
+Date: {job['piece_date']}
+
+LxWxH: {job['length']} x {job['width']} x {job['height']}
+
+Handles: {job['handles']}
+
+Course Number: {job['course_number']}
+
+Glaze Temp: {job['glaze_temp']}
+
+Piece #: {job['piece_number']}
+"""
+    else:
+        print_string = f"ERROR: Unknown receipt type: {job['receipt_type']}"
+
+    return {
+        'id': job['id'], 
+        'print_string': print_string,
+        'location': job['piece_location']
+    }
+
+
+# URLs.py addition:
+# path('api/printjobs_v2/', views.get_print_jobs_optimized, name='print_jobs_optimized'),
+
+# Usage in print servers:
+# response = requests.get('https://your-domain.com/api/printjobs_v2/', 
+#                        params={'secret_key': your_secret_key})
