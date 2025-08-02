@@ -52,6 +52,7 @@ urlpatterns = [
     path('webhook/', views.stripe_webhook), 
 
     path('api/printjobs/', views.get_print_jobs_chelsea, name='get_print_jobs_chelsea'),
+    path('api/printjobs_v2/', views.get_print_jobs_optimized, name='get_print_jobs_optimized'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
 
 
