@@ -1,5 +1,5 @@
-#asgiref>=3.5.2
-django==4.1.13
+asgiref>=3.7.0
+django==5.2
 django-import-export>=3.3.1
 importlib-metadata>=5.0.0
 importlib-resources>=5.10.0
@@ -7,16 +7,15 @@ numpy>=1.23.4
 Pillow>=10.0.1
 #pip==23.3
 ##psycopg2-binary==2.9.6
-pytz>=2022.6
 stripe==2.49.0
 tablib==3.5.0
 django-on-heroku
-gunicorn>=21.2,<22.0
+gunicorn==23.0
 dj-database-url>=2.0,<3.0
 whitenoise[brotli]>=6.0,<7.0
 mailchimp-transactional
 django-admin-rangefilter
-
+django-cors-headers
 # Uncomment these lines to use a Postgres database. Both are needed, since in production
 # (which uses Linux) we want to install from source, so that security updates from the
 # underlying Heroku stack image are picked up automatically, thanks to dynamic linking.
