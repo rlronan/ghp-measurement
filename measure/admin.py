@@ -684,7 +684,7 @@ class AccountAdmin(admin.ModelAdmin):
             + "?"
             + urlencode({"ghp_user__user_ptr__exact": f"{obj.ghp_user.id}"})
         )
-        return format_html('<a href="{}">{}</a>', url, balance)
+        return format_html('<a href="{}">{}</a>', url, str(balance))
     
     @admin.display(description="User Pieces (link to pieces)")
     def piece_link(self, obj):
