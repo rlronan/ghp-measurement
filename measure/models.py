@@ -62,11 +62,13 @@ class GHPUser(User):
 
     GREENWICH = 'Greenwich'
     CHELSEA = 'Chelsea'
+    BARROW = 'Barrow'
     BOTH = 'Both'
     
     LOCATION_CHOICES = [
         (GREENWICH, 'Greenwich'),
         (CHELSEA, 'Chelsea'),
+        (BARROW, 'Barrow'),
         (BOTH, 'Both'),
     ]
 
@@ -179,10 +181,12 @@ class Piece(models.Model):
     ## Added 12/29/23:
     GREENWICH = 'Greenwich'
     CHELSEA = 'Chelsea'
+    BARROW = 'Barrow'
     
     LOCATION_CHOICES = [
         (GREENWICH, 'Greenwich'),
         (CHELSEA, 'Chelsea'),
+        (BARROW, 'Barrow'),
     ]
 
     piece_location = models.CharField(

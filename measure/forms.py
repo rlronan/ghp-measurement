@@ -67,10 +67,6 @@ class PieceForm(forms.ModelForm):
         self.fields['ghp_user_piece_id'].initial = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
 
 
-        # self.fields['bisque_temp'].initial = 'Cone 06'
-        # self.fields['glaze_temp'].initial = 'Cone 10'
-
-
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
@@ -82,6 +78,9 @@ class PieceForm(forms.ModelForm):
         elif self.fields['piece_location'].initial == 'Chelsea':
             self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial="None")
             self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial="None")
+        elif self.fields['piece_location'].initial == 'Barrow':
+            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_BARROW, initial="None")
+            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_BARROW, initial="None")
         
         # This is the critical part: Populate the CHECKBOXES with ALL possible options
         # so that your JavaScript can toggle them. This uses the master lists 

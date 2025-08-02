@@ -1,5 +1,5 @@
 #asgiref>=3.5.2
-django==4.1.13
+django==4.2.22
 django-import-export>=3.3.1
 importlib-metadata>=5.0.0
 importlib-resources>=5.10.0
@@ -11,7 +11,7 @@ pytz>=2022.6
 stripe==2.49.0
 tablib==3.5.0
 django-on-heroku
-gunicorn>=21.2,<22.0
+gunicorn==23.0
 dj-database-url>=2.0,<3.0
 whitenoise[brotli]>=6.0,<7.0
 mailchimp-transactional
