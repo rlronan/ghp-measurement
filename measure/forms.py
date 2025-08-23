@@ -70,17 +70,10 @@ class PieceForm(forms.ModelForm):
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
-        # Set up choices for the hidden select dropdowns based on initial location
-         # This part sets the initial values for the hidden select fields
-        if self.fields['piece_location'].initial == 'Greenwich':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_GREENWICH, initial="None")
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_GREENWICH, initial="None")
-        elif self.fields['piece_location'].initial == 'Chelsea':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_CHELSEA, initial="None")
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_CHELSEA, initial="None")
-        elif self.fields['piece_location'].initial == 'Barrow':
-            self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS_BARROW, initial="None")
-            self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_BARROW, initial="None")
+        # Set up choices for the hidden select dropdowns to include ALL possible temperatures
+        # This allows JavaScript to dynamically change locations without validation errors
+        self.fields['bisque_temp'] = forms.ChoiceField(choices=BISQUE_TEMPS, initial="None")
+        self.fields['glaze_temp'] = forms.ChoiceField(choices=GLAZE_TEMPS_ALL, initial="None")
         
         # This is the critical part: Populate the CHECKBOXES with ALL possible options
         # so that your JavaScript can toggle them. This uses the master lists 
@@ -167,6 +160,39 @@ class PieceForm(forms.ModelForm):
             cleaned_data['glaze_temp'] = glaze_checkboxes[0]  # Take first selected
         else:
             cleaned_data['glaze_temp'] = 'None'
+        
+        # Validate temperatures against selected location
+        piece_location = cleaned_data.get('piece_location')
+        bisque_temp = cleaned_data.get('bisque_temp')
+        glaze_temp = cleaned_data.get('glaze_temp')
+        
+        if piece_location and bisque_temp and bisque_temp != 'None':
+            # Get valid bisque temperatures for the selected location
+            if piece_location == 'Greenwich':
+                valid_bisque = [choice[0] for choice in BISQUE_TEMPS_GREENWICH if choice[0] != 'None']
+            elif piece_location == 'Chelsea':
+                valid_bisque = [choice[0] for choice in BISQUE_TEMPS_CHELSEA if choice[0] != 'None']
+            elif piece_location == 'Barrow':
+                valid_bisque = [choice[0] for choice in BISQUE_TEMPS_BARROW if choice[0] != 'None']
+            else:
+                valid_bisque = []
+            
+            if bisque_temp not in valid_bisque:
+                self.add_error('bisque_temp_checkboxes', f'Bisque temperature {bisque_temp} is not available at {piece_location}')
+        
+        if piece_location and glaze_temp and glaze_temp != 'None':
+            # Get valid glaze temperatures for the selected location
+            if piece_location == 'Greenwich':
+                valid_glaze = [choice[0] for choice in GLAZE_TEMPS_GREENWICH if choice[0] != 'None']
+            elif piece_location == 'Chelsea':
+                valid_glaze = [choice[0] for choice in GLAZE_TEMPS_CHELSEA if choice[0] != 'None']
+            elif piece_location == 'Barrow':
+                valid_glaze = [choice[0] for choice in GLAZE_TEMPS_BARROW if choice[0] != 'None']
+            else:
+                valid_glaze = []
+            
+            if glaze_temp not in valid_glaze:
+                self.add_error('glaze_temp_checkboxes', f'Glaze temperature {glaze_temp} is not available at {piece_location}')
         
         # Get the length, width, and height
         length = cleaned_data.get('length')
