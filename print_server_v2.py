@@ -77,7 +77,6 @@ def print_to_receipt_printer_optimized(jobs):
     
     print(f"Attempting to print {len(jobs)} jobs")
     printed_jobs = []
-    failed_jobs = []
     
     for job in jobs:
         job_id = job.get('id')
@@ -85,7 +84,6 @@ def print_to_receipt_printer_optimized(jobs):
         
         if not print_text:
             print(f"No print text for job {job_id}")
-            failed_jobs.append(job_id)
             continue
             
         try:
@@ -110,7 +108,6 @@ def print_to_receipt_printer_optimized(jobs):
             
         except Exception as e:
             print(f"Failed to print job {job_id}: {e}")
-            failed_jobs.append(job_id)
     
     # Report results back to server
     # if printed_jobs:
@@ -182,11 +179,15 @@ def main():
     
     consecutive_failures = 0
     max_consecutive_failures = 5
-    
+    unprinted_receipt_spool = []
+
     while True:
         try:
             print(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
-            
+            if len(unprinted_receipt_spool) > 0:
+                print("Unprinted receipt spool: ", unprinted_receipt_spool)
+                print("Trying to print unprinted prior jobs")
+        
             # Fetch jobs
             print_jobs = fetch_print_jobs_optimized()
             
@@ -204,11 +205,17 @@ def main():
             
             # Reset failure counter on success
             consecutive_failures = 0
-            
+            if not isinstance(print_jobs, list):
+                print_jobs = []
+            if not isinstance(unprinted_receipt_spool, list):
+                unprinted_receipt_spool = []
+            print_jobs = print_jobs + unprinted_receipt_spool
             if print_jobs:
                 print(f"Processing {len(print_jobs)} print jobs")
                 printed_job_ids = print_to_receipt_printer_optimized(print_jobs)
                 print(f"Successfully printed {len(printed_job_ids)} jobs")
+                unprinted_receipt_spool = [job for job in print_jobs if job['id'] not in printed_job_ids]
+                print(f"Failed to print {len(unprinted_receipt_spool)} jobs")
             else:
                 print("No print jobs found")
             

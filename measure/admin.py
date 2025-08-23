@@ -893,7 +893,14 @@ class PieceReciptAdmin(admin.ModelAdmin):
             obj.piece_location = 'Greenwich'
             obj.printed = False
             obj.save()
-    
+
+    @admin.action(description="Change the Receipt Location to Barrow")
+    def move_receipt_to_barrow(self, request, queryset):
+        for obj in queryset:
+            obj.piece_location = 'Barrow'
+            obj.printed = False
+            obj.save()
+   
     # @admin.action(description="Export selected objects as csv")
     # def export_as_csv(self, request, queryset):
     #     print("Model: ", self.model)
@@ -914,7 +921,7 @@ class PieceReciptAdmin(admin.ModelAdmin):
 
     # export_as_csv.short_description = "Export Selected"
 
-    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich']#, 'export_as_csv']
+    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich', 'move_receipt_to_barrow']#, 'export_as_csv']
 
     def get_actions(self, request):
         actions = super().get_actions(request)
