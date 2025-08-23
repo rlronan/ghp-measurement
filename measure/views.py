@@ -960,61 +960,62 @@ def get_print_jobs_optimized(request):
             logger.error(f"Error in GET get_print_jobs_optimized: {e}", exc_info=True)
             return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
     
-    elif request.method == 'POST':
-        # Handle status updates from print servers
-        try:
-            print_server_key = request.POST.get('secret_key', '')
+    # no post requests for right now
+    # elif request.method == 'POST':
+    #     # Handle status updates from print servers
+    #     try:
+    #         print_server_key = request.POST.get('secret_key', '')
             
-            # Validate key
-            location_mapping = {
-                settings.PRINT_SERVER_SECRET_KEY: "Chelsea",
-                settings.GREENWICH_PRINT_SERVER_SECRET_KEY: "Greenwich",
-                settings.BARROW_PRINT_SERVER_SECRET_KEY: "Barrow"
-            }
+    #         # Validate key
+    #         location_mapping = {
+    #             settings.PRINT_SERVER_SECRET_KEY: "Chelsea",
+    #             settings.GREENWICH_PRINT_SERVER_SECRET_KEY: "Greenwich",
+    #             settings.BARROW_PRINT_SERVER_SECRET_KEY: "Barrow"
+    #         }
             
-            if print_server_key not in location_mapping:
-                logger.warning(f"Invalid secret key for POST. Key (first 5 chars): {print_server_key[:5]}")
-                return JsonResponse({'error': 'Invalid secret key'}, status=403)
+    #         if print_server_key not in location_mapping:
+    #             logger.warning(f"Invalid secret key for POST. Key (first 5 chars): {print_server_key[:5]}")
+    #             return JsonResponse({'error': 'Invalid secret key'}, status=403)
             
-            authorized_location = location_mapping[print_server_key]
+    #         authorized_location = location_mapping[print_server_key]
             
-            # Handle different POST operations
-            operation = request.POST.get('operation', 'mark_printed')
+    #         # Handle different POST operations
+    #         operation = request.POST.get('operation', 'mark_printed')
             
-            if operation == 'mark_printed':
-                receipt_ids_str = request.POST.get('receipt_ids', '')
-                if not receipt_ids_str:
-                    return JsonResponse({'error': 'receipt_ids required'}, status=400)
+    #         if operation == 'mark_printed':
+    #             receipt_ids_str = request.POST.get('receipt_ids', '')
+    #             if not receipt_ids_str:
+    #                 return JsonResponse({'error': 'receipt_ids required'}, status=400)
                 
-                try:
-                    receipt_ids = [int(rid.strip()) for rid in receipt_ids_str.split(',') if rid.strip()]
-                except ValueError:
-                    return JsonResponse({'error': 'Invalid receipt_ids format'}, status=400)
+    #             try:
+    #                 receipt_ids = [int(rid.strip()) for rid in receipt_ids_str.split(',') if rid.strip()]
+    #             except ValueError:
+    #                 return JsonResponse({'error': 'Invalid receipt_ids format'}, status=400)
                 
-                # Only update receipts for the authorized location
-                updated_count = PieceReceipt.objects.filter(
-                    id__in=receipt_ids, 
-                    piece_location=authorized_location
-                ).update(printed=True)
+    #             # Only update receipts for the authorized location
+    #             updated_count = PieceReceipt.objects.filter(
+    #                 id__in=receipt_ids, 
+    #                 piece_location=authorized_location
+    #             ).update(printed=True)
                 
-                logger.info(f"Marked {updated_count} receipts as printed for {authorized_location}.")
-                return JsonResponse({'updated': updated_count})
+    #             logger.info(f"Marked {updated_count} receipts as printed for {authorized_location}.")
+    #             return JsonResponse({'updated': updated_count})
             
-            elif operation == 'report_failure':
-                # Handle print failures for retry logic
-                receipt_ids_str = request.POST.get('receipt_ids', '')
-                error_message = request.POST.get('error', 'Unknown error')
+    #         elif operation == 'report_failure':
+    #             # Handle print failures for retry logic
+    #             receipt_ids_str = request.POST.get('receipt_ids', '')
+    #             error_message = request.POST.get('error', 'Unknown error')
                 
-                logger.error(f"Print failure reported for {authorized_location}: {error_message}")
-                # Could implement retry logic here
-                return JsonResponse({'status': 'failure_logged'})
+    #             logger.error(f"Print failure reported for {authorized_location}: {error_message}")
+    #             # Could implement retry logic here
+    #             return JsonResponse({'status': 'failure_logged'})
             
-            else:
-                return JsonResponse({'error': 'Unknown operation'}, status=400)
+    #         else:
+    #             return JsonResponse({'error': 'Unknown operation'}, status=400)
                 
-        except Exception as e:
-            logger.error(f"Error in POST get_print_jobs_optimized: {e}", exc_info=True)
-            return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
+    #     except Exception as e:
+    #         logger.error(f"Error in POST get_print_jobs_optimized: {e}", exc_info=True)
+    #         return JsonResponse({'error': 'An unexpected error occurred'}, status=500)
     
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)

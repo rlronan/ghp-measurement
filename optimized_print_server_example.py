@@ -10,8 +10,8 @@ from escpos.printer import Network
 # Configuration
 LOCATION = "Barrow"  # Change this for each location
 DOMAIN = "potteryapp.greenwichhouse.org"
-POLL_INTERVAL = 60  # 5 minutes instead of 60 seconds (83% reduction in requests)
-PRINTER_IP = '192.168.105.50'  # Barrow printer IP
+POLL_INTERVAL = 60  # 60 seconds
+PRINTER_IP = '192.168.115.147'  # Barrow printer IP
 
 # Load secret key
 secret_key = os.environ.get(f'{LOCATION.upper()}_PRINT_SERVER_SECRET_KEY', '')
@@ -113,10 +113,10 @@ def print_to_receipt_printer_optimized(jobs):
             failed_jobs.append(job_id)
     
     # Report results back to server
-    if printed_jobs:
-        report_print_success(printed_jobs)
-    if failed_jobs:
-        report_print_failure(failed_jobs)
+    # if printed_jobs:
+    #     report_print_success(printed_jobs)
+    # if failed_jobs:
+    #     report_print_failure(failed_jobs)
     
     return printed_jobs
 
