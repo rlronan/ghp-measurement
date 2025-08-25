@@ -68,8 +68,6 @@ INSTALLED_APPS = [
     # Use WhiteNoise's runserver implementation instead of the Django default, for dev-prod parity.
     "whitenoise.runserver_nostatic",
     # Uncomment this and the entry in `urls.py` if you wish to use the Django admin feature:
-    'corsheaders',
-    
     # https://docs.djangoproject.com/en/4.2/ref/contrib/admin/
     'django.contrib.admin',
     'django.contrib.auth',
@@ -89,7 +87,6 @@ MIDDLEWARE = [
     # after Django's `SecurityMiddleware` so that security redirects are still performed.
     # See: https://whitenoise.readthedocs.io
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -218,23 +215,7 @@ if IS_HEROKU_APP or (not DEBUG):
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     # HSTS
-    SECURE_HSTS_SECONDS = 31536000  # 58/2/25:increasing this to 1 year; 2/10/24: enabling HSTS with initial 1 hour duration for testing
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True # include subdomains in HSTS 
-    SECURE_CONTENT_TYPE_NOSNIFF = True # prevent MIME type sniffing
-    X_FRAME_OPTIONS = 'DENY' # don't allow embedding in other sites
-
-    # Set this to False
-    CORS_ALLOW_ALL_ORIGINS = False
-
-    # Add the specific domains of your front-end applications
-    CORS_ALLOWED_ORIGINS = [
-        "https://potteryapp.greenwichhouse.org",
-        "https://www.greenwichhouse.org",
-        "https://ghp-measurement-d2e329f35d3b.herokuapp.com",
-
-    ]
-    # Keep this True if your frontend needs to send cookies/auth headers
-    CORS_ALLOW_CREDENTIALS = True
+    SECURE_HSTS_SECONDS = 3600 # 2/10/24: enabling HSTS with initial 1 hour duration for testing
 
 
 # This logging configuration assumes that a `DEBUG` variable (boolean) is defined
