@@ -46,7 +46,10 @@
         <a href="{% url 'measure:piece' user.id %}">Measure A Piece</a>
         <a href="{% url 'measure:modify_location' user.id %}">Change Your Default Measuring Location</a>
         <button class="button is-primary" id="submitBtn">Add Firing Credit</button>
-        <a href="{% url 'measure:logout' %}">Log Out</a>
+        <form method="post" action="{% url 'measure:logout' %}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" style="background: none!important; border: none; padding: 0!important; font-family: 'Franklin Gothic', 'Franklin Gothic Light', 'Franklin Gothic Medium', 'ITC Franklin Gothic', 'Franklin Gothic Demi', Helvetica, Arial, sans-serif; color: #4F8471; text-decoration: underline; font-size: 32px; cursor: pointer;">Log Out</button>
+        </form>
 
     </div>
 </body>
