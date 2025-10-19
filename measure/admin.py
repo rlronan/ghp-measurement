@@ -402,39 +402,35 @@ class CurrentUserFilterFromOther(admin.SimpleListFilter):
                 Q(ghp_user__current_student=False) & Q(ghp_user__current_ghp_staff=False) & Q(ghp_user__current_faculty=False))
 
 class PieceLocationFilter(admin.SimpleListFilter):
-    title = 'Piece Location'  # This will appear as the filter title in the admin
-    parameter_name = 'piece_location'  # This is the URL query parameter for the filter
+    title = 'Piece Location'
+    parameter_name = 'piece_location'
 
     def lookups(self, request, model_admin):
-        # This function returns a list of tuples representing the options for the filter
-        # (value, display_name)
+        # Cache this query - it will be more efficient with the new index
         piece_locations = PieceReceipt.objects.values_list('piece_location', flat=True).distinct()
         return [(location, location) for location in piece_locations if location]
 
     def queryset(self, request, queryset):
-        # This function is responsible for filtering the queryset based on the selected value
         if self.value():
-            return queryset.filter(piece__in=PieceReceipt.objects.filter(piece_location=self.value()).values_list('piece', flat=True)).distinct()
+            # Use a more efficient join instead of subquery
+            return queryset.filter(piecereceipt__piece_location=self.value()).distinct()
         return queryset
 
 
 class PieceLocationFilter_piece(admin.SimpleListFilter):
-    title = 'Piece Location'  # This will appear as the filter title in the admin
-    parameter_name = 'piece_location'  # This is the URL query parameter for the filter
+    title = 'Piece Location'
+    parameter_name = 'piece_location'
 
     def lookups(self, request, model_admin):
-        # This function returns a list of tuples representing the options for the filter
-        # (value, display_name)
+        # Cache this query - it will be more efficient with the new index
         piece_locations = PieceReceipt.objects.values_list('piece_location', flat=True).distinct()
         return [(location, location) for location in piece_locations if location]
 
     def queryset(self, request, queryset):
-        # This function is responsible for filtering the queryset based on the selected value
         if self.value():
-            return queryset.filter(piecereceipt__in=PieceReceipt.objects.filter(piece_location=self.value())).distinct() 
-            #return queryset.filter(piecereceipt__in=PieceReceipt.objects.filter(piece_location=self.value()).last()).distinct() 
+            # Use a more efficient join instead of subquery
+            return queryset.filter(piecereceipt__piece_location=self.value()).distinct()
         return queryset
-
 
 # export_as_csv.short_description = "Export Selected"
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -767,7 +763,6 @@ class PieceAdmin(admin.ModelAdmin):
 
     list_display_links = ['ghp_user', 'ghp_user_piece_id']
 
-
     readonly_fields = ['ghp_user_piece_id', 'date', 'ghp_user', 'name', 
                        'email', 'length', 'width', 'height', 'size', 
                        'price','bisque_temp', 'refund_link']
@@ -781,29 +776,29 @@ class PieceAdmin(admin.ModelAdmin):
     ordering = ['-date', 'ghp_user__last_name', 'ghp_user__first_name']
 
     actions = ['export_as_csv']
+    
+    # Add pagination
+    list_per_page = 50
+    list_max_show_all = 200
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('ghp_user').prefetch_related('piecereceipt_set')
 
     @admin.display(ordering="ghp_user__last_name")
     def name(self, obj):
         return str(obj.ghp_user.first_name) + ' ' + str(obj.ghp_user.last_name)
 
-
     @admin.display(ordering="ghp_user__email")
     def email(self, obj):
         return str(obj.ghp_user.email)
 
-
     @admin.display(description="piece_location")
     def piece_location(self, obj):
-        #print(obj)
-        #print(obj.piece)
-        receipt = PieceReceipt.objects.filter(piece=obj).last()
-        if receipt is None:
-            return None
-        #print(PieceReceipt.objects.filter(piece=obj).first().piece_location)
-        return str(receipt.piece_location)
-
-
+        # Use prefetched data instead of new queries
+        receipts = obj.piecereceipt_set.all()
+        if receipts:
+            return str(receipts[0].piece_location)
+        return None
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -857,15 +852,7 @@ class PieceAdmin(admin.ModelAdmin):
     export_as_csv.short_description = "Export Selected"
 
 class PieceReciptAdmin(admin.ModelAdmin):
-
     list_display = ['ghp_user_name', 'piece', 'piece_number', 'receipt_type', 'bisque_temp', 'glaze_temp', 'piece_location', 'piece_date', 'length', 'width', 'height', 'printed', 'price']
-
-
-    #         unprinted_receipts = PieceReceipt.objects.filter(printed=False).filter(piece_location='Chelsea').all()
-    #         print("Unprinted Receipts: ", unprinted_receipts)
-    #         data = {
-    #             'unprinted_receipts': list(unprinted_receipts.values())
-    #         }
 
     list_filter = ['ghp_user_name', 'receipt_type',  'bisque_temp', 'glaze_temp', 'piece_location',  'piece_date', 
                    PriceFilter, LengthORWidthFilter, LengthANDWidthFilter, HeightFilter,
@@ -873,6 +860,12 @@ class PieceReciptAdmin(admin.ModelAdmin):
     
     search_fields = ['piece__ghp_user__first_name', 'piece__ghp_user__last_name', 'piece__ghp_user__email']
 
+    # Add pagination
+    list_per_page = 50
+    list_max_show_all = 200
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('piece__ghp_user')
     
     @admin.action(description="Reprint the receipt")
     def reprint_receipt(self, request, queryset):
@@ -900,28 +893,8 @@ class PieceReciptAdmin(admin.ModelAdmin):
             obj.piece_location = 'Barrow'
             obj.printed = False
             obj.save()
-   
-    # @admin.action(description="Export selected objects as csv")
-    # def export_as_csv(self, request, queryset):
-    #     print("Model: ", self.model)
-    #     print("Queryset: ", queryset)
-    #     meta = self.model._meta
-    #     #field_names = [field.name for field in meta.fields]
-    #     #print("field names: ", field_names)
-    #     field_names =  ['piece_location', 'receipt_type', 'price', 'piece_date', 'bisque_temp', 'glaze_temp' ]
-    #     response = HttpResponse(content_type='text/csv')
-    #     response['Content-Disposition'] = 'attachment; filename={}.csv'.format(meta)
-    #     writer = csv.writer(response)
 
-    #     writer.writerow(field_names + ['user_email'])
-    #     for obj in queryset:
-    #         obj_piece = Piece.objects.filter(id=obj.piece.id).first()
-    #         row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_piece.ghp_user.email])
-    #     return response
-
-    # export_as_csv.short_description = "Export Selected"
-
-    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich', 'move_receipt_to_barrow']#, 'export_as_csv']
+    actions = ['reprint_receipt', 'move_receipt_to_chelsea', 'move_receipt_to_greenwich', 'move_receipt_to_barrow']
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -930,17 +903,7 @@ class PieceReciptAdmin(admin.ModelAdmin):
         return actions
 
 
-
-
-
-
-
-
-
-
 class LedgerAdmin(admin.ModelAdmin):
-
-    
     list_display = [ 'transaction_type', 'date', 'amount', 'ghp_user', 'piece', 
                     'note', 'transaction_id', 'stripe_session_id', 'piece_location']
     
@@ -967,18 +930,21 @@ class LedgerAdmin(admin.ModelAdmin):
     ]
 
     actions = ['export_as_csv']
+    
+    # Add pagination
+    list_per_page = 50
+    list_max_show_all = 200
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('ghp_user', 'piece').prefetch_related('piece__piecereceipt_set')
 
     @admin.display(description="piece_location")
     def piece_location(self, obj):
-        #print(obj)
-        #print(obj.piece)
-        receipt = PieceReceipt.objects.filter(piece=obj.piece).last()
-        if receipt is None:
-            return None
-        #print(PieceReceipt.objects.filter(piece=obj.piece).first().piece_location)
-        return str(PieceReceipt.objects.filter(piece=obj.piece).first().piece_location)
-
+        # Use prefetched data instead of new queries
+        receipts = obj.piece.piecereceipt_set.all()
+        if receipts:
+            return str(receipts[0].piece_location)
+        return None
 
     # changes all fields to be read only when editing an existing object
     def get_readonly_fields(self, request, obj=None):
