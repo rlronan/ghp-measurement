@@ -782,31 +782,40 @@ def get_print_jobs_chelsea(request):
             if print_server_key == print_server_secret_key:
                 location_processed = "Chelsea"
                 logger.info("Valid secret key for Chelsea print server.")
+                # Uses composite index on (printed, piece_location) for fast filtering
                 unprinted_receipts_qs = PieceReceipt.objects.filter(printed=False, piece_location='Chelsea').all()
             elif print_server_key == greenwich_print_server_secret_key:
                 location_processed = "Greenwich"
                 logger.info("Valid secret key for Greenwich print server.")
+                # Uses composite index on (printed, piece_location) for fast filtering
                 unprinted_receipts_qs = PieceReceipt.objects.filter(printed=False, piece_location='Greenwich').all()
             elif print_server_key == barrow_print_server_secret_key:
                 location_processed = "Barrow"
                 logger.info("Valid secret key for Barrow print server.")
+                # Uses composite index on (printed, piece_location) for fast filtering
                 unprinted_receipts_qs = PieceReceipt.objects.filter(printed=False, piece_location='Barrow').all()
             else:
                 logger.warning(f"Invalid secret key provided for get_print_jobs. Key (first 5 chars): {print_server_key[:5]}")
                 return JsonResponse({'error': 'Invalid secret key'}, status=403)
 
-            if location_processed and unprinted_receipts_qs.exists():
-                logger.info(f"{unprinted_receipts_qs.count()} unprinted receipts found for {location_processed}.")
-                # Convert queryset to list of dicts for job_to_printer_text and modification
+            if location_processed:
+                # Optimize: use .values() directly instead of .exists() then .count()
                 unprinted_receipts_list = list(unprinted_receipts_qs.values('id', 'receipt_type', 'ghp_user_name', 'piece_date', 'length', 'width', 'height', 'handles', 'course_number', 'bisque_temp', 'glaze_temp', 'piece_number'))
-                data['unprinted_receipts'] = [job_to_printer_text(job) for job in unprinted_receipts_list]
+                
+                if unprinted_receipts_list:
+                    logger.info(f"{len(unprinted_receipts_list)} unprinted receipts found for {location_processed}.")
+                    # Convert queryset to list of dicts for job_to_printer_text and modification
+                    data['unprinted_receipts'] = [job_to_printer_text(job) for job in unprinted_receipts_list]
 
-                # Mark receipts as printed
-                receipt_ids_to_mark = [r['id'] for r in unprinted_receipts_list]
-                PieceReceipt.objects.filter(id__in=receipt_ids_to_mark).update(printed=True)
-                logger.info(f"Marked {len(receipt_ids_to_mark)} receipts as printed for {location_processed}.")
-            elif location_processed:
-                logger.info(f"No unprinted receipts found for {location_processed}.")
+                    # Mark receipts as printed with timestamp
+                    receipt_ids_to_mark = [r['id'] for r in unprinted_receipts_list]
+                    PieceReceipt.objects.filter(id__in=receipt_ids_to_mark).update(
+                        printed=True,
+                        printed_date=timezone.now().date()
+                    )
+                    logger.info(f"Marked {len(receipt_ids_to_mark)} receipts as printed for {location_processed}.")
+                else:
+                    logger.info(f"No unprinted receipts found for {location_processed}.")
             
             return JsonResponse(data)
 
@@ -921,6 +930,7 @@ def get_print_jobs_optimized(request):
                 query_filter['piece_location'] = authorized_location
             
             # Single optimized query with only needed fields
+            # Uses composite index on (printed, piece_location) for fast filtering
             unprinted_receipts = PieceReceipt.objects.filter(**query_filter).values(
                 'id', 'receipt_type', 'ghp_user_name', 'piece_date', 
                 'length', 'width', 'height', 'handles', 'course_number', 
@@ -939,8 +949,11 @@ def get_print_jobs_optimized(request):
                     processed_jobs.append(processed_job)
                     receipt_ids_to_mark.append(receipt['id'])
                 
-                # Mark as printed in batch
-                PieceReceipt.objects.filter(id__in=receipt_ids_to_mark).update(printed=True)
+                # Mark as printed in batch with timestamp
+                PieceReceipt.objects.filter(id__in=receipt_ids_to_mark).update(
+                    printed=True,
+                    printed_date=timezone.now().date()
+                )
                 logger.info(f"Marked {len(receipt_ids_to_mark)} receipts as printed for {authorized_location}.")
                 
                 return JsonResponse({

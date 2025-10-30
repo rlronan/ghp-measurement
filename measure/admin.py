@@ -859,6 +859,9 @@ class PieceReciptAdmin(admin.ModelAdmin):
                    'piece__ghp_user__current_student', 'piece__ghp_user__current_ghp_staff', 'piece__ghp_user__current_faculty']
     
     search_fields = ['piece__ghp_user__first_name', 'piece__ghp_user__last_name', 'piece__ghp_user__email']
+    
+    # Use raw_id_fields to prevent loading thousands of pieces in dropdown
+    raw_id_fields = ['piece']
 
     # Add pagination
     list_per_page = 50
@@ -941,6 +944,9 @@ class LedgerAdmin(admin.ModelAdmin):
     @admin.display(description="piece_location")
     def piece_location(self, obj):
         # Use prefetched data instead of new queries
+        # Check if piece exists first (some ledger entries don't have an associated piece)
+        if obj.piece is None:
+            return None
         receipts = obj.piece.piecereceipt_set.all()
         if receipts:
             return str(receipts[0].piece_location)
