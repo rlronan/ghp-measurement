@@ -132,6 +132,9 @@ if IS_HEROKU_APP:
             conn_max_age=600,
             conn_health_checks=True,
             ssl_require=True,
+            options={
+                'options': '-c statement_timeout=25000'  # 25 second query timeout
+            }
         ),
     }
 else:
@@ -145,6 +148,7 @@ else:
             'PORT': '5432',
             'OPTIONS': {
                 'connect_timeout': 10,
+                'options': '-c statement_timeout=25000'  # 25 second query timeout
             },
             'CONN_MAX_AGE': 60,
 
