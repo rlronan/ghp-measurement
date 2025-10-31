@@ -132,10 +132,11 @@ if IS_HEROKU_APP:
             conn_max_age=600,
             conn_health_checks=True,
             ssl_require=True,
-            options={
-                'options': '-c statement_timeout=25000'  # 25 second query timeout
-            }
         ),
+    }
+    # Add the statement timeout option after the database config is created
+    DATABASES["default"]["OPTIONS"] = {
+        'options': '-c statement_timeout=25000'  # 25 second query timeout
     }
 else:
     DATABASES = {
