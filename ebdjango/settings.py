@@ -347,22 +347,22 @@ LOGGING = {
         },
     },
 }
-# Falls back to console backend for local development when SENDGRID_API_KEY is not set
+# Falls back to console backend for local development when MAILGUN_SMTP_PASSWORD is not set
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
-    'django.core.mail.backends.smtp.EmailBackend' if os.environ.get('SENDGRID_API_KEY') else 'django.core.mail.backends.console.EmailBackend'
+    'django.core.mail.backends.smtp.EmailBackend' if os.environ.get('MAILGUN_SMTP_PASSWORD') else 'django.core.mail.backends.console.EmailBackend'
 )
-EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST = 'smtp.mailgun.org'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'apikey'  # SendGrid requires this literal string
-EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
+EMAIL_HOST_USER = os.environ.get('MAILGUN_SMTP_LOGIN', '')
+EMAIL_HOST_PASSWORD = os.environ.get('MAILGUN_SMTP_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@greenwichhouse.org')
 
-if not os.environ.get('SENDGRID_API_KEY') and not os.environ.get('EMAIL_BACKEND'):
+if not os.environ.get('MAILGUN_SMTP_PASSWORD') and not os.environ.get('EMAIL_BACKEND'):
     import logging
     logging.getLogger(__name__).warning(
-        'SENDGRID_API_KEY is not set — email backend defaulting to console. '
+        'MAILGUN_SMTP_PASSWORD is not set — email backend defaulting to console. '
         'Password reset emails will be printed to stdout, not sent.'
     )
 
