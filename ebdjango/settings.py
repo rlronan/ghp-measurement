@@ -347,9 +347,15 @@ LOGGING = {
         },
     },
 }
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-#EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
-#EMAIL_FILE_PATH = BASE_DIR / "sent_emails"
+# Use console backend for local development
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'  # SendGrid requires this literal string
+EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@greenwichhouse.org')
 
 
 LOGIN_URL = '/login/'
