@@ -716,6 +716,7 @@ class RefundPieceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.ghp_refund_user = kwargs.pop('ghp_user', None)
         piece = kwargs.pop('piece', None)
+        self.refund_piece = piece  # trusted, URL-scoped piece (see clean())
         ledgers = kwargs.pop('ledgers', None)
         print("ledgers: ", ledgers)
         print("piece: ", piece)
@@ -837,6 +838,14 @@ class RefundPieceForm(forms.ModelForm):
         print("in clean():")
         cleaned_data = super().clean()
 
+        # SECURITY: ghp_user and piece are bound hidden fields, so their POSTed
+        # values are attacker-controllable. Pin them to the URL-scoped user/piece
+        # the view passed in, so neither the firing-fee ledger (saved by the view)
+        # nor the glaze-fee ledger created below in this method can be redirected
+        # to a different account.
+        cleaned_data['ghp_user'] = self.ghp_refund_user
+        cleaned_data['piece'] = self.refund_piece
+
         # Get the glazing fee check
         glazing_fee_check = cleaned_data.get('glazing_fee_check')
         glazing_fee_refund = cleaned_data.get('glazing_fee_refund')
@@ -898,8 +907,9 @@ class AddCreditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         ghp_user = kwargs.pop('ghp_user')
         ghp_user_account = kwargs.pop('ghp_user_account')
+        self.credit_ghp_user = ghp_user  # trusted, URL-scoped user (see clean())
         super().__init__(*args, **kwargs)
-        
+
         self.fields['ghp_user'].initial = ghp_user
         self.fields['ghp_user'].widget = forms.HiddenInput(attrs={'readonly': 'readonly'})
 
@@ -916,12 +926,20 @@ class AddCreditForm(forms.ModelForm):
     def clean(self):
         # Get the cleaned data
         cleaned_data = super().clean()
-        # if the amount is < 0, then change the transaction to to 'manual_gh_add_misc_charge'
-        if cleaned_data['amount'] == 0:
+        # SECURITY: ghp_user is a bound hidden field; pin it to the URL-scoped user
+        # so the credit/charge can't be redirected to a different account via POST.
+        cleaned_data['ghp_user'] = self.credit_ghp_user
+        amount = cleaned_data.get('amount')
+        if amount is None:
+            # amount failed field validation (empty/non-numeric); return so the
+            # field-level error surfaces instead of raising KeyError/TypeError here.
+            return cleaned_data
+        # if the amount is < 0, then change the transaction to 'manual_gh_add_misc_charge'
+        if amount == 0:
             raise ValidationError("You must enter a value other than 0")
-        elif cleaned_data.get('amount') < 0:
+        elif amount < 0:
             cleaned_data['transaction_type'] = 'manual_gh_add_misc_charge'
-        elif cleaned_data.get('amount') > 0:
+        elif amount > 0:
             cleaned_data['transaction_type'] = 'manual_gh_add_misc_credit'
 
         return cleaned_data

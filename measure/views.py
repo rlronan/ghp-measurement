@@ -11,7 +11,9 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm, Password
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 import csv
+import hmac
 import numpy as np
 import datetime
 from django.conf import settings
@@ -147,7 +149,13 @@ def PieceView(request, ghp_user_id):
 
             # Create a template instance from the form without saving it to the database.
             piece_template = form.save(commit=False)
-            
+
+            # SECURITY: ghp_user is a bound (hidden) form field, so its value comes
+            # from the POST body and cannot be trusted. Pin it to the URL-scoped,
+            # permission-checked user so a request can't create a piece (and its
+            # firing/glaze fee ledgers) on another user's account.
+            piece_template.ghp_user = ghp_user
+
             # Loop 'quantity' times to create that many copies.
             for i in range(quantity):
                 # By setting pk to None, you are telling Django that this is a new object.
@@ -209,6 +217,12 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
             form.instance.pk = piece.id
             form.instance.date = piece.date
             instance = form.save(commit=False)
+            # SECURITY: ghp_user / ghp_user_piece_id are bound (hidden) form fields
+            # whose values come from the POST body. Pin them to the original, URL-
+            # scoped piece so an edit can't reassign the piece (or renumber it) onto
+            # another user's account.
+            instance.ghp_user = ghp_user
+            instance.ghp_user_piece_id = piece.ghp_user_piece_id
             # process the data in form.cleaned_data as required
             instance.save()
             logger.info(f"Piece modified for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {instance.id}.")
@@ -346,6 +360,10 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
             logger.info(f"RefundPieceForm is valid for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
 
             instance = form.save(commit=False)
+            # SECURITY: pin the refund ledger to the URL-scoped user/piece, not the
+            # bound (POST-controllable) hidden form fields.
+            instance.ghp_user = ghp_refund_user
+            instance.piece = piece
             # process the data in form.cleaned_data as required
             instance.save()
             logger.info(f"Refund processed and saved for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
@@ -381,6 +399,9 @@ def add_credit_view(request, ghp_user_id):
             logger.info(f"AddCreditForm is valid for ghp_user: {ghp_user.username} by user {request.user.username}. Amount: {form.cleaned_data.get('amount')}")
 
             instance = form.save(commit=False)
+            # SECURITY: pin the credit ledger to the URL-scoped user, not the bound
+            # (POST-controllable) hidden ghp_user form field.
+            instance.ghp_user = ghp_user
 
             # process the data in form.cleaned_data as required
             instance.save()
@@ -671,6 +692,15 @@ def handle_checkout_session(session):
             logger.info(f"Ledger entry created successfully for GHPUser: {ghp_user.username}. Ledger ID: {user_payment.transaction_id}")
             print("Finished creating ledger entry")
             return HttpResponse(status=200)
+        except IntegrityError:
+            # The unique constraint on stripe_session_id rejected a duplicate. This
+            # is the race-proof backstop to the count()-based check above: a
+            # concurrent/duplicate webhook delivery for the same session lands here.
+            # Return 200 so Stripe treats it as processed and stops retrying, rather
+            # than double-crediting the account.
+            logger.warning(f"Duplicate Stripe session {session_id} rejected by unique constraint; already processed.")
+            print("Duplicate transaction rejected by unique constraint.")
+            return HttpResponse(status=200)
         except Exception as e:
             logger.error(f"Error creating ledger entry for GHPUser: {ghp_user.username}, Stripe Session ID: {session_id}. Error: {e}", exc_info=True)
             print("Error creating ledger entry: ", e)
@@ -905,29 +935,46 @@ def get_print_jobs_optimized(request):
         try:
             print_server_key = request.GET.get('secret_key', '')
             location = request.GET.get('location', '')  # Optional: specify location
-            
-            # Validate secret key and determine location
-            location_mapping = {
-                settings.PRINT_SERVER_SECRET_KEY: "Chelsea",
-                settings.GREENWICH_PRINT_SERVER_SECRET_KEY: "Greenwich", 
-                settings.BARROW_PRINT_SERVER_SECRET_KEY: "Barrow"
-            }
-            
+
+            # Reject an empty/whitespace key outright. Without this, an unset server
+            # secret env var (which defaults to '') would put '' into the mapping
+            # below and let an unauthenticated caller (secret_key='') authenticate.
+            if not print_server_key.strip():
+                logger.warning("Empty secret key provided to get_print_jobs_optimized.")
+                return JsonResponse({'error': 'Invalid secret key'}, status=403)
+
+            # Validate secret key and determine location. Build the mapping only from
+            # configured (non-empty) keys, and compare in constant time, so an unset
+            # env var can never become a valid credential.
+            configured_keys = [
+                (settings.PRINT_SERVER_SECRET_KEY, "Chelsea"),
+                (settings.GREENWICH_PRINT_SERVER_SECRET_KEY, "Greenwich"),
+                (settings.BARROW_PRINT_SERVER_SECRET_KEY, "Barrow"),
+            ]
+            authorized_location = None
+            # Compare on bytes so a non-ASCII provided key is a clean mismatch (403)
+            # rather than a TypeError from hmac.compare_digest on str inputs.
+            provided_key_bytes = print_server_key.encode('utf-8')
+            for configured_key, configured_location in configured_keys:
+                if configured_key and hmac.compare_digest(provided_key_bytes, configured_key.encode('utf-8')):
+                    authorized_location = configured_location
+                    break
+
             # Check if key is valid
-            if print_server_key not in location_mapping:
+            if authorized_location is None:
                 logger.warning(f"Invalid secret key provided. Key (first 5 chars): {print_server_key[:5]}")
                 return JsonResponse({'error': 'Invalid secret key'}, status=403)
-            
-            authorized_location = location_mapping[print_server_key]
+
             logger.info(f"Valid secret key for {authorized_location} print server.")
-            
-            # Build query - either specific location or all locations for batch
-            query_filter = {'printed': False}
-            if location and location == authorized_location:
-                query_filter['piece_location'] = location
-            elif not location:
-                # For batch requests, only return jobs for the authorized location
-                query_filter['piece_location'] = authorized_location
+
+            # Always scope the query to the authorized location. The client-supplied
+            # `location` may only narrow within that location; a mismatched value must
+            # not widen the query (previously it left piece_location unconstrained and
+            # returned/destroyed every location's receipts).
+            query_filter = {'printed': False, 'piece_location': authorized_location}
+            if location and location != authorized_location:
+                logger.warning(f"Location '{location}' does not match authorized location '{authorized_location}'.")
+                return JsonResponse({'error': 'Location does not match secret key'}, status=403)
             
             # Single optimized query with only needed fields
             # Uses composite index on (printed, piece_location) for fast filtering
