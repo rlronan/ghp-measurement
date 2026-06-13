@@ -12,6 +12,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
 from django.contrib.auth.models import User
 import csv
+import hmac
 import numpy as np
 import datetime
 from django.conf import settings
@@ -905,29 +906,43 @@ def get_print_jobs_optimized(request):
         try:
             print_server_key = request.GET.get('secret_key', '')
             location = request.GET.get('location', '')  # Optional: specify location
-            
-            # Validate secret key and determine location
-            location_mapping = {
-                settings.PRINT_SERVER_SECRET_KEY: "Chelsea",
-                settings.GREENWICH_PRINT_SERVER_SECRET_KEY: "Greenwich", 
-                settings.BARROW_PRINT_SERVER_SECRET_KEY: "Barrow"
-            }
-            
+
+            # Reject an empty/whitespace key outright. Without this, an unset server
+            # secret env var (which defaults to '') would put '' into the mapping
+            # below and let an unauthenticated caller (secret_key='') authenticate.
+            if not print_server_key.strip():
+                logger.warning("Empty secret key provided to get_print_jobs_optimized.")
+                return JsonResponse({'error': 'Invalid secret key'}, status=403)
+
+            # Validate secret key and determine location. Build the mapping only from
+            # configured (non-empty) keys, and compare in constant time, so an unset
+            # env var can never become a valid credential.
+            configured_keys = [
+                (settings.PRINT_SERVER_SECRET_KEY, "Chelsea"),
+                (settings.GREENWICH_PRINT_SERVER_SECRET_KEY, "Greenwich"),
+                (settings.BARROW_PRINT_SERVER_SECRET_KEY, "Barrow"),
+            ]
+            authorized_location = None
+            for configured_key, configured_location in configured_keys:
+                if configured_key and hmac.compare_digest(print_server_key, configured_key):
+                    authorized_location = configured_location
+                    break
+
             # Check if key is valid
-            if print_server_key not in location_mapping:
+            if authorized_location is None:
                 logger.warning(f"Invalid secret key provided. Key (first 5 chars): {print_server_key[:5]}")
                 return JsonResponse({'error': 'Invalid secret key'}, status=403)
-            
-            authorized_location = location_mapping[print_server_key]
+
             logger.info(f"Valid secret key for {authorized_location} print server.")
-            
-            # Build query - either specific location or all locations for batch
-            query_filter = {'printed': False}
-            if location and location == authorized_location:
-                query_filter['piece_location'] = location
-            elif not location:
-                # For batch requests, only return jobs for the authorized location
-                query_filter['piece_location'] = authorized_location
+
+            # Always scope the query to the authorized location. The client-supplied
+            # `location` may only narrow within that location; a mismatched value must
+            # not widen the query (previously it left piece_location unconstrained and
+            # returned/destroyed every location's receipts).
+            query_filter = {'printed': False, 'piece_location': authorized_location}
+            if location and location != authorized_location:
+                logger.warning(f"Location '{location}' does not match authorized location '{authorized_location}'.")
+                return JsonResponse({'error': 'Location does not match secret key'}, status=403)
             
             # Single optimized query with only needed fields
             # Uses composite index on (printed, piece_location) for fast filtering
