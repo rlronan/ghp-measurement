@@ -578,8 +578,14 @@ class GHPUserAdmin(ImportExportModelAdmin):
 
         writer.writerow(field_names + ['balance', 'last_balance_update'])
         for obj in queryset:
-            obj_account = Account.objects.filter(ghp_user=obj)
-            row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_account[0].balance, obj_account[0].last_update])
+            # A user may legitimately have no Account (see GHPUser.get_balance()),
+            # so fetch once with .first() and write blanks rather than indexing an
+            # empty queryset with [0], which would raise IndexError and abort the
+            # entire export for every selected user.
+            obj_account = Account.objects.filter(ghp_user=obj).first()
+            balance = obj_account.balance if obj_account else None
+            last_update = obj_account.last_update if obj_account else None
+            writer.writerow([getattr(obj, field) for field in field_names] + [balance, last_update])
 
         return response
 
