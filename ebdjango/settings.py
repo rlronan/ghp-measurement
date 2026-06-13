@@ -36,7 +36,10 @@ IS_HEROKU_APP = "DYNO" in os.environ and not "CI" in os.environ
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool( os.environ.get('DJANGO_DEBUG', False) )
+# NB: env vars are always strings, so bool(os.environ.get(...)) is True for ANY
+# non-empty value, including "False"/"0"/"no". Parse the string explicitly so that
+# setting DJANGO_DEBUG=False actually disables debug.
+DEBUG = os.environ.get('DJANGO_DEBUG', '').strip().lower() in ('1', 'true', 'yes', 'on')
 
 # On Heroku, it's safe to use a wildcard for `ALLOWED_HOSTS``, since the Heroku router performs
 # validation of the Host header in the incoming HTTP request. On other platforms you may need
