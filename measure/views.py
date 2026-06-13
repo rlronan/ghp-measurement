@@ -360,6 +360,10 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
             logger.info(f"RefundPieceForm is valid for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
 
             instance = form.save(commit=False)
+            # SECURITY: pin the refund ledger to the URL-scoped user/piece, not the
+            # bound (POST-controllable) hidden form fields.
+            instance.ghp_user = ghp_refund_user
+            instance.piece = piece
             # process the data in form.cleaned_data as required
             instance.save()
             logger.info(f"Refund processed and saved for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
@@ -395,6 +399,9 @@ def add_credit_view(request, ghp_user_id):
             logger.info(f"AddCreditForm is valid for ghp_user: {ghp_user.username} by user {request.user.username}. Amount: {form.cleaned_data.get('amount')}")
 
             instance = form.save(commit=False)
+            # SECURITY: pin the credit ledger to the URL-scoped user, not the bound
+            # (POST-controllable) hidden ghp_user form field.
+            instance.ghp_user = ghp_user
 
             # process the data in form.cleaned_data as required
             instance.save()
