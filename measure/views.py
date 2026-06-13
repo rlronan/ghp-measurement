@@ -952,8 +952,11 @@ def get_print_jobs_optimized(request):
                 (settings.BARROW_PRINT_SERVER_SECRET_KEY, "Barrow"),
             ]
             authorized_location = None
+            # Compare on bytes so a non-ASCII provided key is a clean mismatch (403)
+            # rather than a TypeError from hmac.compare_digest on str inputs.
+            provided_key_bytes = print_server_key.encode('utf-8')
             for configured_key, configured_location in configured_keys:
-                if configured_key and hmac.compare_digest(print_server_key, configured_key):
+                if configured_key and hmac.compare_digest(provided_key_bytes, configured_key.encode('utf-8')):
                     authorized_location = configured_location
                     break
 
