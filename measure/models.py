@@ -899,7 +899,12 @@ class Ledger(models.Model):
     note = models.CharField(max_length=1000, blank=True)
     piece = models.ForeignKey(Piece, models.SET_NULL, null=True, blank=True)
     # adding 2/10/24
-    stripe_session_id = models.CharField(max_length=100, blank=True, null=True)
+    # unique=True is the race-proof idempotency guard for Stripe webhooks: a
+    # duplicate delivery for the same checkout session raises IntegrityError on
+    # insert instead of double-crediting. NULL is allowed to repeat (every
+    # non-Stripe ledger row has stripe_session_id=NULL), since SQL treats NULLs
+    # as distinct for uniqueness.
+    stripe_session_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     class Meta:
         managed = True
         db_table = 'ledger'
