@@ -930,9 +930,20 @@ class Ledger(models.Model):
         # Modify user's Account balance by amount, and update Account.last_update
         if not LEDGER_UPDATING:
             if self.ghp_user is not None:
-                self.ghp_user.account.balance += self.amount
-                self.ghp_user.account.last_update = timezone.now()
-                self.ghp_user.account.save()
+                # Apply the delta in the database (UPDATE ... SET balance = balance +
+                # amount) instead of reading the balance into Python and writing it
+                # back. The previous read-modify-write had no lock, so two ledger
+                # entries for the same user created concurrently (e.g. a Stripe credit
+                # webhook racing a firing-fee debit, or the two ledgers a single
+                # Piece.save() creates) could both read the same starting balance and
+                # the last write would silently drop the other's effect.
+                updated = Account.objects.filter(ghp_user=self.ghp_user).update(
+                    balance=models.F('balance') + self.amount,
+                    last_update=timezone.now(),
+                )
+                if not updated:
+                    print('No account for this transaction')
+                    raise ValueError('No account exists for this user')
             else:
                 print('No ghp_user for this transaction')
                 raise ValueError('No ghp_user for this transaction')
