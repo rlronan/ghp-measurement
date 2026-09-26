@@ -3,7 +3,7 @@
 # upgrade anything. To upgrade a package, change its pin here deliberately.
 asgiref==3.12.1
 django==5.2.17
-django-import-export==4.1.1
+django-import-export==4.4.1
 importlib-metadata==9.0.1
 importlib-resources==7.1.0
 numpy==2.4.6
@@ -11,7 +11,7 @@ Pillow==12.3.0
 #pip==23.3
 ##psycopg2-binary==2.9.6
 stripe==2.49.0
-tablib==3.5.0
+tablib==3.10.0
 django-on-heroku==1.1.2
 gunicorn==23.0
 dj-database-url==2.3.0
