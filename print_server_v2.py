@@ -1,6 +1,7 @@
 # Optimized Print Server Example
 # This shows how to update your existing print servers for better efficiency
 
+import argparse
 import time
 import sys
 import requests
@@ -8,10 +9,22 @@ import os
 from escpos.printer import Network
 
 # Configuration
-LOCATION = "Barrow"  # Change this for each location
 DOMAIN = "potteryapp.greenwichhouse.org"
 POLL_INTERVAL = 60  # 60 seconds
-PRINTER_IP = '192.168.115.147'  # Barrow printer IP
+# Static IP of each location's receipt printer. --printer-ip overrides it without a rebuild.
+PRINTER_IPS = {
+    'Chelsea': '10.186.3.27',
+    'Barrow': '192.168.115.147',
+}
+
+# The same exe runs at every location; run_<location>_print_server.bat passes the location
+parser = argparse.ArgumentParser(description='Poll the pottery app for receipts and print them.')
+parser.add_argument('location', choices=sorted(PRINTER_IPS), help='location this print server runs at')
+parser.add_argument('--printer-ip', help="override the location's receipt printer IP")
+args = parser.parse_args()
+
+LOCATION = args.location
+PRINTER_IP = args.printer_ip or PRINTER_IPS[LOCATION]
 
 # Load secret key
 secret_key = os.environ.get(f'{LOCATION.upper()}_PRINT_SERVER_SECRET_KEY', '')
