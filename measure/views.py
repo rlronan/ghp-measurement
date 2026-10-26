@@ -148,7 +148,13 @@ def PieceView(request, ghp_user_id):
 
             # Create a template instance from the form without saving it to the database.
             piece_template = form.save(commit=False)
-            
+
+            # SECURITY: ghp_user is a bound (hidden) form field, so its value comes
+            # from the POST body and cannot be trusted. Pin it to the URL-scoped,
+            # permission-checked user so a request can't create a piece (and its
+            # firing/glaze fee ledgers) on another user's account.
+            piece_template.ghp_user = ghp_user
+
             # Loop 'quantity' times to create that many copies.
             for i in range(quantity):
                 # By setting pk to None, you are telling Django that this is a new object.
@@ -210,6 +216,12 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
             form.instance.pk = piece.id
             form.instance.date = piece.date
             instance = form.save(commit=False)
+            # SECURITY: ghp_user / ghp_user_piece_id are bound (hidden) form fields
+            # whose values come from the POST body. Pin them to the original, URL-
+            # scoped piece so an edit can't reassign the piece (or renumber it) onto
+            # another user's account.
+            instance.ghp_user = ghp_user
+            instance.ghp_user_piece_id = piece.ghp_user_piece_id
             # process the data in form.cleaned_data as required
             instance.save()
             logger.info(f"Piece modified for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {instance.id}.")
@@ -347,6 +359,10 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
             logger.info(f"RefundPieceForm is valid for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
 
             instance = form.save(commit=False)
+            # SECURITY: pin the refund ledger to the URL-scoped user/piece, not the
+            # bound (POST-controllable) hidden form fields.
+            instance.ghp_user = ghp_refund_user
+            instance.piece = piece
             # process the data in form.cleaned_data as required
             instance.save()
             logger.info(f"Refund processed and saved for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
@@ -382,6 +398,9 @@ def add_credit_view(request, ghp_user_id):
             logger.info(f"AddCreditForm is valid for ghp_user: {ghp_user.username} by user {request.user.username}. Amount: {form.cleaned_data.get('amount')}")
 
             instance = form.save(commit=False)
+            # SECURITY: pin the credit ledger to the URL-scoped user, not the bound
+            # (POST-controllable) hidden ghp_user form field.
+            instance.ghp_user = ghp_user
 
             # process the data in form.cleaned_data as required
             instance.save()
