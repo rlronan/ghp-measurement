@@ -7,17 +7,23 @@ Locations:
   - Barrow Street (Barrow Street)
 
 All three locations run the same `print_server_v2.exe`, built from `print_server_v2.py` by running `build_exe.bat` on Windows.
-It is a single self-contained exe (no `_internal` folder). The location is passed on the command line, and each location's
-printer IP is in `PRINTER_IPS` in `print_server_v2.py`.
+It is a single self-contained exe (no `_internal` folder). The location and its receipt printer's IP are passed on the
+command line by that location's .bat file, which `build_exe.bat` writes.
 
 Each location's folder has:
   print_server_v2.exe
   run_<location>_print_server.bat (e.g. run_chelsea_print_server.bat)
   <location>_print_server_secret_key.txt (e.g. chelsea_print_server_secret_key.txt, or as a CHELSEA_PRINT_SERVER_SECRET_KEY ENV variable; not provided here)
 
-Run the location's .bat file, which opens a command prompt and runs `print_server_v2.exe Chelsea` (or `Greenwich`, `Barrow`).
+Run the location's .bat file, which opens a command prompt and runs e.g. `print_server_v2.exe Chelsea --printer-ip 10.186.3.27`.
 The secret key file must be in the folder the .bat file is run from.
-If the printer's IP has changed, add `--printer-ip <ip>` to the command in the .bat file.
+If the printer's IP changes, edit the `--printer-ip` value in the .bat file; no rebuild is needed.
+
+| Location | Printer IP |
+|---|---|
+| Chelsea | 10.186.3.27 |
+| Greenwich | 192.168.105.50 |
+| Barrow | 192.168.115.147 |
 
 Chelsea's key is the server's `PRINT_SERVER_SECRET_KEY`; the old Chelsea exe read it from `print_server_secret_key.txt`.
 Greenwich's and Barrow's key file names are unchanged from their old exes.
