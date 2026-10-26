@@ -929,12 +929,17 @@ class AddCreditForm(forms.ModelForm):
         # SECURITY: ghp_user is a bound hidden field; pin it to the URL-scoped user
         # so the credit/charge can't be redirected to a different account via POST.
         cleaned_data['ghp_user'] = self.credit_ghp_user
-        # if the amount is < 0, then change the transaction to to 'manual_gh_add_misc_charge'
-        if cleaned_data['amount'] == 0:
+        amount = cleaned_data.get('amount')
+        if amount is None:
+            # amount failed field validation (empty/non-numeric); return so the
+            # field-level error surfaces instead of raising KeyError/TypeError here.
+            return cleaned_data
+        # if the amount is < 0, then change the transaction to 'manual_gh_add_misc_charge'
+        if amount == 0:
             raise ValidationError("You must enter a value other than 0")
-        elif cleaned_data.get('amount') < 0:
+        elif amount < 0:
             cleaned_data['transaction_type'] = 'manual_gh_add_misc_charge'
-        elif cleaned_data.get('amount') > 0:
+        elif amount > 0:
             cleaned_data['transaction_type'] = 'manual_gh_add_misc_credit'
 
         return cleaned_data
