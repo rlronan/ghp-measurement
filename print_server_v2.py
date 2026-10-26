@@ -14,6 +14,7 @@ POLL_INTERVAL = 60  # 60 seconds
 # Static IP of each location's receipt printer. --printer-ip overrides it without a rebuild.
 PRINTER_IPS = {
     'Chelsea': '10.186.3.27',
+    'Greenwich': '192.168.105.50',
     'Barrow': '192.168.115.147',
 }
 
