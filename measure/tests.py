@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 import numpy as np
 import decimal
@@ -75,3 +76,55 @@ class PrintJobsV2LocationTests(TestCase):
             response = self.get_jobs(**params)
             self.assertEqual(response.status_code, 403)
         self.assertEqual(self.unprinted_locations(), {'Chelsea', 'Greenwich', 'Barrow'})
+
+
+def make_ghp_user(email):
+    # GHPUser.save() creates the user's Account with a zero balance. Re-fetch so the
+    # account is loaded from the database (Decimal balance), as it is in a real request.
+    user = GHPUser.objects.create(username=email, email=email, first_name='Test', last_name='Potter')
+    return GHPUser.objects.get(pk=user.pk)
+
+
+class LedgerBalanceTests(TestCase):
+    """Saving a new Ledger must apply its amount to the user's Account balance exactly once."""
+
+    def test_new_ledgers_accumulate_into_balance(self):
+        user = make_ghp_user('ledger@example.com')
+        Ledger.objects.create(ghp_user=user, amount=decimal.Decimal('10.00'), transaction_type='manual_gh_add_misc_credit')
+        Ledger.objects.create(ghp_user=user, amount=decimal.Decimal('-3.50'), transaction_type='manual_gh_add_misc_charge')
+        self.assertEqual(Account.objects.get(ghp_user=user).balance, decimal.Decimal('6.50'))
+
+    def test_resaving_existing_ledger_does_not_change_balance(self):
+        user = make_ghp_user('resave@example.com')
+        ledger = Ledger.objects.create(ghp_user=user, amount=decimal.Decimal('10.00'), transaction_type='manual_gh_add_misc_credit')
+        ledger.note = 'edited'
+        ledger.save()
+        self.assertEqual(Account.objects.get(ghp_user=user).balance, decimal.Decimal('10.00'))
+
+
+class AddCreditViewTests(TestCase):
+    """add_credit_view must credit the user in the URL, whatever ghp_user the POST body names."""
+
+    def setUp(self):
+        self.target = make_ghp_user('target@example.com')
+        self.other = make_ghp_user('other@example.com')
+        staff = User.objects.create_superuser('staff', 'staff@example.com', 'pw')
+        self.client.force_login(staff)
+
+    def post_credit(self, amount, ghp_user):
+        url = reverse('measure:add_credit', args=(self.target.pk,))
+        return self.client.post(url, {
+            'ghp_user': ghp_user.pk, 'amount': amount,
+            'transaction_type': 'manual_gh_add_misc_credit', 'note': 'test',
+        }, secure=True)
+
+    def test_credit_goes_to_url_user_not_posted_user(self):
+        response = self.post_credit('5.00', ghp_user=self.other)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Account.objects.get(ghp_user=self.target).balance, decimal.Decimal('5.00'))
+        self.assertEqual(Account.objects.get(ghp_user=self.other).balance, decimal.Decimal('0.00'))
+
+    def test_empty_amount_shows_form_error_instead_of_crashing(self):
+        response = self.post_credit('', ghp_user=self.target)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('amount', response.context['form'].errors)
