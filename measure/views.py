@@ -981,8 +981,11 @@ def get_print_jobs_optimized(request):
                 processed_jobs = []
                 receipt_ids_to_mark = []
                 
+                # Barrow has always printed the v2 slip wording. Chelsea and Greenwich keep the
+                # wording they printed through /api/printjobs/ before moving to this endpoint.
+                format_job = job_to_printer_text_v2 if authorized_location == 'Barrow' else job_to_printer_text
                 for receipt in unprinted_receipts:
-                    processed_job = job_to_printer_text_v2(receipt)
+                    processed_job = format_job(receipt)
                     processed_jobs.append(processed_job)
                     receipt_ids_to_mark.append(receipt['id'])
                 

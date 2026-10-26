@@ -53,6 +53,23 @@ class PrintJobsV2LocationTests(TestCase):
         self.assertEqual(response.json()['count'], 1)
         self.assertEqual(self.unprinted_locations(), {'Chelsea', 'Greenwich'})
 
+    def slips(self, secret_key):
+        return {job['id']: job['print_string'] for job in self.get_jobs(secret_key=secret_key).json()['unprinted_receipts']}
+
+    def test_each_location_keeps_its_slip_wording(self):
+        # Chelsea and Greenwich keep the /api/printjobs/ wording; Barrow keeps the v2 wording
+        glaze = PieceReceipt.objects.create(
+            piece=PieceReceipt.objects.first().piece, ghp_user_name='Test Potter', receipt_type='Glaze',
+            length=4, width=4, height=4, piece_location='Greenwich',
+        )
+        greenwich = self.slips('greenwich-key')
+        self.assertIn('SAVE THIS SLIP FOR', greenwich.pop(glaze.id))
+        self.assertIn('YOUR PIECE & CLASS CHIP', greenwich.popitem()[1])
+        self.assertIn('YOUR PIECE & CLASS CHIP', self.slips('chelsea-key').popitem()[1])
+        barrow = self.slips('barrow-key').popitem()[1]
+        self.assertIn('YOUR PIECE ON THE', barrow)
+        self.assertNotIn('CLASS CHIP', barrow)
+
     def test_mismatched_location_is_rejected_and_prints_nothing(self):
         # e.g. a print server built with LOCATION = "Barrow" but given Chelsea's key
         response = self.get_jobs(secret_key='chelsea-key', location='Barrow')
