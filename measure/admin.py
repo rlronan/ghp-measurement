@@ -412,8 +412,8 @@ class PieceLocationFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            # Use a more efficient join instead of subquery
-            return queryset.filter(piecereceipt__piece_location=self.value()).distinct()
+            # Ledger reaches the receipt through its piece; it has no direct piecereceipt relation
+            return queryset.filter(piece__piecereceipt__piece_location=self.value()).distinct()
         return queryset
 
 
