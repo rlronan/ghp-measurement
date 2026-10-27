@@ -209,7 +209,9 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
     print("Found Balance: " + str(user_balance))
     if request.method == 'POST':
         print("POST request")
-        form = ModifyPieceForm(request.POST, request.FILES, ghp_user=ghp_user, piece=piece, user_balance=user_balance)# piece_image=piece_image)
+        # instance=piece: fields the form doesn't edit (paid_price, handles) must keep the
+        # piece's saved values, or Piece.save() treats the piece as having been paid $0.
+        form = ModifyPieceForm(request.POST, request.FILES, instance=piece, ghp_user=ghp_user, piece=piece, user_balance=user_balance)# piece_image=piece_image)
         if form.is_valid():
             logger.info(f"ModifyPieceForm is valid for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {ghp_user_piece_id}.")
             print("Form is valid")
@@ -234,7 +236,7 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
 
     else:
         print("GET request")
-        form = ModifyPieceForm(ghp_user=ghp_user, piece=piece, user_balance=user_balance)
+        form = ModifyPieceForm(instance=piece, ghp_user=ghp_user, piece=piece, user_balance=user_balance)
         logger.info(f"Rendering ModifyPieceForm (GET request) for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {ghp_user_piece_id}.")
     return render(request, 'measure/modify_piece.html', {'form': form})
 

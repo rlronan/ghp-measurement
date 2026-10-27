@@ -65,6 +65,11 @@ class PieceForm(forms.ModelForm):
         # Set initial values for ghp_user and ghp_user_piece_id
         self.fields['ghp_user'].initial = self.ghp_user
         self.fields['ghp_user_piece_id'].initial = Piece.objects.filter(ghp_user=self.ghp_user).count() + 1
+        # Ignore the submitted ghp_user: Piece.clean() prices the piece by this user's rates
+        # during validation, before the view pins the owner, so posting a staff member's id
+        # would make the piece free.
+        self.fields['ghp_user'].disabled = True
+        self.fields['ghp_user_piece_id'].disabled = True
 
 
         self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
@@ -199,6 +204,9 @@ class PieceForm(forms.ModelForm):
         width = cleaned_data.get('width')
         height = cleaned_data.get('height')
         handles = cleaned_data.get('handles')
+        if length is None or width is None or height is None or handles is None:
+            # A blank or invalid number already has its own field error; there is nothing to price.
+            return cleaned_data
         # Check that the length, width, and height are not negative
         if length < 0:
             self.add_error('length', 'Length must be positive')
@@ -302,6 +310,9 @@ class PieceForm(forms.ModelForm):
                 cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
 
 
+        if cleaned_data.get('quantity') is None:
+            # A blank or invalid quantity already has its own field error.
+            return cleaned_data
         # Check that the quantity is not negative
         if cleaned_data['quantity'] < 0:
             self.add_error('quantity', 'Quantity must be positive')
@@ -413,6 +424,10 @@ class ModifyPieceForm(forms.ModelForm):
         self.fields['width'].widget.attrs['readonly'] = 'readonly'
         self.fields['height'].widget.attrs['readonly'] = 'readonly'
         self.fields['handles'].widget.attrs['readonly'] = 'readonly'    
+        # The readonly attrs only stop the browser; disabled makes the server ignore submitted
+        # values and use the piece's own, so an edit can't shrink the piece to cut the price.
+        for name in ['ghp_user', 'ghp_user_piece_id', 'length', 'width', 'height', 'handles']:
+            self.fields[name].disabled = True
         # Set initial value for size
         # self.fields['size'] = forms.DecimalField(max_digits=10, decimal_places=2, initial=self.piece.size)
         # self.fields['size'].widget.attrs['readonly'] = 'readonly'
@@ -585,7 +600,21 @@ class ModifyPieceForm(forms.ModelForm):
             else:
                 cleaned_data['price'] = decimal.Decimal(MINIMUM_PRICE)
             #self.add_error('price', 'Price must be at least $' + str(MINIMUM_PRICE))
-        if self.user_balance - cleaned_data['price'] < -25:
+
+        # Check the -$25 limit against what this edit will charge, not the piece's full price,
+        # which has (at least partly) been paid already. This mirrors the charge in Piece.save():
+        # a glaze added to a fired-only piece, or a firing added to a glazed-only piece, costs
+        # the new total minus paid_price; anything else costs nothing.
+        additional_charge = decimal.Decimal(0)
+        if not self.ghp_user.current_ghp_staff:
+            previous_handles_price = self.piece.handles*decimal.Decimal(PRICE_PER_HANDLE)
+            new_price = self.piece.paid_price
+            if self.piece.firing_price > 0 and not self.piece.glazing_price > 0 and glazing_price > 0:
+                new_price = glazing_price + self.piece.firing_price + previous_handles_price
+            elif self.piece.glazing_price > 0 and not self.piece.firing_price > 0 and firing_price > 0:
+                new_price = firing_price + self.piece.glazing_price + previous_handles_price
+            additional_charge = max(new_price.quantize(decimal.Decimal('0.01')) - self.piece.paid_price, 0)
+        if self.user_balance - additional_charge < -25:
             raise ValidationError(
                 _("You cannot measure a piece that will bring your account balance below -$25.00. Please add money to your account before measuring."),
                 code="balance_too_low")
