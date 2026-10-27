@@ -672,11 +672,34 @@ class CreateGHPUserForm(UserCreationForm):
         # Check that the password and confirm password match
         if cleaned_data.get('password1') != cleaned_data.get('password2'):
             self.add_error('password2', 'Passwords do not match')
-        cleaned_data['email'] = str.lower(cleaned_data['email']) # convert email to lowercase since username is lowercase
-        # cleaned_data['username'] = str.lower(cleaned_data['username'])
-        cleaned_data['username'] = cleaned_data['email']
+        if 'email' in cleaned_data: # absent when the email field already failed validation
+            cleaned_data['email'] = str.lower(cleaned_data['email']) # convert email to lowercase since username is lowercase
+            # cleaned_data['username'] = str.lower(cleaned_data['username'])
+            cleaned_data['username'] = cleaned_data['email']
         # Return the cleaned data
         return cleaned_data
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        # The username is the email and login matches usernames case-insensitively,
+        # so an email differing from an existing account's only in case is a duplicate.
+        if email and (GHPUser.objects.filter(email__iexact=email).exists()
+                      or User.objects.filter(username__iexact=email).exists()):
+            raise ValidationError("Looks like a user with that email already exists")
+        return email
+
+class CaseInsensitiveAuthenticationForm(AuthenticationForm):
+    def clean_username(self):
+        # Usernames are emails, so accept one that differs from the stored username only
+        # in case. An exact match always wins; if several accounts match case-insensitively
+        # (duplicates created before registration rejected them), leave the username as
+        # typed so the login fails instead of guessing which account was meant.
+        username = self.cleaned_data['username']
+        if not User.objects.filter(username=username).exists():
+            matches = list(User.objects.filter(username__iexact=username).values_list('username', flat=True)[:2])
+            if len(matches) == 1:
+                return matches[0]
+        return username
 
 class GHPUserCreationForm(UserCreationForm):
     class Meta:
