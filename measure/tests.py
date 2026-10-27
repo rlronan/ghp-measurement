@@ -145,3 +145,43 @@ class AddCreditViewTests(TestCase):
         response = self.post_credit('', ghp_user=self.target)
         self.assertEqual(response.status_code, 200)
         self.assertIn('amount', response.context['form'].errors)
+
+
+class AdminLocationFilterTests(TestCase):
+    """Filtering each admin changelist by location must work, not 500."""
+
+    @classmethod
+    def setUpTestData(cls):
+        user = make_ghp_user('admin-filter@example.com')
+        # bulk_create skips Piece.save(), which does pricing/ledger work irrelevant here
+        chelsea_piece, barrow_piece = Piece.objects.bulk_create([
+            Piece(ghp_user=user, ghp_user_piece_id=1, length=4, width=4, height=4, piece_location='Chelsea'),
+            Piece(ghp_user=user, ghp_user_piece_id=2, length=4, width=4, height=4, piece_location='Barrow'),
+        ])
+        for piece in [chelsea_piece, barrow_piece]:
+            PieceReceipt.objects.create(
+                piece=piece, ghp_user_name='Test Potter', receipt_type='Bisque',
+                length=4, width=4, height=4, piece_location=piece.piece_location,
+            )
+            Ledger.objects.create(ghp_user=user, piece=piece, amount=decimal.Decimal('-5.00'),
+                                  transaction_type='manual_gh_add_misc_charge')
+        cls.chelsea_piece = chelsea_piece
+
+    def setUp(self):
+        staff = User.objects.create_superuser('staff', 'staff@example.com', 'pw')
+        self.client.force_login(staff)
+
+    def changelist(self, model):
+        url = reverse(f'admin:measure_{model}_changelist')
+        response = self.client.get(url, {'piece_location': 'Chelsea'}, secure=True)
+        self.assertEqual(response.status_code, 200)
+        return list(response.context['cl'].queryset)
+
+    def test_receipt_changelist_filters_by_location(self):
+        self.assertEqual([r.piece_location for r in self.changelist('piecereceipt')], ['Chelsea'])
+
+    def test_piece_changelist_filters_by_location(self):
+        self.assertEqual(self.changelist('piece'), [self.chelsea_piece])
+
+    def test_ledger_changelist_filters_by_location(self):
+        self.assertEqual([l.piece for l in self.changelist('ledger')], [self.chelsea_piece])
