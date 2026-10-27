@@ -55,7 +55,9 @@ else:
 
 #CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
 
-STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_51Nycv3E1Tl2FOfocx19Lu1uBahAQtLn4xrXzFDkdJuD8Ec95xzBy0UW5ekqIIk90Qe1bhb755oRy97gPnEXk7W1R00dOnwo5c1')
+# No fallback: a test-mode key in production silently breaks live checkout (sessions are
+# created with the live STRIPE_SECRET_KEY), so an unset key should fail visibly instead.
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
 
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_ENDPOINT_SECRET = os.environ.get('STRIPE_ENDPOINT_SECRET', '')
@@ -137,10 +139,9 @@ if IS_HEROKU_APP:
             ssl_require=True,
         ),
     }
-    # Add the statement timeout option after the database config is created
-    DATABASES["default"]["OPTIONS"] = {
-        'options': '-c statement_timeout=25000'  # 25 second query timeout
-    }
+    # Add the statement timeout option after the database config is created. Merge rather
+    # than replace OPTIONS, which already holds sslmode=require from ssl_require=True.
+    DATABASES["default"].setdefault("OPTIONS", {})["options"] = '-c statement_timeout=25000'  # 25 second query timeout
 else:
     DATABASES = {
         'default': {
@@ -194,6 +195,11 @@ USE_TZ = True
 if IS_HEROKU_APP:
 
     STORAGES = {
+        # Uploaded media (Piece images). NB: Heroku dyno disks are ephemeral, so files
+        # stored here are lost on every restart/deploy; durable storage needs e.g. S3.
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
         # Enable WhiteNoise's GZip and Brotli compression of static assets:
         # https://whitenoise.readthedocs.io/en/latest/django.html#add-compression-and-caching-support
         "staticfiles": {
@@ -345,15 +351,18 @@ LOGGING = {
         # Example for your application's loggers:
         'measure': {
             'handlers': ['console', 'papertrail'],
-            'level': 'DEBUG', # App-specific verbosity.
+            'level': 'DEBUG' if DEBUG else 'INFO', # App-specific verbosity.
             'propagate': False, # Or True if you want root logger to also handle its messages.
         },
     },
 }
-# Falls back to console backend for local development when MAILGUN_SMTP_PASSWORD is not set
+# Falls back to console backend for local development (DEBUG on) when MAILGUN_SMTP_PASSWORD
+# is not set. Never in production: the console backend writes whole emails, including
+# password reset links, to stdout, i.e. into the Heroku logs. Without Mailgun, production
+# keeps the SMTP backend, so sends fail and Django logs the error instead.
 EMAIL_BACKEND = os.environ.get(
     'EMAIL_BACKEND',
-    'django.core.mail.backends.smtp.EmailBackend' if os.environ.get('MAILGUN_SMTP_PASSWORD') else 'django.core.mail.backends.console.EmailBackend'
+    'django.core.mail.backends.smtp.EmailBackend' if os.environ.get('MAILGUN_SMTP_PASSWORD') or not DEBUG else 'django.core.mail.backends.console.EmailBackend'
 )
 EMAIL_HOST = 'smtp.mailgun.org'
 EMAIL_PORT = 587
@@ -363,16 +372,22 @@ EMAIL_HOST_PASSWORD = os.environ.get('MAILGUN_SMTP_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@greenwichhouse.org')
 
 if not os.environ.get('MAILGUN_SMTP_PASSWORD') and not os.environ.get('EMAIL_BACKEND'):
-    import logging
     logging.getLogger(__name__).warning(
         'MAILGUN_SMTP_PASSWORD is not set — email backend defaulting to console. '
         'Password reset emails will be printed to stdout, not sent.'
+        if DEBUG else
+        'MAILGUN_SMTP_PASSWORD is not set — password reset emails will fail to send.'
     )
 
 
 LOGIN_URL = '/login/'
 
-django_on_heroku.settings(locals(), staticfiles=True)
+# logging=False: otherwise django_on_heroku replaces LOGGING above with its own config,
+# which drops the django.request handlers, so 500 tracebacks go unlogged with DEBUG off.
+# databases: on a Heroku app DATABASES above already reads DATABASE_URL (with SSL); letting
+# django_on_heroku redo it would drop the statement_timeout and health checks. Elsewhere
+# (local, Heroku CI) keep its DATABASE_URL and CI test-database handling.
+django_on_heroku.settings(locals(), staticfiles=True, logging=False, databases=not IS_HEROKU_APP)
 # config = locals()
 # config['STORAGES']['staticfiles'] = config['STATICFILES_STORAGE']
 # del config['STATICFILES_STORAGE']

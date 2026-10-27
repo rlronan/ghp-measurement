@@ -545,8 +545,17 @@ def stripe_webhook(request):
     print("In stripe webhook view...")
     stripe.api_key = settings.STRIPE_SECRET_KEY
     endpoint_secret = settings.STRIPE_ENDPOINT_SECRET
+    if not endpoint_secret:
+        # An empty secret makes signature checks meaningless: anyone can sign a forged
+        # event with the empty key. Refuse with a 500 so Stripe keeps retrying until
+        # STRIPE_ENDPOINT_SECRET is configured, rather than accepting forged events.
+        logger.error("STRIPE_ENDPOINT_SECRET is not set; refusing Stripe webhook.")
+        return HttpResponse(status=500)
     payload = request.body
-    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    if not sig_header:
+        logger.warning("Stripe webhook request has no Stripe-Signature header.")
+        return HttpResponse(status=400)
     event = None
     print("Received webhook")
     try:
@@ -569,9 +578,11 @@ def stripe_webhook(request):
 
     logger.info(f"Processing Stripe event type: {event['type']}")
     print("Event type: {}".format(event['type']))
-    # Handle the checkout.session.completed event
-    if event['type'] == 'checkout.session.completed':
-        logger.info(f"Processing checkout.session.completed event. Session ID: {event['data']['object']['id']}")
+    # Handle the checkout.session.completed event. With delayed payment methods (e.g. bank
+    # debits) checkout completes before the money arrives (payment_status 'unpaid'), and
+    # checkout.session.async_payment_succeeded fires once it has been paid.
+    if event['type'] in ('checkout.session.completed', 'checkout.session.async_payment_succeeded'):
+        logger.info(f"Processing {event['type']} event. Session ID: {event['data']['object']['id']}")
         print("Event type is checkout.session.completed")
         print("Event: {}".format(event))
         print("Event type: {}".format(event['type']))
@@ -579,6 +590,11 @@ def stripe_webhook(request):
         print("Event object: {}".format(event['data']['object']))
 
         session = event['data']['object']
+        if session.get('payment_status') != 'paid':
+            # Only credit money that has actually been collected. Return 200 so Stripe
+            # doesn't retry; a later async_payment_succeeded event credits the account.
+            logger.info(f"Not crediting Stripe session ID: {session.get('id')}; payment_status is {session.get('payment_status')!r}.")
+            return HttpResponse(status=200)
         print("Payment was successful.")
         # This method will be called when user successfully purchases something.
         print("Calling handle_checkout_session")
@@ -644,7 +660,8 @@ def handle_checkout_session(session):
         ghp_user_transaction_number = Ledger.objects.filter(ghp_user=ghp_user).count() + 1
         print("GHP user: {}".format(ghp_user))
         print("GHP user transaction number: {}".format(ghp_user_transaction_number))
-        amount = decimal.Decimal(float(session.get("amount_subtotal")) / 100.0 )# cents to dollars to decimal
+        # cents to dollars in exact Decimal arithmetic (going through float gives e.g. 12.3399999...)
+        amount = (decimal.Decimal(int(session.get("amount_subtotal"))) / 100).quantize(decimal.Decimal('0.01'))
         print("Amount: {}".format(amount))
         try:
             # Check if this is a duplicate transaction 2/10/24
