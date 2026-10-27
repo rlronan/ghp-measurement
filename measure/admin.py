@@ -1,4 +1,6 @@
+from django import forms
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
 from django.utils import timezone
@@ -451,6 +453,41 @@ class GHPUserResource(resources.ModelResource):
         fields = ('first_name', 'last_name', 'username', 'email', 'current_location', )
         export_order = ('first_name', 'last_name', 'email', 'current_location', )
 
+    def before_import(self, dataset, **kwargs):
+        super().before_import(dataset, **kwargs)
+        self.seen_usernames = set()
+
+    def before_import_row(self, row, **kwargs):
+        super().before_import_row(row, **kwargs)
+        # A repeated username would silently overwrite the earlier row's user
+        if row.get('username') in self.seen_usernames:
+            raise ValidationError({'username': 'This username appears more than once in the file.'})
+        self.seen_usernames.add(row.get('username'))
+
+    def validate_instance(self, instance, import_validation_errors=None, validate_unique=True):
+        # Rows are saved without validation by default (clean_model_instances is off).
+        # Run the model's validation (email format, location choices, username rules) on
+        # the imported fields only, as a ModelForm would (imported rows carry no password
+        # or consent_date), plus the rules registration enforces.
+        errors = dict(import_validation_errors or {})
+        not_imported = [field.name for field in instance._meta.fields if field.name not in self._meta.fields]
+        try:
+            instance.full_clean(exclude=list(errors) + not_imported, validate_unique=validate_unique)
+        except ValidationError as e:
+            errors = e.update_error_dict(errors)
+        for field in ['first_name', 'last_name', 'email']:
+            if not getattr(instance, field) and field not in errors:
+                errors[field] = ['This field is required.']
+        if 'email' not in errors and 'username' not in errors:
+            # Login and the PlaceholderAccount balance lookup both use username, which
+            # registration always sets to the lowercased email
+            if instance.username != instance.email.lower():
+                errors['username'] = ['Username must be the lowercased email address.']
+            elif GHPUser.objects.filter(email__iexact=instance.email).exclude(pk=instance.pk).exists():
+                errors['email'] = ['Another user already has this email address.']
+        if errors:
+            raise ValidationError(errors)
+
     # def after_import_row(self, row, row_result, **kwargs):
     #     """
     #     Update the balance if the user already exists and balance is 0.0
@@ -577,12 +614,11 @@ class GHPUserAdmin(ImportExportModelAdmin):
         writer = csv.writer(response)
 
         writer.writerow(field_names + ['balance', 'last_balance_update'])
-        for obj in queryset:
+        for obj in queryset.select_related('account'):
             # A user may legitimately have no Account (see GHPUser.get_balance()),
-            # so fetch once with .first() and write blanks rather than indexing an
-            # empty queryset with [0], which would raise IndexError and abort the
-            # entire export for every selected user.
-            obj_account = Account.objects.filter(ghp_user=obj).first()
+            # so write blanks rather than aborting the entire export for every
+            # selected user.
+            obj_account = getattr(obj, 'account', None)
             balance = obj_account.balance if obj_account else None
             last_update = obj_account.last_update if obj_account else None
             writer.writerow([getattr(obj, field) for field in field_names] + [balance, last_update])
@@ -710,6 +746,14 @@ class AccountAdmin(admin.ModelAdmin):
     def current_location(self, obj):
         return str(obj.ghp_user.current_location)
 
+    # GHPUser.save() creates each Account; adding one here would create a balance with
+    # no ledger rows, and deleting one would lose the balance
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     def get_actions(self, request):
         actions = super().get_actions(request)
         if 'delete_selected' in actions:
@@ -806,6 +850,15 @@ class PieceAdmin(admin.ModelAdmin):
             return str(receipts[0].piece_location)
         return None
 
+    # Pieces are measured through the site, which charges for them; every pricing field
+    # here is read-only, so the add form could only crash. Deleting a piece would drop
+    # its receipts and unlink its ledger rows; use Refund Piece instead.
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     def get_actions(self, request):
         actions = super().get_actions(request)
         if 'delete_selected' in actions:
@@ -847,7 +900,8 @@ class PieceAdmin(admin.ModelAdmin):
     #     for obj in queryset:
     #         obj_piece = Piece.objects.filter(id=obj.piece.id).first()
     #         row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_piece.ghp_user.email])
-            receipt = PieceReceipt.objects.filter(piece=obj).first()
+            # first receipt by pk, from the get_queryset() prefetch
+            receipt = min(obj.piecereceipt_set.all(), key=lambda r: r.pk, default=None)
             if receipt is None:
                 row = writer.writerow([getattr(obj, field) for field in field_names] + [None, obj.ghp_user.email])
             else:
@@ -875,7 +929,18 @@ class PieceReciptAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('piece__ghp_user')
-    
+
+    # Receipts record what was charged and are created by Piece.save(). Staff may only
+    # toggle `printed` (to reprint); the actions below handle moving receipts.
+    def get_readonly_fields(self, request, obj=None):
+        return [field.name for field in self.model._meta.fields if field.name not in ('id', 'printed')]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     @admin.action(description="Reprint the receipt")
     def reprint_receipt(self, request, queryset):
         for obj in queryset:
@@ -912,7 +977,19 @@ class PieceReciptAdmin(admin.ModelAdmin):
         return actions
 
 
+class LedgerAdminForm(forms.ModelForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        ghp_user = cleaned_data.get('ghp_user')
+        piece = cleaned_data.get('piece')
+        if ghp_user and piece and piece.ghp_user_id != ghp_user.pk:
+            self.add_error('piece', 'This piece belongs to a different user.')
+        return cleaned_data
+
+
 class LedgerAdmin(admin.ModelAdmin):
+    form = LedgerAdminForm
+
     list_display = [ 'transaction_type', 'date', 'amount', 'ghp_user', 'piece', 
                     'note', 'transaction_id', 'stripe_session_id', 'piece_location']
     
@@ -945,7 +1022,8 @@ class LedgerAdmin(admin.ModelAdmin):
     list_max_show_all = 200
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('ghp_user', 'piece').prefetch_related('piece__piecereceipt_set')
+        # str(piece) reads piece.ghp_user, so follow it too (changelist column and export)
+        return super().get_queryset(request).select_related('ghp_user', 'piece__ghp_user').prefetch_related('piece__piecereceipt_set')
 
     @admin.display(description="piece_location")
     def piece_location(self, obj):
@@ -967,6 +1045,10 @@ class LedgerAdmin(admin.ModelAdmin):
             return self.readonly_fields + list(tuple([item.name for item in obj._meta.fields if item.name != "note"]))
         return self.readonly_fields
 
+    # Deleting a ledger row would leave the balance it was applied to unchanged;
+    # correct mistakes with a compensating entry instead
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -988,7 +1070,9 @@ class LedgerAdmin(admin.ModelAdmin):
         writer.writerow(field_names + ['piece_location'])
         for obj in queryset:
 
-            receipt = PieceReceipt.objects.filter(piece=obj.piece).last()
+            # last receipt by pk, from the get_queryset() prefetch
+            receipts = obj.piece.piecereceipt_set.all() if obj.piece else []
+            receipt = max(receipts, key=lambda r: r.pk, default=None)
             if receipt is None:
                 row = writer.writerow([getattr(obj, field) for field in field_names] + [None])
             else:

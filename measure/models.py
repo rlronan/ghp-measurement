@@ -107,7 +107,15 @@ class GHPUser(User):
             if PlaceholderAccount.objects.filter(email=self.username).exists():
                 # If there is, we should use the prexisting account to set the user's initial balance
                 balance = PlaceholderAccount.objects.get(email=self.username).balance
-                Account.objects.create(ghp_user=self, balance=balance, last_update=timezone.now())
+                # Open the account at zero and carry the balance over as a ledger row, so the
+                # balance still equals the sum of the user's ledger (Ledger.save applies it)
+                Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
+                Ledger.objects.create(
+                    ghp_user=self,
+                    amount=balance,
+                    transaction_type='auto_gh_add_misc_credit' if balance > 0 else 'auto_gh_add_misc_charge',
+                    note='Balance carried over from placeholder account',
+                )
                 print("Account created for GHPUser: {} and balance: {}".format(self.username, balance))
             else:
                 Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
@@ -905,7 +913,9 @@ class Ledger(models.Model):
         db_table = 'ledger'
 
     def __str__(self):
-        return self.ghp_user.first_name[:1] + '. ' + self.ghp_user.last_name + ' tr. #' + str(self.ghp_user_transaction_number) + ' ' \
+        # ghp_user is SET_NULL, so rows outlive a deleted user
+        name = self.ghp_user.first_name[:1] + '. ' + self.ghp_user.last_name if self.ghp_user else '(deleted user)'
+        return name + ' tr. #' + str(self.ghp_user_transaction_number) + ' ' \
                 + self.date.strftime(r'%m/%d/%y') + ' ' + self.date.strftime(r'%H:%M:%S') + ' $' + str(self.amount) + ' ' \
                 + self.transaction_type + ' (' + self.note + ')'
 
