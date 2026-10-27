@@ -740,94 +740,53 @@ class RefundPieceForm(forms.ModelForm):
         self.fields['note'].initial = 'Refund for piece: ' + piece.__str__()
         self.fields['note'].widget = forms.Textarea(attrs={'rows': 4, 'cols': 20})
 
-        glazing_fee = False
-        firing_fee = False
-        self.fields['firing_fee_refunded'].initial = False
-        self.fields['glazing_fee_refunded'].initial = False
+        # Work out what is still refundable for each fee from this piece's ledger rows:
+        # fees charged (negative amounts) minus refunds already given (positive amounts).
+        # clean() refunds these amounts, never amounts posted back by the browser.
+        zero = decimal.Decimal('0.00')
+        firing_charged = firing_refunded = glazing_charged = glazing_refunded = zero
+        for ledger in ledgers:
+            transaction_type = ledger.transaction_type.lower()
+            if transaction_type == 'auto_bisque_fee':
+                firing_charged += -1*ledger.amount
+            elif transaction_type == 'auto_glaze_fee':
+                glazing_charged += -1*ledger.amount
+            elif transaction_type == 'auto_refund_bisque_fee':
+                firing_refunded += ledger.amount
+            elif transaction_type == 'auto_refund_glaze_fee':
+                glazing_refunded += ledger.amount
+            else:
+                print("Ignoring ledger which is not a firing or glazing fee or refund: ", ledger)
 
-        self.fields['firing_fee_refund'].initial = 0
-        self.fields['glazing_fee_refund'].initial = 0
+        firing_remaining = firing_charged - firing_refunded
+        glazing_remaining = glazing_charged - glazing_refunded
+        # Glaze refunds used to be saved as auto_refund_bisque_fee by mistake, so one fee
+        # can look over-refunded. Count the excess against the other fee, so the total
+        # refunded for the piece can never exceed the total charged.
+        if firing_remaining < 0:
+            glazing_remaining += firing_remaining
+            firing_remaining = zero
+        if glazing_remaining < 0:
+            firing_remaining += glazing_remaining
+            glazing_remaining = zero
+        self.firing_fee_remaining = max(firing_remaining, zero)
+        self.glazing_fee_remaining = max(glazing_remaining, zero)
+        self.glazing_refund_ledger = None  # set by clean() when both fees are refunded
 
-        # Go through the ledgers and get the firing and glazing fees paid
-        num_ledgers = len(ledgers)
-        print("num_ledgers: ", num_ledgers)
-        if num_ledgers == 0:
-            # nothing to refund, this should never happen because
-            # you should not be able to measure a piece without paying for it, 
-            # but just in case, set everything to 0
-            self.fields['firing_fee_refund'].initial = 0
-            self.fields['glazing_fee_refund'].initial = 0
-            self.fields['amount'].initial = 0
+        self.fields['firing_fee_refunded'].initial = firing_refunded > 0
+        self.fields['glazing_fee_refunded'].initial = glazing_refunded > 0
 
-        else:
-            for ledger in ledgers:
-                print("ledger: ", ledger)
-                if ledger.transaction_type.lower() == 'auto_bisque_fee':
-                    print("found a bisque fee of amount: ", ledger.amount)
-                    firing_fee = True
-                    self.fields['firing_fee_refund'].initial += -1*ledger.amount
-                    print("firing_fee_refund: ", self.fields['firing_fee_refund'].initial)
-                
-                elif ledger.transaction_type.lower() == 'auto_glaze_fee':
-                    print("found a glaze fee of amount: ", ledger.amount)
-                    glazing_fee = True
-                    self.fields['glazing_fee_refund'].initial += -1*ledger.amount
-                
-                elif ledger.transaction_type.lower() == 'auto_refund_bisque_fee':
-                    print("found a bisque fee refund of amount: ", ledger.amount)
-                    self.fields['firing_fee_refunded'].initial = True
-                    self.fields['firing_fee_refund'].initial += -1*ledger.amount
-                
-                elif ledger.transaction_type.lower() == 'auto_refund_glaze_fee':
-                    print("found a glaze fee refund of amount: ", ledger.amount)
-                    self.fields['glazing_fee_refunded'].initial = True
-                    self.fields['glazing_fee_refund'].initial += -1*ledger.amount
-                
-                elif glazing_fee and firing_fee:
-                    raise ValidationError("ERROR: The ledger is both a glazing fee and a firing fee")
-                    # this should not be possible anymore with 1 ledger. 
-                
-                else:
-                    print("ERROR: There is at least one ledger which does not apear to be a glazing or firing fee")
-                print("firing_fee_refunded: ", self.fields['firing_fee_refunded'].initial)
+        # disabled: Django ignores any posted value for these and uses the initial
+        # (server-computed) value instead, so they cannot be edited or replayed.
+        for name, value in [('firing_fee_refund', self.firing_fee_remaining),
+                            ('glazing_fee_refund', self.glazing_fee_remaining),
+                            ('amount', self.firing_fee_remaining + self.glazing_fee_remaining)]:
+            self.fields[name].initial = value
+            self.fields[name].disabled = True
 
-        if self.fields['firing_fee_refunded'].initial:
-            assert firing_fee == True, 'ERROR: The firing fee was refunded, but there is no firing fee ledger'
-        
-            if self.fields['firing_fee_refund'].initial != 0:
-                # This should never happen, but handle numerical errors in case
-                assert self.fields['firing_fee_refund'].initial <= 0.1, \
-                       "Error: firing fee was previously refunded, but the firing fee and refund amount do not match"
-                self.fields['firing_fee_refund'].initial = 0
-        
-        if self.fields['glazing_fee_refunded'].initial:
-            assert glazing_fee == True, 'ERROR: The glazing fee was refunded, but there is no glazing fee ledger'
-        
-            if self.fields['glazing_fee_refund'].initial != 0:
-                # This should never happen, but handle numerical errors in case
-                assert self.fields['glazing_fee_refund'].initial <= 0.1, \
-                       "Error: glazing fee was previously refunded, but the glazing fee and refund amount do not match"
-                self.fields['glazing_fee_refund'].initial = 0
-        
-        if firing_fee and not self.fields['firing_fee_refunded'].initial:
-            assert self.fields['firing_fee_refund'].initial >= 0.5, \
-                   'Error: There is a firing fee which was not refunded, \
-                    but the refund amount is not at least $0.50'
-        
-        
-        if glazing_fee and not self.fields['glazing_fee_refunded'].initial:
-            assert self.fields['glazing_fee_refund'].initial >= 0.5, \
-                   'Error: There is a glazing fee which was not refunded, \
-                    but the refund amount is not at least $0.50'
-        
-        
-        self.fields['amount'].initial = self.fields['firing_fee_refund'].initial + self.fields['glazing_fee_refund'].initial
-        self.fields['amount'].widget.attrs['readonly'] = 'readonly'
-
-
-        if self.fields['firing_fee_check'] and firing_fee >= 0.5:
+        if self.firing_fee_remaining > 0:
             self.fields['transaction_type'].initial = 'auto_refund_bisque_fee'
-        elif self.fields['glazing_fee_check'] and glazing_fee >= 0.5:
+        elif self.glazing_fee_remaining > 0:
             self.fields['transaction_type'].initial = 'auto_refund_glaze_fee'
         else:
             self.fields['transaction_type'].initial = 'auto_refund_bisque_fee'
@@ -840,54 +799,57 @@ class RefundPieceForm(forms.ModelForm):
 
         # SECURITY: ghp_user and piece are bound hidden fields, so their POSTed
         # values are attacker-controllable. Pin them to the URL-scoped user/piece
-        # the view passed in, so neither the firing-fee ledger (saved by the view)
-        # nor the glaze-fee ledger created below in this method can be redirected
+        # the view passed in, so neither the firing-fee ledger nor the split-off
+        # glaze-fee ledger built below (both saved by the view) can be redirected
         # to a different account.
         cleaned_data['ghp_user'] = self.ghp_refund_user
         cleaned_data['piece'] = self.refund_piece
 
         # Get the glazing fee check
         glazing_fee_check = cleaned_data.get('glazing_fee_check')
-        glazing_fee_refund = cleaned_data.get('glazing_fee_refund')
         # Get the firing fee check
         firing_fee_check = cleaned_data.get('firing_fee_check')
-        firing_fee_refund = cleaned_data.get('firing_fee_refund')
 
-        # Get the amount
-        amount = cleaned_data.get('amount')
+        # Refund what is still refundable for each ticked fee, as computed in
+        # __init__ from the ledgers, never an amount posted by the browser.
+        zero = decimal.Decimal('0.00')
+        firing_fee_refund = self.firing_fee_remaining if firing_fee_check else zero
+        glazing_fee_refund = self.glazing_fee_remaining if glazing_fee_check else zero
+        self.glazing_refund_ledger = None
 
-        if firing_fee_check and glazing_fee_check:
-            # want to refund both fees
-            if ((firing_fee_refund > 0) and (glazing_fee_refund > 0)):
-                # we need to create two ledgers actually, one for each refund type
-                # so split off the glazing fee refund into a separate ledger
-                # and then use this ledger to create the firing fee refund
-                glazing_fee_ledger = Ledger(
-                    ghp_user = cleaned_data.get('ghp_user'),
-                    amount = glazing_fee_refund,
-                    transaction_type = 'auto_refund_glaze_fee',
-                    note = cleaned_data.get('note'),
-                    piece = cleaned_data.get('piece')
-                )
-                glazing_fee_ledger.save()
-
-                # This ledger is the firing fee ledger, so just set the amount to 
-                # the firing fee refund, and the transaction_type to auto_refund_bisque_fee,
-                # and keep the note and piece the same
-                cleaned_data['amount'] = firing_fee_refund
-                cleaned_data['transaction_type'] = 'auto_refund_bisque_fee'
-                #cleaned_data['note'] = cleaned_data.get('note') 
-        elif firing_fee_check:
-            # want to refund firing fee only
-            cleaned_data['transaction_type'] = 'auto_refund_bisque_fee'
-            cleaned_data['amount'] = firing_fee_refund
-        elif glazing_fee_check:
-            # want to refund glazing fee only
-            cleaned_data['transaction_type'] = 'auto_refund_glaze_fee'
-            cleaned_data['amount'] = glazing_fee_refund
-        else:
+        if not (firing_fee_check or glazing_fee_check):
             print("ERROR: No glazing or firing fee was selected")
             raise ValidationError("You must refund at least one fee. To Cance, go back to the previous page.")
+        elif firing_fee_refund <= 0 and glazing_fee_refund <= 0:
+            raise ValidationError("There is nothing left to refund for the selected fee(s). "
+                                  "This piece may already have been refunded.")
+        elif firing_fee_refund > 0 and glazing_fee_refund > 0:
+            # we need to create two ledgers actually, one for each refund type
+            # so split off the glazing fee refund into a separate ledger
+            # and then use this ledger to create the firing fee refund.
+            # The view saves the split-off ledger, and only if the whole form is
+            # valid: clean() runs even when individual fields have errors.
+            self.glazing_refund_ledger = Ledger(
+                ghp_user = cleaned_data.get('ghp_user'),
+                amount = glazing_fee_refund,
+                transaction_type = 'auto_refund_glaze_fee',
+                note = cleaned_data.get('note'),
+                piece = cleaned_data.get('piece')
+            )
+
+            # This ledger is the firing fee ledger, so just set the amount to
+            # the firing fee refund, and the transaction_type to auto_refund_bisque_fee,
+            # and keep the note and piece the same
+            cleaned_data['amount'] = firing_fee_refund
+            cleaned_data['transaction_type'] = 'auto_refund_bisque_fee'
+        elif firing_fee_refund > 0:
+            # refund firing fee only (glazing unticked, or nothing left to refund)
+            cleaned_data['transaction_type'] = 'auto_refund_bisque_fee'
+            cleaned_data['amount'] = firing_fee_refund
+        else:
+            # refund glazing fee only (firing unticked, or nothing left to refund)
+            cleaned_data['transaction_type'] = 'auto_refund_glaze_fee'
+            cleaned_data['amount'] = glazing_fee_refund
         # Return the cleaned data
         print("Transaction type: ", cleaned_data.get('transaction_type'))
 
