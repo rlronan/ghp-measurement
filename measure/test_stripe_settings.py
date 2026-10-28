@@ -27,7 +27,8 @@ def sign_payload(payload, secret):
 
 
 def checkout_event(ghp_user, session_id='cs_test_1', amount_subtotal=1234,
-                   payment_status='paid', event_type='checkout.session.completed'):
+                   payment_status='paid', event_type='checkout.session.completed', guest_email=None):
+    # guest_email: a checkout not started from the site (no client_reference_id), e.g. a payment link
     return json.dumps({
         'id': 'evt_' + session_id,
         'object': 'event',
@@ -35,11 +36,11 @@ def checkout_event(ghp_user, session_id='cs_test_1', amount_subtotal=1234,
         'data': {'object': {
             'id': session_id,
             'object': 'checkout.session',
-            'client_reference_id': str(ghp_user.pk),
+            'client_reference_id': None if guest_email else str(ghp_user.pk),
             'amount_subtotal': amount_subtotal,
             'payment_status': payment_status,
             'payment_intent': 'pi_test',
-            'customer_details': {'email': ghp_user.email},
+            'customer_details': {'email': guest_email or ghp_user.email},
         }},
     })
 
@@ -97,6 +98,23 @@ class StripeWebhookTests(TestCase):
         self.post_event(checkout_event(self.user, session_id='cs_whole', amount_subtotal=1200))
         self.assertEqual(Ledger.objects.get(stripe_session_id='cs_cents').note, 'Stripe Payment of $12.34')
         self.assertEqual(Ledger.objects.get(stripe_session_id='cs_whole').note, 'Stripe Payment of $12.00')
+
+    def test_guest_checkout_is_credited_to_member_with_that_email(self):
+        response = self.post_event(checkout_event(self.user, guest_email='Buyer@Example.com'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Ledger.objects.get(stripe_session_id='cs_test_1').ghp_user, self.user)
+
+    def test_guest_checkout_with_unknown_email_is_not_credited(self):
+        response = self.post_event(checkout_event(self.user, guest_email='stranger@example.com'))
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Ledger.objects.exists())
+
+    def test_guest_checkout_with_ambiguous_email_is_not_credited(self):
+        # Two members whose emails differ only in case: don't guess which one paid
+        make_ghp_user('BUYER@example.com')
+        response = self.post_event(checkout_event(self.user, guest_email='buyer@example.com'))
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Ledger.objects.exists())
 
 
 HEROKU_ENV = {

@@ -634,14 +634,22 @@ def handle_checkout_session(session):
         print("WARNING: Client wasn't logged in when purchasing!")
         # Customer wasn't logged in when purchasing
         print("Trying to match customer by email")
-        email = session.get("customer_details").get("email")
+        email = (session.get("customer_details") or {}).get("email")
         if email is None:
             email = session.get("customer_email")
         print("Email: {}".format(email))
         if email is not None:
-            try: 
-                ghp_user = GHPUser.objects.get(email=session.get("customer_email"))
+            try:
+                # Emails are matched case-insensitively everywhere else (registration, login)
+                ghp_user = GHPUser.objects.get(email__iexact=email)
                 logger.info(f"Found GHPUser by email: {email} for Stripe session ID: {session_id}. User: {ghp_user.username}")
+                # Credit the member found by email below, rather than looking up pk=None
+                client_reference_id = ghp_user.pk
+            except GHPUser.MultipleObjectsReturned:
+                logger.error(f"More than one GHPUser has email: {email} for Stripe session ID: {session_id}. Payment not processed by website.", extra={'stripe_session': session})
+                print("ERROR: STAFF WILL HAVE TO MANUALLY ADD CREDIT TO USER ACCOUNT.")
+                return HttpResponse(status=400,
+                                    content="More than one account has this email! Stripe payment was not processed by website!")
             except GHPUser.DoesNotExist:
                 logger.error(f"Could not find GHPUser by email: {email} for Stripe session ID: {session_id}. Payment not processed by website.", extra={'stripe_session': session})
                 print("WARNING: Could not find customer by email")
