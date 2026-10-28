@@ -44,7 +44,10 @@ def acquire_single_instance_lock(location):
         lock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
     try:
         lock.bind(('127.0.0.1', SINGLE_INSTANCE_PORTS[location]))
-    except OSError:
+    except OSError as e:
+        # Usually another copy holds the port, but Windows can also reserve port ranges
+        # (Hyper-V, WSL), so show the actual error
+        print(f"Could not hold local port {SINGLE_INSTANCE_PORTS[location]}: {e}")
         lock.close()
         return None
     return lock
@@ -236,9 +239,10 @@ def main(argv=None):
 
     instance_lock = acquire_single_instance_lock(location)
     if instance_lock is None:
-        print(f"Another {location} print server is already running on this computer "
-              f"(it holds local port {SINGLE_INSTANCE_PORTS[location]}).")
+        print(f"Another {location} print server is probably already running on this computer "
+              f"(it would hold local port {SINGLE_INSTANCE_PORTS[location]}).")
         print("Close that print server's window first, or keep using it. This one will not print anything.")
+        print("If no other copy is running, the error above says what is holding the port.")
         sys.exit(1)
 
     secret_key = load_secret_key(location)

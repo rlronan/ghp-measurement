@@ -187,6 +187,16 @@ class MainLoopTests(PrintClientTestCase):
         self.assertEqual(exit.exception.code, 1)
         get.get.assert_not_called()
 
+    def test_lock_failure_reports_the_os_error(self):
+        # e.g. Windows (Hyper-V/WSL) has reserved the port: say why, not just "already running"
+        sock = mock.MagicMock()
+        sock.bind.side_effect = OSError(10013, 'An attempt was made to access a socket in a way forbidden by its access permissions')
+        out = io.StringIO()
+        with mock.patch.object(print_server_v2.socket, 'socket', return_value=sock), \
+                contextlib.redirect_stdout(out), self.assertRaises(SystemExit):
+            self.run_main(polls=1)
+        self.assertIn('forbidden by its access permissions', out.getvalue())
+
 
 @unittest.skipIf(print_server_v2 is None, 'needs python-escpos and requests')
 class SingleInstanceLockTests(unittest.TestCase):

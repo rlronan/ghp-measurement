@@ -20,8 +20,10 @@ The secret key file must be in the folder the .bat file is run from.
 If the printer's IP changes, edit the `--printer-ip` value in the .bat file; no rebuild is needed.
 
 Only one print server per location can run on a computer: a second copy prints
-"Another <location> print server is already running on this computer" and exits. Close the other window first.
+"Another <location> print server is probably already running on this computer" and exits. Close the other window first.
 (Each location's print server holds a localhost port while it runs: Barrow 48631, Chelsea 48632, Greenwich 48633.)
+If no other copy is running, the line above that message gives the actual error; Windows can reserve port ranges
+for Hyper-V or WSL, which `netsh interface ipv4 show excludedportrange protocol=tcp` lists.
 
 The server marks receipts printed when it hands them to the print server, so receipts that fail to print
 (e.g. the printer is off) are kept in `<location>_unprinted_receipts.json` (e.g. `chelsea_unprinted_receipts.json`)
