@@ -604,7 +604,8 @@ class ModifyPieceForm(forms.ModelForm):
         # Check the -$25 limit against what this edit will charge, not the piece's full price,
         # which has (at least partly) been paid already. This mirrors the charge in Piece.save():
         # a glaze added to a fired-only piece, or a firing added to a glazed-only piece, costs
-        # the new total minus paid_price; anything else costs nothing.
+        # the new total minus paid_price; anything else costs nothing, so it is allowed even
+        # below the limit.
         additional_charge = decimal.Decimal(0)
         if not self.ghp_user.current_ghp_staff:
             previous_handles_price = self.piece.handles*decimal.Decimal(PRICE_PER_HANDLE)
@@ -614,7 +615,7 @@ class ModifyPieceForm(forms.ModelForm):
             elif self.piece.glazing_price > 0 and not self.piece.firing_price > 0 and firing_price > 0:
                 new_price = firing_price + self.piece.glazing_price + previous_handles_price
             additional_charge = max(new_price.quantize(decimal.Decimal('0.01')) - self.piece.paid_price, 0)
-        if self.user_balance - additional_charge < -25:
+        if additional_charge > 0 and self.user_balance - additional_charge < -25:
             raise ValidationError(
                 _("You cannot measure a piece that will bring your account balance below -$25.00. Please add money to your account before measuring."),
                 code="balance_too_low")

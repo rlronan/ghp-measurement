@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.db import connection
+from django.test import TestCase, TransactionTestCase
 import decimal
+from unittest import mock
 from django.urls import reverse
 from .models import GHPUser, Account, Piece, Ledger, PieceReceipt
 from .tests import make_ghp_user
@@ -40,7 +42,7 @@ def piece_post_data(user, length=4, width=4, height=4, handles=2, bisque='06', g
     return data
 
 
-class PieceEditTestBase(TestCase):
+class PieceEditHelpers:
 
     def setUp(self):
         self.user = make_ghp_user('editor@example.com')
@@ -72,6 +74,15 @@ class PieceEditTestBase(TestCase):
 
     def fees(self):
         return -sum(Ledger.objects.filter(ghp_user=self.user, amount__lt=0).values_list('amount', flat=True))
+
+    def set_balance(self, target):
+        Ledger.objects.create(ghp_user=self.user, amount=D(target) - self.balance(),
+                              transaction_type='manual_gh_add_misc_charge')
+        self.assertEqual(self.balance(), D(target))
+
+
+class PieceEditTestBase(PieceEditHelpers, TestCase):
+    pass
 
 
 class EditChargesDifferenceTests(PieceEditTestBase):
@@ -210,11 +221,6 @@ class BlankInputTests(PieceEditTestBase):
 class EditBalanceLimitTests(PieceEditTestBase):
     """The -$25 limit on an edit must be checked against what the edit will charge, not the piece's full price."""
 
-    def set_balance(self, target):
-        Ledger.objects.create(ghp_user=self.user, amount=D(target) - self.balance(),
-                              transaction_type='manual_gh_add_misc_charge')
-        self.assertEqual(self.balance(), D(target))
-
     def test_free_edit_allowed_near_limit(self):
         piece = self.create_piece()
         self.set_balance('-24.00')
@@ -223,6 +229,16 @@ class EditBalanceLimitTests(PieceEditTestBase):
         piece.refresh_from_db()
         self.assertEqual(piece.note, 'no charge')
         self.assertEqual(self.balance(), D('-24.00'))
+
+    def test_free_edit_allowed_below_limit(self):
+        # An edit that charges nothing doesn't lower the balance, so the limit doesn't apply.
+        piece = self.create_piece()
+        self.set_balance('-33.84')
+        response = self.edit_piece(piece, note='no charge')
+        self.assertEqual(response.status_code, 302)
+        piece.refresh_from_db()
+        self.assertEqual(piece.note, 'no charge')
+        self.assertEqual(self.balance(), D('-33.84'))
 
     def test_add_on_within_limit_allowed(self):
         piece = self.create_piece()
@@ -267,3 +283,44 @@ class PostedOwnerDoesNotSetPriceTests(PieceEditTestBase):
         piece.refresh_from_db()
         self.assertEqual(piece.glazing_price, GLAZE_ADD_ON)
         self.assertEqual(self.fees(), BISQUE_ONLY_PRICE + GLAZE_ADD_ON)
+
+
+class ConcurrentEditTests(PieceEditHelpers, TransactionTestCase):
+    """Two submissions of the same add-on (e.g. a double-click) must charge it once.
+
+    SQLite ignores select_for_update, so these tests can't run two requests against a real
+    row lock. They check that the view locks the piece inside its own transaction and then
+    works from the freshly read row; the lock itself only blocks on Postgres.
+    """
+
+    def test_repeated_glaze_submission_charges_once(self):
+        self.credit('50.00')
+        piece = self.create_piece()
+        self.assertEqual(self.edit_piece(piece, glaze='6').status_code, 302)
+        self.assertEqual(self.edit_piece(piece, glaze='6').status_code, 302)
+        self.assertEqual(self.fees(), BISQUE_ONLY_PRICE + GLAZE_ADD_ON)
+
+    def test_edit_waits_for_lock_then_sees_other_edit(self):
+        piece = self.create_piece()
+        self.set_balance('-24.00')
+        lock_calls = []
+
+        def other_request_commits_first(*args, **kwargs):
+            # Stands in for another request that added the glaze and committed while this
+            # one waited for the row lock (here staff in the admin, which has no balance limit).
+            lock_calls.append(connection.in_atomic_block)
+            other = Piece.objects.get(pk=piece.pk)
+            other.glaze_temp = '6'
+            other.clean()
+            other.save()
+            return Piece.objects.get_queryset().select_for_update(*args, **kwargs)
+
+        with mock.patch.object(Piece.objects, 'select_for_update', side_effect=other_request_commits_first):
+            response = self.edit_piece(piece, glaze='6')
+        self.assertEqual(lock_calls, [True])
+        # The glaze was already paid for, so this edit charges nothing and isn't blocked. A form
+        # built from the piece as read before the lock would see a $1.92 charge taking the
+        # -$24.00 balance it was given past the limit, and refuse the edit.
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Ledger.objects.filter(piece=piece, transaction_type='auto_glaze_fee').count(), 1)
+        self.assertEqual(self.balance(), D('-24.00') - GLAZE_ADD_ON)
