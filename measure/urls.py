@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib import admin
 
 from . import views
+from .forms import CaseInsensitiveAuthenticationForm
 
 app_name = 'measure'
 urlpatterns = [
@@ -14,7 +15,7 @@ urlpatterns = [
 
     path('user/', views.user_view, name='user'),
     path('register/', views.register_page, name='register'),
-    path('login/', auth_views.LoginView.as_view(next_page='measure:user'), name='login'),
+    path('login/', auth_views.LoginView.as_view(next_page='measure:user', authentication_form=CaseInsensitiveAuthenticationForm), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='measure:login'), name='logout'),
 
 

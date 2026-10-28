@@ -11,6 +11,7 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm, Password
     PasswordResetForm, SetPasswordForm, AuthenticationForm
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
+from django.contrib.auth.views import redirect_to_login
 from django.contrib.auth.models import User
 import csv
 import hmac
@@ -28,7 +29,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 def user_owns_object_check(user, ghp_user):
-    return user.get_username() == ghp_user.get_username()
+    # GHPUser is a multi-table child of User, so the two share a primary key.
+    return user.pk == ghp_user.pk
 
 def user_is_staff_check(user):
     return user.is_staff
@@ -115,7 +117,7 @@ def ghp_user_account_view(request, ghp_user_id):
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         logger.warning(f"User {request.user.username} permission denied for ghp_user_account_view for ghp_user: {ghp_user.get_username()}. Redirecting to login.")
-        return redirect(reverse("measure:login/?next=%s" % request.path))
+        return redirect_to_login(request.get_full_path(), "measure:login")
 
     ghp_user_account = ghp_user.account #Account.objects.filter(ghp_user=ghp_user).first() # should only be one
     ghp_user_transactions = Ledger.objects.filter(ghp_user=ghp_user).order_by('-ghp_user_transaction_number').all()
@@ -138,7 +140,7 @@ def PieceView(request, ghp_user_id):
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         logger.warning(f"User {request.user.username} permission denied for PieceView for ghp_user: {ghp_user.get_username()}. Redirecting to login.")
-        return redirect(reverse("measure:login/?next=%s" % request.path))
+        return redirect_to_login(request.get_full_path(), "measure:login")
     
     user_balance = ghp_user.account.balance #Account.objects.filter(ghp_user=ghp_user).first() # should only be one
     if request.method == 'POST':
@@ -196,7 +198,7 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         logger.warning(f"User {request.user.username} permission denied for ModifyPieceView for ghp_user: {ghp_user.get_username()}. Redirecting to login.")
-        return redirect(reverse("measure:login_view/?next=%s" % request.path))
+        return redirect_to_login(request.get_full_path(), "measure:login")
 
     piece = Piece.objects.filter(ghp_user=ghp_user).filter(ghp_user_piece_id=ghp_user_piece_id).first()
     if not piece:
@@ -257,7 +259,7 @@ def ModifyLocationView(request, ghp_user_id):
         # if the user is not the correct user, redirect to the login page
         print("Requesting user: {}, does not have access to ghp_user: {}".format(request.user.get_username(), ghp_user.get_username()))
         logger.warning(f"User {request.user.username} permission denied for ModifyLocationView for ghp_user: {ghp_user.get_username()}. Redirecting to login.")
-        return redirect(reverse("measure:login_view/?next=%s" % request.path))
+        return redirect_to_login(request.get_full_path(), "measure:login")
 
     print("Found user: " + str(ghp_user))
     if request.method == 'POST':
@@ -301,7 +303,7 @@ def register_page(request):
             # if not, create the user and redirect to the user's account page
             
             ghp_user_email = instance.email
-            ghp_user = GHPUser.objects.filter(email=ghp_user_email).first()
+            ghp_user = GHPUser.objects.filter(email__iexact=ghp_user_email).first()
             if ghp_user:
                 print("User already exists")
                 logger.warning(f"Attempt to register existing user with email: {ghp_user_email}.")
