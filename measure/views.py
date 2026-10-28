@@ -836,6 +836,28 @@ Piece #: {}
     return {'id': job['id'], 'print_string': print_string}
 
 
+def print_server_location_for_key(provided_key):
+    """Return the location whose print server key matches provided_key, or None.
+
+    An empty/whitespace key never matches. The mapping is built only from configured
+    (non-empty) keys, so an unset server secret env var (which defaults to '') can never
+    become a valid credential. Comparison is constant time, on bytes, so a non-ASCII
+    provided key is a clean mismatch rather than a TypeError from hmac.compare_digest.
+    """
+    if not provided_key.strip():
+        return None
+    configured_keys = [
+        (settings.PRINT_SERVER_SECRET_KEY, "Chelsea"),
+        (settings.GREENWICH_PRINT_SERVER_SECRET_KEY, "Greenwich"),
+        (settings.BARROW_PRINT_SERVER_SECRET_KEY, "Barrow"),
+    ]
+    provided_key_bytes = provided_key.encode('utf-8')
+    for configured_key, configured_location in configured_keys:
+        if configured_key and hmac.compare_digest(provided_key_bytes, configured_key.encode('utf-8')):
+            return configured_location
+    return None
+
+
 @csrf_exempt
 def get_print_jobs_chelsea(request):
     logger.info(f"get_print_jobs_chelsea called. Method: {request.method}")
@@ -910,37 +932,17 @@ def get_print_jobs_chelsea(request):
             print_server_key = request.POST.get('secret_key', '')
             logger.debug(f"POST request to mark receipts printed. Provided key (first 5 chars): {print_server_key[:5]}")
 
-            print_server_secret_key = settings.PRINT_SERVER_SECRET_KEY
-            greenwich_print_server_secret_key = settings.GREENWICH_PRINT_SERVER_SECRET_KEY
-            barrow_print_server_secret_key = settings.BARROW_PRINT_SERVER_SECRET_KEY
-            
-            valid_key_used = False
-            location_processed = None
-
-            if not print_server_secret_key:
+            if not settings.PRINT_SERVER_SECRET_KEY:
                 logger.error("PRINT_SERVER_SECRET_KEY is not set in settings for POST.")
-                # Fall through to invalid key check, or return early if preferred
-            if not greenwich_print_server_secret_key:
+            if not settings.GREENWICH_PRINT_SERVER_SECRET_KEY:
                 logger.error("GREENWICH_PRINT_SERVER_SECRET_KEY is not set in settings for POST.")
-                 # Fall through to invalid key check, or return early if preferred
-            if not barrow_print_server_secret_key:
+            if not settings.BARROW_PRINT_SERVER_SECRET_KEY:
                 logger.error("BARROW_PRINT_SERVER_SECRET_KEY is not set in settings for POST.")
-                 # Fall through to invalid key check, or return early if preferred
 
-            if print_server_key == print_server_secret_key:
-                valid_key_used = True
-                location_processed = "Chelsea"
-                logger.info("Valid secret key for Chelsea (POST to mark printed).")
-            elif print_server_key == greenwich_print_server_secret_key:
-                valid_key_used = True
-                location_processed = "Greenwich"
-                logger.info("Valid secret key for Greenwich (POST to mark printed).")
-            elif print_server_key == barrow_print_server_secret_key:
-                valid_key_used = True
-                location_processed = "Barrow"
-                logger.info("Valid secret key for Barrow (POST to mark printed).")
-            
-            if valid_key_used:
+            # Fails closed: a missing key never matches an unset key setting.
+            location_processed = print_server_location_for_key(print_server_key)
+            if location_processed:
+                logger.info(f"Valid secret key for {location_processed} (POST to mark printed).")
                 receipt_ids_str = request.POST.get('receipt_ids', '')
                 if not receipt_ids_str:
                     logger.warning(f"No receipt_ids provided in POST request for {location_processed}.")
@@ -985,34 +987,19 @@ def get_print_jobs_optimized(request):
     
     if request.method == 'GET':
         try:
-            print_server_key = request.GET.get('secret_key', '')
+            # print_server_v2.py sends the key in the X-Print-Server-Key header, which
+            # Heroku's router does not log (it logs the full path, query string included,
+            # on every poll). Exes built before the header existed send ?secret_key=;
+            # that fallback can be removed once every location runs a rebuilt exe.
+            print_server_key = request.headers.get('X-Print-Server-Key') or request.GET.get('secret_key', '')
             location = request.GET.get('location', '')  # Optional: specify location
 
-            # Reject an empty/whitespace key outright. Without this, an unset server
-            # secret env var (which defaults to '') would put '' into the mapping
-            # below and let an unauthenticated caller (secret_key='') authenticate.
             if not print_server_key.strip():
                 logger.warning("Empty secret key provided to get_print_jobs_optimized.")
                 return JsonResponse({'error': 'Invalid secret key'}, status=403)
 
-            # Validate secret key and determine location. Build the mapping only from
-            # configured (non-empty) keys, and compare in constant time, so an unset
-            # env var can never become a valid credential.
-            configured_keys = [
-                (settings.PRINT_SERVER_SECRET_KEY, "Chelsea"),
-                (settings.GREENWICH_PRINT_SERVER_SECRET_KEY, "Greenwich"),
-                (settings.BARROW_PRINT_SERVER_SECRET_KEY, "Barrow"),
-            ]
-            authorized_location = None
-            # Compare on bytes so a non-ASCII provided key is a clean mismatch (403)
-            # rather than a TypeError from hmac.compare_digest on str inputs.
-            provided_key_bytes = print_server_key.encode('utf-8')
-            for configured_key, configured_location in configured_keys:
-                if configured_key and hmac.compare_digest(provided_key_bytes, configured_key.encode('utf-8')):
-                    authorized_location = configured_location
-                    break
-
-            # Check if key is valid
+            # Validate secret key and determine location
+            authorized_location = print_server_location_for_key(print_server_key)
             if authorized_location is None:
                 logger.warning(f"Invalid secret key provided. Key (first 5 chars): {print_server_key[:5]}")
                 return JsonResponse({'error': 'Invalid secret key'}, status=403)
@@ -1208,4 +1195,4 @@ Piece #: {job['piece_number']}
 
 # Usage in print servers:
 # response = requests.get('https://your-domain.com/api/printjobs_v2/', 
-#                        params={'secret_key': your_secret_key})
+#                        headers={'X-Print-Server-Key': your_secret_key})

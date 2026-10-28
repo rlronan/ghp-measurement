@@ -19,6 +19,25 @@ Run the location's .bat file, which opens a command prompt and runs e.g. `print_
 The secret key file must be in the folder the .bat file is run from.
 If the printer's IP changes, edit the `--printer-ip` value in the .bat file; no rebuild is needed.
 
+Only one print server per location can run on a computer: a second copy prints
+"Another <location> print server is probably already running on this computer" and exits. Close the other window first.
+(Each location's print server holds a localhost port while it runs: Barrow 48631, Chelsea 48632, Greenwich 48633.)
+If no other copy is running, the line above that message gives the actual error; Windows can reserve port ranges
+for Hyper-V or WSL, which `netsh interface ipv4 show excludedportrange protocol=tcp` lists.
+
+The server marks receipts printed when it hands them to the print server, so receipts that fail to print
+(e.g. the printer is off) are kept in `<location>_unprinted_receipts.json` (e.g. `chelsea_unprinted_receipts.json`)
+in the same folder and retried every poll, including after the window is closed and reopened. Don't delete that file
+unless its receipts have been printed some other way. If it is ever unreadable, it is renamed to
+`<location>_unprinted_receipts.json.unreadable-<timestamp>` and kept for a person to look at.
+
+The print server sends its key in an `X-Print-Server-Key` header. The server still accepts the older `?secret_key=`
+query parameter for exes built before that change; once every location runs a rebuilt exe, that fallback can be removed
+from `get_print_jobs_optimized` in `measure/views.py`.
+
+To test the print server code (printer and HTTP are mocked):
+`uv run --with python-escpos --with requests python -m unittest test_print_server_v2`
+
 | Location | Printer IP |
 |---|---|
 | Chelsea | 10.186.3.27 |
