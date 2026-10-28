@@ -363,25 +363,34 @@ def refund_view(request, ghp_user_id, ghp_user_piece_id):
     
     
     if request.method == 'POST':
-        form = RefundPieceForm(request.POST, ghp_user=ghp_refund_user, piece=piece, ledgers=ledgers)
-        if form.is_valid():
-            logger.info(f"RefundPieceForm is valid for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
+        with transaction.atomic():
+            # Lock the piece row so concurrent submissions (e.g. a double-click) run one at
+            # a time, and re-read the ledgers under the lock: the form works out what is
+            # still refundable from them, so the second submission sees the first's refund.
+            Piece.objects.select_for_update().get(pk=piece.pk)
+            ledgers = ledgers.all()
+            form = RefundPieceForm(request.POST, ghp_user=ghp_refund_user, piece=piece, ledgers=ledgers)
+            if form.is_valid():
+                logger.info(f"RefundPieceForm is valid for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
 
-            instance = form.save(commit=False)
-            # SECURITY: pin the refund ledger to the URL-scoped user/piece, not the
-            # bound (POST-controllable) hidden form fields.
-            instance.ghp_user = ghp_refund_user
-            instance.piece = piece
-            # process the data in form.cleaned_data as required
-            instance.save()
-            logger.info(f"Refund processed and saved for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
-            return HttpResponseRedirect(reverse('admin:measure_account_change', args=(ghp_user_id,)))
-        else:
-            logger.warning(f"RefundPieceForm is invalid for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}. Errors: {form.errors}")
-            print("Refund piece form is not valid")
+                instance = form.save(commit=False)
+                # SECURITY: pin the refund ledger to the URL-scoped user/piece, not the
+                # bound (POST-controllable) hidden form fields.
+                instance.ghp_user = ghp_refund_user
+                instance.piece = piece
+                # process the data in form.cleaned_data as required
+                if form.glazing_refund_ledger is not None:
+                    # refunding both fees: the glaze refund is its own ledger
+                    form.glazing_refund_ledger.save()
+                instance.save()
+                logger.info(f"Refund processed and saved for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}.")
+                return HttpResponseRedirect(reverse('admin:measure_account_change', args=(ghp_user_id,)))
+            else:
+                logger.warning(f"RefundPieceForm is invalid for ghp_user: {ghp_refund_user.username}, piece_id: {ghp_user_piece_id} by user {request.user.username}. Errors: {form.errors}")
+                print("Refund piece form is not valid")
 
-            print(form.errors)
-            return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
+                print(form.errors)
+                return render(request, 'measure/refund_piece.html', {'form': form, 'ghp_user': ghp_refund_user, 'piece': piece, 'ledgers': ledgers})
 
     else:
         # GET request
