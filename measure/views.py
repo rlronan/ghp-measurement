@@ -2,6 +2,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
+from django.db import transaction
 from django.utils import timezone
 from .forms import PieceForm, CreateGHPUserForm, ModifyPieceForm, \
     RefundPieceForm, AddCreditForm, ModifyLocationForm
@@ -209,32 +210,40 @@ def ModifyPieceView(request, ghp_user_id, ghp_user_piece_id):
     print("Found Balance: " + str(user_balance))
     if request.method == 'POST':
         print("POST request")
-        form = ModifyPieceForm(request.POST, request.FILES, ghp_user=ghp_user, piece=piece, user_balance=user_balance)# piece_image=piece_image)
-        if form.is_valid():
-            logger.info(f"ModifyPieceForm is valid for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {ghp_user_piece_id}.")
-            print("Form is valid")
-            form.instance.pk = piece.id
-            form.instance.date = piece.date
-            instance = form.save(commit=False)
-            # SECURITY: ghp_user / ghp_user_piece_id are bound (hidden) form fields
-            # whose values come from the POST body. Pin them to the original, URL-
-            # scoped piece so an edit can't reassign the piece (or renumber it) onto
-            # another user's account.
-            instance.ghp_user = ghp_user
-            instance.ghp_user_piece_id = piece.ghp_user_piece_id
-            # process the data in form.cleaned_data as required
-            instance.save()
-            logger.info(f"Piece modified for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {instance.id}.")
-            return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
-        else:
-            logger.warning(f"ModifyPieceForm is invalid for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {ghp_user_piece_id}. Errors: {form.errors}")
-            print("Modify piece form is not valid")
-            print(form.errors)
-            return render(request, 'measure/modify_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece})
+        with transaction.atomic():
+            # Lock the piece row so concurrent submissions (e.g. a double-clicked "add glaze")
+            # run one at a time, and re-read it under the lock: the form's balance check and
+            # Piece.save() work out the charge from what was already paid, so the second
+            # submission sees the first's charge and pays nothing.
+            piece = Piece.objects.select_for_update().get(pk=piece.pk)
+            # instance=piece: fields the form doesn't edit (paid_price, handles) must keep the
+            # piece's saved values, or Piece.save() treats the piece as having been paid $0.
+            form = ModifyPieceForm(request.POST, request.FILES, instance=piece, ghp_user=ghp_user, piece=piece, user_balance=user_balance)# piece_image=piece_image)
+            if form.is_valid():
+                logger.info(f"ModifyPieceForm is valid for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {ghp_user_piece_id}.")
+                print("Form is valid")
+                form.instance.pk = piece.id
+                form.instance.date = piece.date
+                instance = form.save(commit=False)
+                # SECURITY: ghp_user / ghp_user_piece_id are bound (hidden) form fields
+                # whose values come from the POST body. Pin them to the original, URL-
+                # scoped piece so an edit can't reassign the piece (or renumber it) onto
+                # another user's account.
+                instance.ghp_user = ghp_user
+                instance.ghp_user_piece_id = piece.ghp_user_piece_id
+                # process the data in form.cleaned_data as required
+                instance.save()
+                logger.info(f"Piece modified for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {instance.id}.")
+                return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
+            else:
+                logger.warning(f"ModifyPieceForm is invalid for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {ghp_user_piece_id}. Errors: {form.errors}")
+                print("Modify piece form is not valid")
+                print(form.errors)
+                return render(request, 'measure/modify_piece.html', {'form': form, 'ghp_user': ghp_user, 'piece': piece})
 
     else:
         print("GET request")
-        form = ModifyPieceForm(ghp_user=ghp_user, piece=piece, user_balance=user_balance)
+        form = ModifyPieceForm(instance=piece, ghp_user=ghp_user, piece=piece, user_balance=user_balance)
         logger.info(f"Rendering ModifyPieceForm (GET request) for user {request.user.username}, ghp_user: {ghp_user.get_username()}, piece_id: {ghp_user_piece_id}.")
     return render(request, 'measure/modify_piece.html', {'form': form})
 

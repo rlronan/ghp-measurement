@@ -223,6 +223,10 @@ class Piece(models.Model):
         width = self.width
         height = self.height
         handles = self.handles
+        if length is None or width is None or height is None or handles is None:
+            # A ModelForm still calls clean() when a number was blank or invalid; that field
+            # already has its error, so there is nothing to price.
+            return self
         # compute the size
 
         # Calculate the size
@@ -286,10 +290,11 @@ class Piece(models.Model):
 
 
         # Check that the size and price are not negative
+        # (Models have no add_error(); raising is how Model.clean() reports errors.)
         if size <= 0:
-            self.add_error('size', 'Size must be positive')
+            raise ValidationError({'size': 'Size must be positive'})
         if price < 0:
-            self.add_error('price', 'Price cannot be negative')
+            raise ValidationError({'price': 'Price cannot be negative'})
         
         if price < MINIMUM_PRICE:
             if self.ghp_user.current_ghp_staff:
@@ -452,6 +457,15 @@ class Piece(models.Model):
         if not PIECE_UPDATING:
             # Piece is new, and price has been calculated in the clean() method
             self.paid_price = self.price
+        else:
+            # Set what the user will have paid once the ledger entries below are created.
+            # This must happen before super().save() or it is never persisted. The add-on
+            # charges below are new_price - previous_price, so they don't depend on it, and
+            # the receipts below print it.
+            if previously_paid_for_firing and previously_paid_for_glazing:
+                self.paid_price = previous_price
+            else:
+                self.paid_price = max(new_price, previous_price)
 
         # Prices have been updated, save the piece for real
         print("saving the piece")
@@ -657,7 +671,6 @@ class Piece(models.Model):
             if previously_paid_for_firing and previously_paid_for_glazing:
                 # The user has already paid for both firing and glazing, so we should not charge them again
                 print("The user has already paid for both firing and glazing, so we should not charge them again")
-                self.paid_price = previous_price
                 return
             elif new_price == previous_price:
                 # The user does not need to pay for anything, so we should not charge them again
@@ -667,7 +680,6 @@ class Piece(models.Model):
                 # Generally this indicates that the total price is less than the minimum price,
                 # so we should not charge them again, but we should update the price
                 print("The user does not need to pay for anything, so we should not charge them again")
-                self.paid_price = previous_price
                 return
             elif new_price > previous_price:
                 ghp_user_transaction_number = Ledger.objects.filter(ghp_user=self.ghp_user).count() + 1
@@ -718,8 +730,6 @@ class Piece(models.Model):
                     )
                     # If the user is now paying for glazing, we need to update the last measure date
                     self.ghp_user.last_measure_date = ledger_date
-                    # set the paid_price to the new price
-                    self.paid_price = new_price
                 elif previously_paid_for_glazing:
                     # The user has already paid for glazing, but not firing,
                     # so we should only charge them for firing.
@@ -761,8 +771,6 @@ class Piece(models.Model):
                         number_printed=0
                     )
                     self.ghp_user.last_measure_date = ledger_date
-                    # set the paid_price to the new price
-                    self.paid_price = new_price
 
                 else:
                     # The user has not paid for either firing or glazing, so we should charge them for both
@@ -833,8 +841,6 @@ class Piece(models.Model):
                         number_printed=0
                     )
                     self.ghp_user.last_measure_date = ledger_date
-                    # set the paid_price to the new price
-                    self.paid_price = new_price
 
 
         print("FINISHED SAVING PIECE\n\n")
