@@ -13,6 +13,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
 from django.contrib.auth.views import redirect_to_login
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 import csv
 import hmac
 import numpy as np
@@ -736,6 +737,22 @@ def handle_checkout_session(session):
             logger.info(f"Ledger entry created successfully for GHPUser: {ghp_user.username}. Ledger ID: {user_payment.transaction_id}")
             print("Finished creating ledger entry")
             return HttpResponse(status=200)
+        except IntegrityError as e:
+            # The unique constraint on stripe_session_id rejected a duplicate. This
+            # is the race-proof backstop to the count()-based check above: a
+            # concurrent/duplicate webhook delivery for the same session lands here.
+            # Return 200 so Stripe treats it as processed and stops retrying, rather
+            # than double-crediting the account. Only if the session's row really
+            # exists, though: any other IntegrityError means nothing was credited,
+            # so Stripe must keep retrying.
+            if session_id is not None and Ledger.objects.filter(stripe_session_id=session_id).exists():
+                logger.warning(f"Duplicate Stripe session {session_id} rejected by unique constraint; already processed.")
+                print("Duplicate transaction rejected by unique constraint.")
+                return HttpResponse(status=200)
+            logger.error(f"Error creating ledger entry for GHPUser: {ghp_user.username}, Stripe Session ID: {session_id}. Error: {e}", exc_info=True)
+            print("Error creating ledger entry: ", e)
+            return HttpResponse(status=400,
+                                content="Error creating a ledger entry for this transaction.")
         except Exception as e:
             logger.error(f"Error creating ledger entry for GHPUser: {ghp_user.username}, Stripe Session ID: {session_id}. Error: {e}", exc_info=True)
             print("Error creating ledger entry: ", e)
