@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.core.exceptions import ValidationError
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
@@ -464,12 +465,22 @@ class GHPUserResource(resources.ModelResource):
             raise ValidationError({'username': 'This username appears more than once in the file.'})
         self.seen_usernames.add(row.get('username'))
 
+    def after_init_instance(self, instance, new, row, **kwargs):
+        super().after_init_instance(instance, new, row, **kwargs)
+        # Remember an existing member's stored username/email, before the row is applied
+        instance._import_stored_identity = None if new else (instance.username, instance.email)
+
     def validate_instance(self, instance, import_validation_errors=None, validate_unique=True):
         # Rows are saved without validation by default (clean_model_instances is off).
         # Run the model's validation (email format, location choices, username rules) on
         # the imported fields only, as a ModelForm would (imported rows carry no password
         # or consent_date), plus the rules registration enforces.
         errors = dict(import_validation_errors or {})
+        # Registration's identity rules apply to new members and to rows that change a
+        # member's username or email, not to unchanged legacy members (mixed-case usernames,
+        # existing case-duplicates), who must stay updatable. Compare before full_clean(),
+        # which normalizes the email's domain.
+        identity_changed = getattr(instance, '_import_stored_identity', None) != (instance.username, instance.email)
         not_imported = [field.name for field in instance._meta.fields if field.name not in self._meta.fields]
         try:
             instance.full_clean(exclude=list(errors) + not_imported, validate_unique=validate_unique)
@@ -478,12 +489,13 @@ class GHPUserResource(resources.ModelResource):
         for field in ['first_name', 'last_name', 'email']:
             if not getattr(instance, field) and field not in errors:
                 errors[field] = ['This field is required.']
-        if 'email' not in errors and 'username' not in errors:
+        if identity_changed and 'email' not in errors and 'username' not in errors:
             # Login and the PlaceholderAccount balance lookup both use username, which
             # registration always sets to the lowercased email
             if instance.username != instance.email.lower():
                 errors['username'] = ['Username must be the lowercased email address.']
-            elif GHPUser.objects.filter(email__iexact=instance.email).exclude(pk=instance.pk).exists():
+            elif (GHPUser.objects.filter(email__iexact=instance.email).exclude(pk=instance.pk).exists()
+                  or User.objects.filter(username__iexact=instance.email).exclude(pk=instance.pk).exists()):
                 errors['email'] = ['Another user already has this email address.']
         if errors:
             raise ValidationError(errors)
@@ -602,11 +614,20 @@ class GHPUserAdmin(ImportExportModelAdmin):
             messages.SUCCESS,
         )
 
+    def set_members_active(self, request, queryset, is_active, message):
+        # queryset.update() writes no admin history, so log one entry per member whose
+        # state actually changes, in a single insert, to record who archived/restored them
+        members = list(queryset.exclude(is_active=is_active))
+        updated = GHPUser.objects.filter(pk__in=[member.pk for member in members]).update(is_active=is_active)
+        LogEntry.objects.log_actions(user_id=request.user.pk, queryset=members, action_flag=CHANGE,
+                                     change_message=message)
+        return updated
+
     # Members are archived rather than deleted: an inactive user can't log in or reset
     # their password, but their account, ledger and pieces are kept and can be restored
     @admin.action(description="Archive selected users (they can no longer log in)")
     def archive_members(self, request, queryset):
-        updated = queryset.update(is_active=False)
+        updated = self.set_members_active(request, queryset, False, "Archived")
         self.message_user(
             request,
             ngettext(
@@ -620,7 +641,7 @@ class GHPUserAdmin(ImportExportModelAdmin):
 
     @admin.action(description="Restore selected archived users")
     def restore_members(self, request, queryset):
-        updated = queryset.update(is_active=True)
+        updated = self.set_members_active(request, queryset, True, "Restored")
         self.message_user(
             request,
             ngettext(
@@ -703,6 +724,21 @@ class PlaceholderAccountResource(resources.ModelResource):
         import_id_fields = ('email',)  # Use email as the identifier for import
         fields = ('email', 'balance')
         export_order = ('email', 'balance')
+
+    def before_import_row(self, row, **kwargs):
+        super().before_import_row(row, **kwargs)
+        # Store emails lowercased, as registration stores usernames (GHPUser.save matches on it)
+        if row.get('email'):
+            row['email'] = row['email'].lower()
+
+    def get_instance(self, instance_loader, row):
+        # Match an existing placeholder case-insensitively, so re-importing a mixed-case
+        # email updates (and lowercases) that row instead of adding a case-duplicate that
+        # would make the carry-over ambiguous. Existing case-duplicates fail the row.
+        try:
+            return PlaceholderAccount.objects.get(email__iexact=row.get('email'))
+        except PlaceholderAccount.DoesNotExist:
+            return None
 
 class PlaceholderAccountAdmin(ImportExportModelAdmin):
     resource_class = PlaceholderAccountResource

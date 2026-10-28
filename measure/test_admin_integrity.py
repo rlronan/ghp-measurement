@@ -1,14 +1,16 @@
 import decimal
 
 import tablib
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.db import connection
 from django.db.models import Sum
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from .admin import GHPUserResource
+from .admin import GHPUserResource, PlaceholderAccountResource
 from .models import GHPUser, Account, PlaceholderAccount, Piece, Ledger, PieceReceipt
 from .tests import make_ghp_user
 
@@ -246,6 +248,35 @@ class GHPUserImportValidationTests(TestCase):
         self.assertFalse(result.has_validation_errors() or result.has_errors())
         self.assertEqual(GHPUser.objects.get(username='ada@example.com').current_location, 'Greenwich')
 
+    def assert_accepted(self, *rows):
+        result = self.run_import(*rows)
+        self.assertFalse(result.has_validation_errors() or result.has_errors(),
+                         [r.error_dict for r in result.invalid_rows])
+
+    def test_legacy_mixed_case_member_can_be_updated(self):
+        GHPUser.objects.create(username='Jane.Legacy@Example.com', email='Jane.Legacy@Example.com',
+                               first_name='Jane', last_name='Legacy')
+        self.assert_accepted(['Jane', 'Legacy', 'Jane.Legacy@Example.com', 'Jane.Legacy@Example.com', 'Barrow'])
+        self.assertEqual(GHPUser.objects.get(username='Jane.Legacy@Example.com').current_location, 'Barrow')
+
+    def test_existing_case_duplicate_member_can_be_updated(self):
+        make_ghp_user('dup@example.com')
+        GHPUser.objects.create(username='legacy-dup', email='DUP@example.com', first_name='Old', last_name='Dup')
+        self.assert_accepted(['Test', 'Potter', 'dup@example.com', 'dup@example.com', 'Barrow'])
+        self.assertEqual(GHPUser.objects.get(username='dup@example.com').current_location, 'Barrow')
+
+    def test_update_that_changes_email_is_still_checked(self):
+        make_ghp_user('ada@example.com')
+        result = self.run_import(['Ada', 'Potter', 'ada@example.com', 'ada@new-example.com', 'Chelsea'])
+        self.assertTrue(result.has_validation_errors())
+        self.assertIn('username', result.invalid_rows[0].field_specific_errors)
+        self.assertEqual(GHPUser.objects.get(username='ada@example.com').email, 'ada@example.com')
+
+    def test_email_matching_a_login_username_is_rejected(self):
+        # Registration (and case-insensitive login) treat this as the same account
+        User.objects.create_user('Staffer@Example.com', 'staffer-login@example.com', 'pw')
+        self.assert_rejected(['Sam', 'Staffer', 'staffer@example.com', 'staffer@example.com', 'Chelsea'], 'email')
+
 
 class AdminExportQueryCountTests(StaffAdminTestCase):
     """The admin "Export Selected" actions must not issue queries per exported row."""
@@ -312,6 +343,51 @@ class PlaceholderBalanceTests(TestCase):
         user = make_ghp_user('zero@example.com')
         self.assertEqual(Account.objects.get(ghp_user=user).balance, decimal.Decimal('0.00'))
         self.assertFalse(Ledger.objects.filter(ghp_user=user).exists())
+
+    def test_placeholder_email_matches_case_insensitively(self):
+        # Usernames are stored lowercased; placeholder emails may not be
+        PlaceholderAccount.objects.create(email='Jane@Example.com', balance=decimal.Decimal('20.00'))
+        user = make_ghp_user('jane@example.com')
+        self.assertEqual(Account.objects.get(ghp_user=user).balance, decimal.Decimal('20.00'))
+        self.assertEqual(ledger_sum(user), decimal.Decimal('20.00'))
+
+    def test_ambiguous_placeholders_carry_nothing_over(self):
+        PlaceholderAccount.objects.create(email='Jane@Example.com', balance=decimal.Decimal('20.00'))
+        PlaceholderAccount.objects.create(email='JANE@example.com', balance=decimal.Decimal('35.00'))
+        with self.assertLogs('measure.models', level='ERROR') as logs:
+            user = make_ghp_user('jane@example.com')
+        self.assertIn('jane@example.com', '\n'.join(logs.output))
+        self.assertEqual(Account.objects.get(ghp_user=user).balance, decimal.Decimal('0.00'))
+        self.assertFalse(Ledger.objects.filter(ghp_user=user).exists())
+
+
+class PlaceholderAccountImportTests(TestCase):
+    """Imported placeholder emails are stored lowercased, matching registered usernames."""
+
+    def run_import(self, *rows):
+        dataset = tablib.Dataset(*rows, headers=['email', 'balance'])
+        result = PlaceholderAccountResource().import_data(dataset, dry_run=False)
+        self.assertFalse(result.has_validation_errors() or result.has_errors())
+
+    def test_import_lowercases_email(self):
+        self.run_import(['Jane@Example.com', '20.00'])
+        self.assertEqual(list(PlaceholderAccount.objects.values_list('email', flat=True)), ['jane@example.com'])
+
+    def test_reimport_updates_mixed_case_row_instead_of_duplicating_it(self):
+        # A case-duplicate would make the carry-over ambiguous, so nothing would be carried over
+        PlaceholderAccount.objects.create(email='Jane@Example.com', balance=decimal.Decimal('5.00'))
+        self.run_import(['Jane@Example.com', '20.00'])
+        self.assertEqual(list(PlaceholderAccount.objects.values_list('email', 'balance')),
+                         [('jane@example.com', decimal.Decimal('20.00'))])
+
+    def test_existing_case_duplicates_fail_the_row(self):
+        PlaceholderAccount.objects.create(email='Jane@Example.com', balance=decimal.Decimal('5.00'))
+        PlaceholderAccount.objects.create(email='JANE@example.com', balance=decimal.Decimal('6.00'))
+        dataset = tablib.Dataset(['jane@example.com', '20.00'], headers=['email', 'balance'])
+        result = PlaceholderAccountResource().import_data(dataset, dry_run=False)
+        self.assertTrue(result.has_errors())
+        self.assertEqual(sorted(PlaceholderAccount.objects.values_list('balance', flat=True)),
+                         [decimal.Decimal('5.00'), decimal.Decimal('6.00')])
 
 
 class MemberArchiveTests(StaffAdminTestCase):
@@ -381,3 +457,30 @@ class MemberArchiveTests(StaffAdminTestCase):
         self.run_action('archive_members')
         response = self.client.get(reverse('admin:measure_ghpuser_changelist') + '?is_active__exact=0', secure=True)
         self.assertContains(response, 'archive@example.com')
+
+    def history(self):
+        entries = LogEntry.objects.filter(content_type=ContentType.objects.get_for_model(GHPUser),
+                                          object_id=str(self.member.pk)).order_by('pk')
+        return [(entry.user.username, entry.action_flag, entry.change_message) for entry in entries]
+
+    def test_archive_and_restore_are_recorded_in_admin_history(self):
+        self.run_action('archive_members')
+        self.run_action('restore_members')
+        self.assertEqual(self.history(), [('staff', CHANGE, 'Archived'), ('staff', CHANGE, 'Restored')])
+
+    def test_no_history_for_members_already_in_that_state(self):
+        self.run_action('restore_members')
+        self.run_action('archive_members')
+        self.run_action('archive_members')
+        self.assertEqual(self.history(), [('staff', CHANGE, 'Archived')])
+
+    def test_archive_queries_do_not_grow_per_member(self):
+        def archive_queries(members):
+            with CaptureQueriesContext(connection) as ctx:
+                self.client.post(reverse('admin:measure_ghpuser_changelist'), {
+                    'action': 'archive_members', '_selected_action': [m.pk for m in members],
+                }, secure=True)
+            return len(ctx.captured_queries)
+        one = archive_queries([make_ghp_user('bulk0@example.com')])
+        five = archive_queries([make_ghp_user(f'bulk{i}@example.com') for i in range(1, 6)])
+        self.assertEqual(one, five)
