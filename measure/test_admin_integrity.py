@@ -312,3 +312,72 @@ class PlaceholderBalanceTests(TestCase):
         user = make_ghp_user('zero@example.com')
         self.assertEqual(Account.objects.get(ghp_user=user).balance, decimal.Decimal('0.00'))
         self.assertFalse(Ledger.objects.filter(ghp_user=user).exists())
+
+
+class MemberArchiveTests(StaffAdminTestCase):
+    """Members are archived (made inactive), never deleted, so their ledger and pieces are kept."""
+
+    def setUp(self):
+        super().setUp()
+        self.member = make_ghp_user('archive@example.com')
+        self.member.set_password('member-pw')
+        self.member.save()
+        Ledger.objects.create(ghp_user=self.member, amount=decimal.Decimal('-5.00'),
+                              transaction_type='manual_gh_add_misc_charge')
+
+    def run_action(self, action):
+        return self.client.post(reverse('admin:measure_ghpuser_changelist'), {
+            'action': action, '_selected_action': [self.member.pk],
+        }, secure=True)
+
+    def member_can_log_in(self):
+        self.client.logout()
+        response = self.client.post(reverse('measure:login'), {
+            'username': 'archive@example.com', 'password': 'member-pw',
+        }, secure=True)
+        return response.status_code == 302
+
+    def test_member_cannot_be_deleted_from_member_admin(self):
+        response = self.client.post(reverse('admin:measure_ghpuser_delete', args=(self.member.pk,)),
+                                    {'post': 'yes'}, secure=True)
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(GHPUser.objects.filter(pk=self.member.pk).exists())
+
+    def test_member_cannot_be_deleted_from_auth_user_admin(self):
+        response = self.client.post(reverse('admin:auth_user_delete', args=(self.member.pk,)),
+                                    {'post': 'yes'}, secure=True)
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(GHPUser.objects.filter(pk=self.member.pk).exists())
+
+    def test_auth_user_changelist_offers_no_bulk_delete(self):
+        # The bulk delete action must not be offered on the auth User changelist either
+        response = self.client.get(reverse('admin:auth_user_changelist'), secure=True)
+        self.assertNotContains(response, 'value="delete_selected"')
+
+    def test_plain_user_can_still_be_deleted(self):
+        # Non-member logins (e.g. an old admin account) have no ledger, so deleting is safe
+        plain = User.objects.create_user('old-admin', 'old-admin@example.com', 'pw')
+        response = self.client.post(reverse('admin:auth_user_delete', args=(plain.pk,)),
+                                    {'post': 'yes'}, secure=True)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(pk=plain.pk).exists())
+
+    def test_archive_blocks_login_and_keeps_records(self):
+        self.run_action('archive_members')
+        self.member.refresh_from_db()
+        self.assertFalse(self.member.is_active)
+        self.assertTrue(Account.objects.filter(ghp_user=self.member).exists())
+        self.assertEqual(Account.objects.get(ghp_user=self.member).balance, ledger_sum(self.member))
+        self.assertFalse(self.member_can_log_in())
+
+    def test_restore_allows_login_again(self):
+        self.run_action('archive_members')
+        self.run_action('restore_members')
+        self.member.refresh_from_db()
+        self.assertTrue(self.member.is_active)
+        self.assertTrue(self.member_can_log_in())
+
+    def test_archived_filter_lists_archived_members(self):
+        self.run_action('archive_members')
+        response = self.client.get(reverse('admin:measure_ghpuser_changelist') + '?is_active__exact=0', secure=True)
+        self.assertContains(response, 'archive@example.com')

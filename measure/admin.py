@@ -436,7 +436,7 @@ class PieceLocationFilter_piece(admin.SimpleListFilter):
 
 # export_as_csv.short_description = "Export Selected"
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 
 
 class GHPUserResource(resources.ModelResource):
@@ -506,15 +506,16 @@ class GHPUserAdmin(ImportExportModelAdmin):
     resource_class = GHPUserResource
     list_display = ['first_name', 'last_name', 'email','username', 'date_joined', 'last_measure_date', 'current_location',
                      'current_student', 'current_ghp_staff', 'current_faculty', 
-                      'consent', 'current']
+                      'consent', 'current', 'is_active']
 
-    list_filter = ['current_student', 'current_ghp_staff', 'current_faculty', CurrentUserFilter, 'current_location',]
+    list_filter = ['current_student', 'current_ghp_staff', 'current_faculty', CurrentUserFilter, 'current_location', 'is_active']
 
     search_fields = ['first_name', 'last_name', 'email', 'username']
 
     ordering = ['last_name', 'first_name', 'email',  'last_measure_date', 'date_joined', 'consent_date']
 
-    actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'export_as_csv', 'import_users_from_csv']
+    actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'archive_members', 'restore_members',
+               'export_as_csv', 'import_users_from_csv']
 
     list_display_links = ["first_name", "last_name", 'email', 'username', 'date_joined']
 
@@ -600,7 +601,41 @@ class GHPUserAdmin(ImportExportModelAdmin):
             % updated,
             messages.SUCCESS,
         )
-    
+
+    # Members are archived rather than deleted: an inactive user can't log in or reset
+    # their password, but their account, ledger and pieces are kept and can be restored
+    @admin.action(description="Archive selected users (they can no longer log in)")
+    def archive_members(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(
+            request,
+            ngettext(
+                "%d user was archived.",
+                "%d users were archived.",
+                updated,
+            )
+            % updated,
+            messages.SUCCESS,
+        )
+
+    @admin.action(description="Restore selected archived users")
+    def restore_members(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(
+            request,
+            ngettext(
+                "%d user was restored.",
+                "%d users were restored.",
+                updated,
+            )
+            % updated,
+            messages.SUCCESS,
+        )
+
+    # Deleting a member would orphan their ledger and pieces; archive them instead
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     @admin.action(description="Export selected objects as csv")
     def export_as_csv(self, request, queryset):
         print("Model: ", self.model)
@@ -1081,8 +1116,26 @@ class LedgerAdmin(admin.ModelAdmin):
 
     export_as_csv.short_description = "Export Selected"
 
+class MemberSafeUserAdmin(BaseUserAdmin):
+    # Every member is also a User row, so the stock User admin could delete a member
+    # behind GHPUserAdmin's back. Logins that aren't members have no ledger and can
+    # still be deleted one at a time.
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and GHPUser.objects.filter(pk=obj.pk).exists():
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+
 # Unregister the old User model admin
 admin.site.unregister(Group)
+admin.site.unregister(User)
+admin.site.register(User, MemberSafeUserAdmin)
 
 
 # Register the GHPUser model with the GHPUserAdmin
