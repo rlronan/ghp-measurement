@@ -1,4 +1,5 @@
 import datetime
+import logging
 from django.utils import timezone
 from django.db import models
 from django.utils import timezone
@@ -11,6 +12,8 @@ from .constants import GLAZE_TEMPS,  BISQUE_TEMPS, \
     MINIMUM_PRICE, TRANSACTION_TYPES, PRICE_PER_HANDLE, LOCATION_CHOICES
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
+
+logger = logging.getLogger(__name__)
 
 # Create your models here.
 class PlaceholderAccount(models.Model):
@@ -103,11 +106,26 @@ class GHPUser(User):
         # print("Checking if user has an account")
         # Check if user already has an firing balance account. If not, create one
         if not Account.objects.filter(ghp_user=self).exists():
-            # Check if there is a palceholder account with a balance with the same email
-            if PlaceholderAccount.objects.filter(email=self.username).exists():
+            # Check if there is a palceholder account with a balance with the same email.
+            # Usernames are stored lowercased but placeholder emails may not be, so match
+            # case-insensitively. Email is unique only case-sensitively; if several
+            # placeholders match, don't guess which balance is theirs.
+            placeholders = list(PlaceholderAccount.objects.filter(email__iexact=self.username)[:2])
+            if len(placeholders) > 1:
+                logger.error("Several placeholder accounts match %s case-insensitively; "
+                             "carrying no balance over", self.username)
+            if len(placeholders) == 1:
                 # If there is, we should use the prexisting account to set the user's initial balance
-                balance = PlaceholderAccount.objects.get(email=self.username).balance
-                Account.objects.create(ghp_user=self, balance=balance, last_update=timezone.now())
+                balance = placeholders[0].balance
+                # Open the account at zero and carry the balance over as a ledger row, so the
+                # balance still equals the sum of the user's ledger (Ledger.save applies it)
+                Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
+                Ledger.objects.create(
+                    ghp_user=self,
+                    amount=balance,
+                    transaction_type='auto_gh_add_misc_credit' if balance > 0 else 'auto_gh_add_misc_charge',
+                    note='Balance carried over from placeholder account',
+                )
                 print("Account created for GHPUser: {} and balance: {}".format(self.username, balance))
             else:
                 Account.objects.create(ghp_user=self, balance=0.00, last_update=timezone.now())
@@ -911,7 +929,9 @@ class Ledger(models.Model):
         db_table = 'ledger'
 
     def __str__(self):
-        return self.ghp_user.first_name[:1] + '. ' + self.ghp_user.last_name + ' tr. #' + str(self.ghp_user_transaction_number) + ' ' \
+        # ghp_user is SET_NULL, so rows outlive a deleted user
+        name = self.ghp_user.first_name[:1] + '. ' + self.ghp_user.last_name if self.ghp_user else '(deleted user)'
+        return name + ' tr. #' + str(self.ghp_user_transaction_number) + ' ' \
                 + self.date.strftime(r'%m/%d/%y') + ' ' + self.date.strftime(r'%H:%M:%S') + ' $' + str(self.amount) + ' ' \
                 + self.transaction_type + ' (' + self.note + ')'
 

@@ -1,4 +1,7 @@
+from django import forms
 from django.contrib import admin
+from django.contrib.admin.models import CHANGE, LogEntry
+from django.core.exceptions import ValidationError
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
 from django.utils import timezone
@@ -434,7 +437,7 @@ class PieceLocationFilter_piece(admin.SimpleListFilter):
 
 # export_as_csv.short_description = "Export Selected"
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 
 
 class GHPUserResource(resources.ModelResource):
@@ -450,6 +453,52 @@ class GHPUserResource(resources.ModelResource):
         import_id_fields = ('username',)  # Use email as the identifier for import
         fields = ('first_name', 'last_name', 'username', 'email', 'current_location', )
         export_order = ('first_name', 'last_name', 'email', 'current_location', )
+
+    def before_import(self, dataset, **kwargs):
+        super().before_import(dataset, **kwargs)
+        self.seen_usernames = set()
+
+    def before_import_row(self, row, **kwargs):
+        super().before_import_row(row, **kwargs)
+        # A repeated username would silently overwrite the earlier row's user
+        if row.get('username') in self.seen_usernames:
+            raise ValidationError({'username': 'This username appears more than once in the file.'})
+        self.seen_usernames.add(row.get('username'))
+
+    def after_init_instance(self, instance, new, row, **kwargs):
+        super().after_init_instance(instance, new, row, **kwargs)
+        # Remember an existing member's stored username/email, before the row is applied
+        instance._import_stored_identity = None if new else (instance.username, instance.email)
+
+    def validate_instance(self, instance, import_validation_errors=None, validate_unique=True):
+        # Rows are saved without validation by default (clean_model_instances is off).
+        # Run the model's validation (email format, location choices, username rules) on
+        # the imported fields only, as a ModelForm would (imported rows carry no password
+        # or consent_date), plus the rules registration enforces.
+        errors = dict(import_validation_errors or {})
+        # Registration's identity rules apply to new members and to rows that change a
+        # member's username or email, not to unchanged legacy members (mixed-case usernames,
+        # existing case-duplicates), who must stay updatable. Compare before full_clean(),
+        # which normalizes the email's domain.
+        identity_changed = getattr(instance, '_import_stored_identity', None) != (instance.username, instance.email)
+        not_imported = [field.name for field in instance._meta.fields if field.name not in self._meta.fields]
+        try:
+            instance.full_clean(exclude=list(errors) + not_imported, validate_unique=validate_unique)
+        except ValidationError as e:
+            errors = e.update_error_dict(errors)
+        for field in ['first_name', 'last_name', 'email']:
+            if not getattr(instance, field) and field not in errors:
+                errors[field] = ['This field is required.']
+        if identity_changed and 'email' not in errors and 'username' not in errors:
+            # Login and the PlaceholderAccount balance lookup both use username, which
+            # registration always sets to the lowercased email
+            if instance.username != instance.email.lower():
+                errors['username'] = ['Username must be the lowercased email address.']
+            elif (GHPUser.objects.filter(email__iexact=instance.email).exclude(pk=instance.pk).exists()
+                  or User.objects.filter(username__iexact=instance.email).exclude(pk=instance.pk).exists()):
+                errors['email'] = ['Another user already has this email address.']
+        if errors:
+            raise ValidationError(errors)
 
     # def after_import_row(self, row, row_result, **kwargs):
     #     """
@@ -469,15 +518,16 @@ class GHPUserAdmin(ImportExportModelAdmin):
     resource_class = GHPUserResource
     list_display = ['first_name', 'last_name', 'email','username', 'date_joined', 'last_measure_date', 'current_location',
                      'current_student', 'current_ghp_staff', 'current_faculty', 
-                      'consent', 'current']
+                      'consent', 'current', 'is_active']
 
-    list_filter = ['current_student', 'current_ghp_staff', 'current_faculty', CurrentUserFilter, 'current_location',]
+    list_filter = ['current_student', 'current_ghp_staff', 'current_faculty', CurrentUserFilter, 'current_location', 'is_active']
 
     search_fields = ['first_name', 'last_name', 'email', 'username']
 
     ordering = ['last_name', 'first_name', 'email',  'last_measure_date', 'date_joined', 'consent_date']
 
-    actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'export_as_csv', 'import_users_from_csv']
+    actions = ['make_students', 'make_staff', 'make_admins', 'make_not_current', 'archive_members', 'restore_members',
+               'export_as_csv', 'import_users_from_csv']
 
     list_display_links = ["first_name", "last_name", 'email', 'username', 'date_joined']
 
@@ -563,7 +613,50 @@ class GHPUserAdmin(ImportExportModelAdmin):
             % updated,
             messages.SUCCESS,
         )
-    
+
+    def set_members_active(self, request, queryset, is_active, message):
+        # queryset.update() writes no admin history, so log one entry per member whose
+        # state actually changes, in a single insert, to record who archived/restored them
+        members = list(queryset.exclude(is_active=is_active))
+        updated = GHPUser.objects.filter(pk__in=[member.pk for member in members]).update(is_active=is_active)
+        LogEntry.objects.log_actions(user_id=request.user.pk, queryset=members, action_flag=CHANGE,
+                                     change_message=message)
+        return updated
+
+    # Members are archived rather than deleted: an inactive user can't log in or reset
+    # their password, but their account, ledger and pieces are kept and can be restored
+    @admin.action(description="Archive selected users (they can no longer log in)")
+    def archive_members(self, request, queryset):
+        updated = self.set_members_active(request, queryset, False, "Archived")
+        self.message_user(
+            request,
+            ngettext(
+                "%d user was archived.",
+                "%d users were archived.",
+                updated,
+            )
+            % updated,
+            messages.SUCCESS,
+        )
+
+    @admin.action(description="Restore selected archived users")
+    def restore_members(self, request, queryset):
+        updated = self.set_members_active(request, queryset, True, "Restored")
+        self.message_user(
+            request,
+            ngettext(
+                "%d user was restored.",
+                "%d users were restored.",
+                updated,
+            )
+            % updated,
+            messages.SUCCESS,
+        )
+
+    # Deleting a member would orphan their ledger and pieces; archive them instead
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     @admin.action(description="Export selected objects as csv")
     def export_as_csv(self, request, queryset):
         print("Model: ", self.model)
@@ -577,12 +670,11 @@ class GHPUserAdmin(ImportExportModelAdmin):
         writer = csv.writer(response)
 
         writer.writerow(field_names + ['balance', 'last_balance_update'])
-        for obj in queryset:
+        for obj in queryset.select_related('account'):
             # A user may legitimately have no Account (see GHPUser.get_balance()),
-            # so fetch once with .first() and write blanks rather than indexing an
-            # empty queryset with [0], which would raise IndexError and abort the
-            # entire export for every selected user.
-            obj_account = Account.objects.filter(ghp_user=obj).first()
+            # so write blanks rather than aborting the entire export for every
+            # selected user.
+            obj_account = getattr(obj, 'account', None)
             balance = obj_account.balance if obj_account else None
             last_update = obj_account.last_update if obj_account else None
             writer.writerow([getattr(obj, field) for field in field_names] + [balance, last_update])
@@ -632,6 +724,21 @@ class PlaceholderAccountResource(resources.ModelResource):
         import_id_fields = ('email',)  # Use email as the identifier for import
         fields = ('email', 'balance')
         export_order = ('email', 'balance')
+
+    def before_import_row(self, row, **kwargs):
+        super().before_import_row(row, **kwargs)
+        # Store emails lowercased, as registration stores usernames (GHPUser.save matches on it)
+        if row.get('email'):
+            row['email'] = row['email'].lower()
+
+    def get_instance(self, instance_loader, row):
+        # Match an existing placeholder case-insensitively, so re-importing a mixed-case
+        # email updates (and lowercases) that row instead of adding a case-duplicate that
+        # would make the carry-over ambiguous. Existing case-duplicates fail the row.
+        try:
+            return PlaceholderAccount.objects.get(email__iexact=row.get('email'))
+        except PlaceholderAccount.DoesNotExist:
+            return None
 
 class PlaceholderAccountAdmin(ImportExportModelAdmin):
     resource_class = PlaceholderAccountResource
@@ -709,6 +816,14 @@ class AccountAdmin(admin.ModelAdmin):
     @admin.display(description="Current Location")
     def current_location(self, obj):
         return str(obj.ghp_user.current_location)
+
+    # GHPUser.save() creates each Account; adding one here would create a balance with
+    # no ledger rows, and deleting one would lose the balance
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -806,6 +921,15 @@ class PieceAdmin(admin.ModelAdmin):
             return str(receipts[0].piece_location)
         return None
 
+    # Pieces are measured through the site, which charges for them; every pricing field
+    # here is read-only, so the add form could only crash. Deleting a piece would drop
+    # its receipts and unlink its ledger rows; use Refund Piece instead.
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     def get_actions(self, request):
         actions = super().get_actions(request)
         if 'delete_selected' in actions:
@@ -847,7 +971,8 @@ class PieceAdmin(admin.ModelAdmin):
     #     for obj in queryset:
     #         obj_piece = Piece.objects.filter(id=obj.piece.id).first()
     #         row = writer.writerow([getattr(obj, field) for field in field_names] + [obj_piece.ghp_user.email])
-            receipt = PieceReceipt.objects.filter(piece=obj).first()
+            # first receipt by pk, from the get_queryset() prefetch
+            receipt = min(obj.piecereceipt_set.all(), key=lambda r: r.pk, default=None)
             if receipt is None:
                 row = writer.writerow([getattr(obj, field) for field in field_names] + [None, obj.ghp_user.email])
             else:
@@ -875,7 +1000,18 @@ class PieceReciptAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('piece__ghp_user')
-    
+
+    # Receipts record what was charged and are created by Piece.save(). Staff may only
+    # toggle `printed` (to reprint); the actions below handle moving receipts.
+    def get_readonly_fields(self, request, obj=None):
+        return [field.name for field in self.model._meta.fields if field.name not in ('id', 'printed')]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     @admin.action(description="Reprint the receipt")
     def reprint_receipt(self, request, queryset):
         for obj in queryset:
@@ -912,7 +1048,19 @@ class PieceReciptAdmin(admin.ModelAdmin):
         return actions
 
 
+class LedgerAdminForm(forms.ModelForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        ghp_user = cleaned_data.get('ghp_user')
+        piece = cleaned_data.get('piece')
+        if ghp_user and piece and piece.ghp_user_id != ghp_user.pk:
+            self.add_error('piece', 'This piece belongs to a different user.')
+        return cleaned_data
+
+
 class LedgerAdmin(admin.ModelAdmin):
+    form = LedgerAdminForm
+
     list_display = [ 'transaction_type', 'date', 'amount', 'ghp_user', 'piece', 
                     'note', 'transaction_id', 'stripe_session_id', 'piece_location']
     
@@ -945,7 +1093,8 @@ class LedgerAdmin(admin.ModelAdmin):
     list_max_show_all = 200
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('ghp_user', 'piece').prefetch_related('piece__piecereceipt_set')
+        # str(piece) reads piece.ghp_user, so follow it too (changelist column and export)
+        return super().get_queryset(request).select_related('ghp_user', 'piece__ghp_user').prefetch_related('piece__piecereceipt_set')
 
     @admin.display(description="piece_location")
     def piece_location(self, obj):
@@ -967,6 +1116,10 @@ class LedgerAdmin(admin.ModelAdmin):
             return self.readonly_fields + list(tuple([item.name for item in obj._meta.fields if item.name != "note"]))
         return self.readonly_fields
 
+    # Deleting a ledger row would leave the balance it was applied to unchanged;
+    # correct mistakes with a compensating entry instead
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -988,7 +1141,9 @@ class LedgerAdmin(admin.ModelAdmin):
         writer.writerow(field_names + ['piece_location'])
         for obj in queryset:
 
-            receipt = PieceReceipt.objects.filter(piece=obj.piece).last()
+            # last receipt by pk, from the get_queryset() prefetch
+            receipts = obj.piece.piecereceipt_set.all() if obj.piece else []
+            receipt = max(receipts, key=lambda r: r.pk, default=None)
             if receipt is None:
                 row = writer.writerow([getattr(obj, field) for field in field_names] + [None])
             else:
@@ -997,8 +1152,26 @@ class LedgerAdmin(admin.ModelAdmin):
 
     export_as_csv.short_description = "Export Selected"
 
+class MemberSafeUserAdmin(BaseUserAdmin):
+    # Every member is also a User row, so the stock User admin could delete a member
+    # behind GHPUserAdmin's back. Logins that aren't members have no ledger and can
+    # still be deleted one at a time.
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and GHPUser.objects.filter(pk=obj.pk).exists():
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+
 # Unregister the old User model admin
 admin.site.unregister(Group)
+admin.site.unregister(User)
+admin.site.register(User, MemberSafeUserAdmin)
 
 
 # Register the GHPUser model with the GHPUserAdmin
