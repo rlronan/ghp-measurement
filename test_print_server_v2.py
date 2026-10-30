@@ -2,10 +2,13 @@
 # python-escpos is a print-client-only dependency (not in requirements.txt), so run with e.g.
 #   uv run --with python-escpos --with requests python -m unittest test_print_server_v2
 import contextlib
+import ctypes
 import io
 import json
 import os
+import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -146,14 +149,59 @@ class MainLoopTests(PrintClientTestCase):
         self.addCleanup(os.chdir, cwd)
         self.patch('load_secret_key', return_value='chelsea-key')
         self.sleeps = []
+        # main() points sys.stdout and sys.stderr at its log file; put them back afterwards
+        stdout, stderr = sys.stdout, sys.stderr
+        self.addCleanup(setattr, sys, 'stderr', stderr)
+        self.addCleanup(setattr, sys, 'stdout', stdout)
+        self.addCleanup(self.close_log_file)
 
-    def run_main(self, polls):
+    def close_log_file(self):
+        if isinstance(sys.stdout, print_server_v2.DailyLogTee) and sys.stdout.file:
+            sys.stdout.file.close()
+
+    def run_main(self, polls, overslept=()):
+        # overslept[i]: extra seconds the i-th sleep took (the computer asleep, say)
+        clock = [time.time()]
+
         def sleep(seconds):
+            clock[0] += seconds + (overslept[len(self.sleeps)] if len(self.sleeps) < len(overslept) else 0)
             self.sleeps.append(seconds)
             if len(self.sleeps) >= polls:
                 raise KeyboardInterrupt
-        with mock.patch.object(print_server_v2.time, 'sleep', side_effect=sleep):
+        with mock.patch.object(print_server_v2.time, 'sleep', side_effect=sleep), \
+                mock.patch.object(print_server_v2.time, 'time', side_effect=lambda: clock[0]):
             print_server_v2.main(['Chelsea', '--printer-ip', '10.0.0.1'])
+
+    def log_text(self):
+        log_dir = os.path.join(self.dir.name, 'chelsea_print_server_logs')
+        return ''.join(open(os.path.join(log_dir, name), encoding='utf-8').read() for name in sorted(os.listdir(log_dir)))
+
+    def test_output_is_written_to_daily_log_file(self):
+        self.patch('Network', new=broken_printer())
+        with mock.patch.object(print_server_v2.requests, 'get', side_effect=requests.exceptions.ConnectionError('down')):
+            self.run_main(polls=2)
+        log_dir = os.path.join(self.dir.name, 'chelsea_print_server_logs')
+        self.assertEqual(os.listdir(log_dir), [f"chelsea_print_server_{time.strftime('%Y-%m-%d')}.log"])
+        log = self.log_text()
+        self.assertIn('Starting optimized print server for Chelsea', log)
+        self.assertEqual(log.count('Connection failed - server may be down'), 2)
+        self.assertNotIn('chelsea-key', log)
+        for line in log.splitlines():
+            self.assertRegex(line, r'^\d\d:\d\d:\d\d ')
+
+    def test_late_check_is_logged(self):
+        with mock.patch.object(print_server_v2.requests, 'get', return_value=ok_response([])):
+            self.run_main(polls=3, overslept=(0, 45 * 60))
+        log = self.log_text()
+        self.assertEqual(log.count('minutes late'), 1)
+        self.assertIn('This check is 45 minutes late', log)
+
+    def test_unexpected_error_logs_traceback(self):
+        self.patch('poll_once', side_effect=RuntimeError('boom'))
+        self.run_main(polls=1)
+        log = self.log_text()
+        self.assertIn('Unexpected error in main loop: boom', log)
+        self.assertIn('Traceback (most recent call last)', log)
 
     def test_keeps_polling_while_server_down(self):
         get = self.patch('requests')
@@ -219,3 +267,77 @@ class SingleInstanceLockTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+@unittest.skipIf(print_server_v2 is None, 'needs python-escpos and requests')
+class LogFileTests(unittest.TestCase):
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.console = io.StringIO()
+        self.tee = print_server_v2.DailyLogTee(self.console, self.dir.name, 'barrow_print_server')
+        self.addCleanup(lambda: self.tee.file and self.tee.file.close())
+
+    def log_path(self, date):
+        return os.path.join(self.dir.name, f'barrow_print_server_{date}.log')
+
+    def test_each_line_is_timestamped_and_also_shown(self):
+        self.tee.write('one\ntw')
+        self.tee.write('o\n')
+        self.tee.write('three\n')
+        self.assertEqual(self.console.getvalue(), 'one\ntwo\nthree\n')
+        with open(self.log_path(time.strftime('%Y-%m-%d')), encoding='utf-8') as f:
+            lines = f.read().splitlines()
+        self.assertEqual([line[9:] for line in lines], ['one', 'two', 'three'])
+        for line in lines:
+            self.assertRegex(line, r'^\d\d:\d\d:\d\d ')
+
+    def test_new_file_each_day_and_old_files_pruned(self):
+        self.tee.write('today\n')
+        old_file = self.tee.file
+        expired = self.log_path('2000-01-01')
+        recent = self.log_path(time.strftime('%Y-%m-%d', time.localtime(time.time() - 5 * 24 * 60 * 60)))
+        unrelated = os.path.join(self.dir.name, 'barrow_unprinted_receipts.json')
+        for path in [expired, recent, unrelated]:
+            open(path, 'w').close()
+        self.tee.date = '2000-01-02'  # as if the date just changed
+        self.tee.write('later\n')
+        self.assertTrue(old_file.closed)
+        self.assertFalse(os.path.exists(expired))
+        self.assertTrue(os.path.exists(recent))
+        self.assertTrue(os.path.exists(unrelated))
+
+    def test_unwritable_log_dir_still_prints_to_console(self):
+        blocker = os.path.join(self.dir.name, 'not_a_dir')
+        open(blocker, 'w').close()
+        tee = print_server_v2.DailyLogTee(self.console, blocker, 'barrow_print_server')
+        tee.write('still shown\n')
+        self.assertIn('still shown\n', self.console.getvalue())
+        self.assertIn('Could not open a log file', self.console.getvalue())
+
+
+@unittest.skipIf(print_server_v2 is None, 'needs python-escpos and requests')
+class QuickEditTests(unittest.TestCase):
+
+    def test_does_nothing_off_windows(self):
+        fake = mock.MagicMock()
+        with mock.patch.object(print_server_v2.os, 'name', 'posix'), mock.patch.object(print_server_v2, 'ctypes', fake):
+            print_server_v2.disable_console_quick_edit()
+        fake.windll.kernel32.SetConsoleMode.assert_not_called()
+
+    def test_clears_quick_edit_and_keeps_other_flags(self):
+        fake = mock.MagicMock(c_uint32=ctypes.c_uint32, byref=ctypes.byref)
+        kernel32 = fake.windll.kernel32
+
+        def get_console_mode(handle, ref):
+            ref._obj.value = 0x01F7  # QuickEdit (0x40) and extended flags (0x80) on, among others
+            return 1
+        kernel32.GetConsoleMode.side_effect = get_console_mode
+        kernel32.SetConsoleMode.return_value = 1
+        with mock.patch.object(print_server_v2.os, 'name', 'nt'), mock.patch.object(print_server_v2, 'ctypes', fake), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            print_server_v2.disable_console_quick_edit()
+        kernel32.GetStdHandle.assert_called_once_with(-10)
+        self.assertEqual(kernel32.SetConsoleMode.call_args.args[1], 0x01B7)
+        self.assertIn('Turned off QuickEdit Mode', out.getvalue())

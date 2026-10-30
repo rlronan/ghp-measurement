@@ -2,11 +2,13 @@
 # This shows how to update your existing print servers for better efficiency
 
 import argparse
+import ctypes
 import json
 import os
 import socket
 import sys
 import time
+import traceback
 import requests
 from escpos.printer import Network
 
@@ -21,6 +23,14 @@ LOCATIONS = ['Barrow', 'Chelsea', 'Greenwich']
 # ephemeral range (49152+), so an outgoing connection can't be holding one by chance.
 SINGLE_INSTANCE_PORTS = {'Barrow': 48631, 'Chelsea': 48632, 'Greenwich': 48633}
 
+# Everything the print server prints is also written to one log file per day, kept for
+# this many days, so an outage can be looked into after the window has been closed.
+LOG_DAYS_KEPT = 60
+
+# A check that starts this many seconds later than planned means the program itself
+# wasn't running in between: the computer was asleep, or the window was paused.
+LATE_CHECK_SECONDS = 120
+
 
 def parse_args(argv=None):
     # The same exe runs at every location. run_<location>_print_server.bat (written by
@@ -30,6 +40,131 @@ def parse_args(argv=None):
     parser.add_argument('location', choices=LOCATIONS, help='location this print server runs at')
     parser.add_argument('--printer-ip', required=True, help="static IP of the location's receipt printer")
     return parser.parse_args(argv)
+
+
+def log_dir(location):
+    # Next to the secret key file: the folder the location's .bat file is run from
+    return f'./{location.lower()}_print_server_logs'
+
+
+class DailyLogTee:
+    """
+    Stand-in for sys.stdout/sys.stderr that writes everything to the console and to
+    <log dir>/<prefix>_YYYY-MM-DD.log, with the time at the start of each line. A new file
+    starts each day, and files older than LOG_DAYS_KEPT days are deleted.
+    """
+
+    def __init__(self, console, directory, prefix):
+        self.console = console
+        self.directory = directory
+        self.prefix = prefix
+        self.date = None
+        self.file = None
+        self.at_line_start = True
+
+    def _today_file(self):
+        today = time.strftime('%Y-%m-%d')
+        if today != self.date:
+            self.date = today
+            if self.file:
+                self.file.close()
+                self.file = None
+            try:
+                os.makedirs(self.directory, exist_ok=True)
+                self.file = open(os.path.join(self.directory, f'{self.prefix}_{today}.log'), 'a', encoding='utf-8')
+            except OSError as e:
+                self._to_console(f"Could not open a log file in {self.directory}: {e}\n")
+            prune_old_logs(self.directory, self.prefix, LOG_DAYS_KEPT)
+        return self.file
+
+    def _to_console(self, text):
+        if self.console is None:
+            return
+        try:
+            self.console.write(text)
+            self.console.flush()
+        except (OSError, ValueError):
+            pass
+
+    def write(self, text):
+        log_file = self._today_file()
+        if log_file:
+            stamped = []
+            for line in text.splitlines(keepends=True):
+                if self.at_line_start:
+                    stamped.append(time.strftime('%H:%M:%S '))
+                stamped.append(line)
+                self.at_line_start = line.endswith('\n')
+            try:
+                # Write the file first and flush every time, so the log is complete up to
+                # the moment the program stops, however it stops
+                log_file.write(''.join(stamped))
+                log_file.flush()
+            except (OSError, ValueError):
+                pass
+        self._to_console(text)
+        return len(text)
+
+    def flush(self):
+        if self.file:
+            try:
+                self.file.flush()
+            except (OSError, ValueError):
+                pass
+        if self.console is not None:
+            try:
+                self.console.flush()
+            except (OSError, ValueError):
+                pass
+
+
+def prune_old_logs(directory, prefix, days_kept):
+    cutoff = time.strftime('%Y-%m-%d', time.localtime(time.time() - days_kept * 24 * 60 * 60))
+    try:
+        names = os.listdir(directory)
+    except OSError:
+        return
+    for name in names:
+        date = name[len(prefix) + 1:-len('.log')]
+        if name.startswith(prefix + '_') and name.endswith('.log') and len(date) == 10 and date < cutoff:
+            try:
+                os.remove(os.path.join(directory, name))
+            except OSError:
+                pass
+
+
+def start_logging(location):
+    tee = DailyLogTee(sys.stdout, log_dir(location), f'{location.lower()}_print_server')
+    sys.stdout = tee
+    sys.stderr = tee
+    return tee
+
+
+def disable_console_quick_edit():
+    """
+    Turn off QuickEdit Mode for this console window. With it on, a click inside the
+    window starts selecting text, and Windows then stops the program the next time it
+    prints anything, until someone presses a key in the window. The window shows no sign
+    of this except the selection, so the print server looks like it has silently stopped.
+    """
+    if os.name != 'nt':
+        return
+    ENABLE_QUICK_EDIT_MODE = 0x0040
+    ENABLE_EXTENDED_FLAGS = 0x0080  # required for the QuickEdit flag to take effect
+    STD_INPUT_HANDLE = -10
+    try:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.GetStdHandle(STD_INPUT_HANDLE)
+        mode = ctypes.c_uint32()
+        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            print("Could not read the console mode; QuickEdit Mode left as it is")
+            return
+        if kernel32.SetConsoleMode(handle, (mode.value & ~ENABLE_QUICK_EDIT_MODE) | ENABLE_EXTENDED_FLAGS):
+            print("Turned off QuickEdit Mode, so clicking in this window can't pause printing")
+        else:
+            print("Could not turn off QuickEdit Mode")
+    except Exception as e:
+        print(f"Could not turn off QuickEdit Mode: {e}")
 
 
 def acquire_single_instance_lock(location):
@@ -237,6 +372,10 @@ def main(argv=None):
     location = args.location
     printer_ip = args.printer_ip
 
+    start_logging(location)
+    print(f"Log files: {os.path.abspath(log_dir(location))}")
+    disable_console_quick_edit()
+
     instance_lock = acquire_single_instance_lock(location)
     if instance_lock is None:
         print(f"Another {location} print server is probably already running on this computer "
@@ -257,12 +396,16 @@ def main(argv=None):
 
     consecutive_failures = 0
     max_consecutive_failures = 5
+    next_check_due = None
 
     try:
         while True:
             wait = POLL_INTERVAL
             try:
                 print(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
+                if next_check_due is not None and time.time() - next_check_due > LATE_CHECK_SECONDS:
+                    print(f"This check is {(time.time() - next_check_due) / 60:.0f} minutes late. The program was "
+                          f"not running in between: the computer was probably asleep, or this window was paused.")
                 if spool:
                     print(f"Retrying {len(spool)} unprinted earlier jobs: {[job.get('id') for job in spool]}")
 
@@ -280,11 +423,13 @@ def main(argv=None):
 
             except Exception as e:
                 print(f"Unexpected error in main loop: {e}")
+                traceback.print_exc()
                 # poll_once saves the spool after every change, so the file is current
                 spool = load_spool(spool_file)
 
             # Wait for next polling cycle
             print(f"Waiting {wait} seconds until next check...")
+            next_check_due = time.time() + wait
             time.sleep(wait)
 
     except KeyboardInterrupt:
