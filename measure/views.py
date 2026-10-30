@@ -29,6 +29,11 @@ import logging
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+# Remembers the location last chosen on the measure-a-piece page, per browser, so the next
+# piece measured on the same computer or phone defaults to it
+PIECE_LOCATION_COOKIE = 'last_piece_location'
+PIECE_LOCATION_COOKIE_MAX_AGE = 365 * 24 * 60 * 60
+
 def user_owns_object_check(user, ghp_user):
     # GHPUser is a multi-table child of User, so the two share a primary key.
     return user.pk == ghp_user.pk
@@ -144,8 +149,9 @@ def PieceView(request, ghp_user_id):
         return redirect_to_login(request.get_full_path(), "measure:login")
     
     user_balance = ghp_user.account.balance #Account.objects.filter(ghp_user=ghp_user).first() # should only be one
+    device_location = request.COOKIES.get(PIECE_LOCATION_COOKIE)
     if request.method == 'POST':
-        form = PieceForm(request.POST, request.FILES, ghp_user=ghp_user, user_balance=user_balance)
+        form = PieceForm(request.POST, request.FILES, ghp_user=ghp_user, user_balance=user_balance, device_location=device_location)
         if form.is_valid():
             quantity = form.cleaned_data.get('quantity', 1) # Use .get for safety, default to 1
             logger.info(f"Piece Quantity: {quantity}")
@@ -176,7 +182,11 @@ def PieceView(request, ghp_user_id):
                 
                 logger.info(f"Saved piece copy {i + 1} of {quantity} for user {ghp_user.get_username()}.")
 
-            return HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
+            response = HttpResponseRedirect(reverse('measure:ghp_user_piece_view', args=(ghp_user_id,)))
+            response.set_cookie(PIECE_LOCATION_COOKIE, form.cleaned_data['piece_location'],
+                                max_age=PIECE_LOCATION_COOKIE_MAX_AGE, secure=request.is_secure(),
+                                httponly=True, samesite='Lax')
+            return response
         else:
             logger.warning(f"PieceForm is invalid for user {request.user.username}, ghp_user: {ghp_user.get_username()}. Errors: {form.errors}")
             print("Measuring piece form is not valid")
@@ -184,7 +194,7 @@ def PieceView(request, ghp_user_id):
             return render(request, 'measure/piece.html', {'form': form})
 
     else:
-        form = PieceForm(ghp_user=ghp_user, user_balance=user_balance)
+        form = PieceForm(ghp_user=ghp_user, user_balance=user_balance, device_location=device_location)
         logger.info(f"Rendering PieceForm (GET request) for user {request.user.username}, ghp_user: {ghp_user.get_username()}.")
     return render(request, 'measure/piece.html', {'form': form})
 

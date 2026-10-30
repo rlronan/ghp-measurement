@@ -55,6 +55,8 @@ class PieceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.ghp_user = kwargs.pop('ghp_user', None)
         self.user_balance = kwargs.pop('user_balance', None)
+        # The location last chosen on this browser (see PieceView), if any
+        self.device_location = kwargs.pop('device_location', None)
         self.ghp_user_location = self.ghp_user.get_location()
 
         print("user balance: ", self.user_balance)
@@ -72,7 +74,13 @@ class PieceForm(forms.ModelForm):
         self.fields['ghp_user_piece_id'].disabled = True
 
 
-        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=self.ghp_user_location)
+        # Prefer the location last chosen on this browser over the member's saved location:
+        # a studio computer is always at one studio, while members measure at more than one.
+        # The saved location is often a different studio, and an unnoticed default sends the
+        # receipt to that studio's printer.
+        location_values = [value for value, label in LOCATION_CHOICES]
+        initial_location = self.device_location if self.device_location in location_values else self.ghp_user_location
+        self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES, initial=initial_location)
         #self.fields['piece_location'] = forms.ChoiceField(choices=LOCATION_CHOICES_ONLY_CHELSEA, initial="Chelsea")
         
         # Set up choices for the hidden select dropdowns to include ALL possible temperatures
