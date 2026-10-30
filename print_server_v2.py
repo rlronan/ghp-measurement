@@ -4,6 +4,7 @@
 import argparse
 import ctypes
 import json
+import logging
 import os
 import socket
 import sys
@@ -61,11 +62,11 @@ class DailyLogTee:
         self.date = None
         self.file = None
         self.at_line_start = True
+        self.open_error_shown = False
 
     def _today_file(self):
         today = time.strftime('%Y-%m-%d')
         if today != self.date:
-            self.date = today
             if self.file:
                 self.file.close()
                 self.file = None
@@ -73,7 +74,13 @@ class DailyLogTee:
                 os.makedirs(self.directory, exist_ok=True)
                 self.file = open(os.path.join(self.directory, f'{self.prefix}_{today}.log'), 'a', encoding='utf-8')
             except OSError as e:
-                self._to_console(f"Could not open a log file in {self.directory}: {e}\n")
+                # Leave self.date unset so the next write tries again; say so only once
+                if not self.open_error_shown:
+                    self._to_console(f"Could not open a log file in {self.directory}: {e}\n")
+                    self.open_error_shown = True
+                return None
+            self.date = today
+            self.open_error_shown = False
             prune_old_logs(self.directory, self.prefix, LOG_DAYS_KEPT)
         return self.file
 
@@ -137,6 +144,9 @@ def start_logging(location):
     tee = DailyLogTee(sys.stdout, log_dir(location), f'{location.lower()}_print_server')
     sys.stdout = tee
     sys.stderr = tee
+    # python-escpos calls logging.basicConfig() on import, which points the root logger at
+    # the original stderr; send its messages (e.g. "Network device ... not found") here too
+    logging.basicConfig(stream=tee, force=True)
     return tee
 
 

@@ -5,6 +5,7 @@ import contextlib
 import ctypes
 import io
 import json
+import logging
 import os
 import sys
 import tempfile
@@ -153,11 +154,18 @@ class MainLoopTests(PrintClientTestCase):
         stdout, stderr = sys.stdout, sys.stderr
         self.addCleanup(setattr, sys, 'stderr', stderr)
         self.addCleanup(setattr, sys, 'stdout', stdout)
-        self.addCleanup(self.close_log_file)
+        # Close the log files main() opened; a test may already have put sys.stdout back
+        self.tees = []
+        start_logging = print_server_v2.start_logging
+        self.patch('start_logging', side_effect=lambda location: self.tees.append(start_logging(location)) or self.tees[-1])
+        self.addCleanup(self.close_log_files)
+        root_handlers = logging.getLogger().handlers[:]
+        self.addCleanup(setattr, logging.getLogger(), 'handlers', root_handlers)
 
-    def close_log_file(self):
-        if isinstance(sys.stdout, print_server_v2.DailyLogTee) and sys.stdout.file:
-            sys.stdout.file.close()
+    def close_log_files(self):
+        for tee in self.tees:
+            if tee.file:
+                tee.file.close()
 
     def run_main(self, polls, overslept=()):
         # overslept[i]: extra seconds the i-th sleep took (the computer asleep, say)
@@ -195,6 +203,15 @@ class MainLoopTests(PrintClientTestCase):
         log = self.log_text()
         self.assertEqual(log.count('minutes late'), 1)
         self.assertIn('This check is 45 minutes late', log)
+
+    def test_library_log_messages_reach_the_log_file(self):
+        def unusable_printer(*args, **kwargs):
+            logging.getLogger('escpos').error('Network device %s not found', '10.0.0.1')
+            return mock.Mock(is_usable=mock.Mock(return_value=False))
+        self.patch('Network', side_effect=unusable_printer)
+        with mock.patch.object(print_server_v2.requests, 'get', return_value=ok_response([JOB])):
+            self.run_main(polls=1)
+        self.assertIn('Network device 10.0.0.1 not found', self.log_text())
 
     def test_unexpected_error_logs_traceback(self):
         self.patch('poll_once', side_effect=RuntimeError('boom'))
@@ -265,8 +282,6 @@ class SingleInstanceLockTests(unittest.TestCase):
         again.close()
 
 
-if __name__ == '__main__':
-    unittest.main()
 
 
 @unittest.skipIf(print_server_v2 is None, 'needs python-escpos and requests')
@@ -304,6 +319,7 @@ class LogFileTests(unittest.TestCase):
         self.tee.date = '2000-01-02'  # as if the date just changed
         self.tee.write('later\n')
         self.assertTrue(old_file.closed)
+        self.assertEqual(self.tee.date, time.strftime('%Y-%m-%d'))
         self.assertFalse(os.path.exists(expired))
         self.assertTrue(os.path.exists(recent))
         self.assertTrue(os.path.exists(unrelated))
@@ -313,8 +329,15 @@ class LogFileTests(unittest.TestCase):
         open(blocker, 'w').close()
         tee = print_server_v2.DailyLogTee(self.console, blocker, 'barrow_print_server')
         tee.write('still shown\n')
+        tee.write('again\n')
         self.assertIn('still shown\n', self.console.getvalue())
-        self.assertIn('Could not open a log file', self.console.getvalue())
+        self.assertEqual(self.console.getvalue().count('Could not open a log file'), 1)
+        # Once the folder can be created, logging starts without waiting for the next day
+        os.remove(blocker)
+        tee.write('logged now\n')
+        self.addCleanup(tee.file.close)
+        with open(os.path.join(blocker, f"barrow_print_server_{time.strftime('%Y-%m-%d')}.log"), encoding='utf-8') as f:
+            self.assertIn('logged now', f.read())
 
 
 @unittest.skipIf(print_server_v2 is None, 'needs python-escpos and requests')
@@ -327,17 +350,23 @@ class QuickEditTests(unittest.TestCase):
         fake.windll.kernel32.SetConsoleMode.assert_not_called()
 
     def test_clears_quick_edit_and_keeps_other_flags(self):
-        fake = mock.MagicMock(c_uint32=ctypes.c_uint32, byref=ctypes.byref)
-        kernel32 = fake.windll.kernel32
+        # (mode before, mode set): QuickEdit (0x40) cleared, extended flags (0x80) always set
+        for before, after in [(0x01F7, 0x01B7), (0x0047, 0x0087)]:
+            fake = mock.MagicMock(c_uint32=ctypes.c_uint32, byref=ctypes.byref)
+            kernel32 = fake.windll.kernel32
 
-        def get_console_mode(handle, ref):
-            ref._obj.value = 0x01F7  # QuickEdit (0x40) and extended flags (0x80) on, among others
-            return 1
-        kernel32.GetConsoleMode.side_effect = get_console_mode
-        kernel32.SetConsoleMode.return_value = 1
-        with mock.patch.object(print_server_v2.os, 'name', 'nt'), mock.patch.object(print_server_v2, 'ctypes', fake), \
-                contextlib.redirect_stdout(io.StringIO()) as out:
-            print_server_v2.disable_console_quick_edit()
-        kernel32.GetStdHandle.assert_called_once_with(-10)
-        self.assertEqual(kernel32.SetConsoleMode.call_args.args[1], 0x01B7)
-        self.assertIn('Turned off QuickEdit Mode', out.getvalue())
+            def get_console_mode(handle, ref, before=before):
+                ref._obj.value = before
+                return 1
+            kernel32.GetConsoleMode.side_effect = get_console_mode
+            kernel32.SetConsoleMode.return_value = 1
+            with mock.patch.object(print_server_v2.os, 'name', 'nt'), mock.patch.object(print_server_v2, 'ctypes', fake), \
+                    contextlib.redirect_stdout(io.StringIO()) as out:
+                print_server_v2.disable_console_quick_edit()
+            kernel32.GetStdHandle.assert_called_once_with(-10)
+            self.assertEqual(kernel32.SetConsoleMode.call_args.args[1], after)
+            self.assertIn('Turned off QuickEdit Mode', out.getvalue())
+
+
+if __name__ == '__main__':
+    unittest.main()

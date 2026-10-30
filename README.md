@@ -38,6 +38,7 @@ Files older than 60 days are deleted. When printing stops, that day's log shows 
 - `Failed to print job` lines: the site handed over receipts but the printer couldn't be reached.
 - A `This check is N minutes late` line: the program wasn't running in between, e.g. the computer was asleep.
 - A gap in the times that ends with `Starting optimized print server`: the program was closed or crashed, and was started again.
+- Any other gap in the times: the program was stuck partway through a check (e.g. paused while fetching or printing).
 
 The print server also turns off the window's QuickEdit Mode when it starts. With QuickEdit on, a click inside the
 window selects text and pauses the program until a key is pressed, which looks like printing silently stopping.
